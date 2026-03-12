@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Nowo\IconSelectorBundle\Tests\Controller\Api;
 
 use Nowo\IconSelectorBundle\Controller\Api\IconSvgController;
+use Nowo\IconSelectorBundle\Service\IconListProvider;
+use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,6 +21,19 @@ use const JSON_THROW_ON_ERROR;
  */
 final class IconSvgControllerTest extends TestCase
 {
+    /**
+     * @param list<string> $allowedIconIds
+     */
+    private function createController(
+        IconRendererInterface $renderer,
+        array $allowedIconIds = ['heroicons-outline:home', 'bi:house'],
+    ): IconSvgController {
+        $provider = $this->createMock(IconListProvider::class);
+        $provider->method('getIcons')->willReturn($allowedIconIds);
+
+        return new IconSvgController($renderer, $provider, new SvgSanitizer());
+    }
+
     /** GET with ids param returns a map of id => svg. */
     public function testGetWithIdsReturnsSvgMap(): void
     {
@@ -30,7 +45,7 @@ final class IconSvgControllerTest extends TestCase
                 default                  => '<svg></svg>',
             });
 
-        $controller = new IconSvgController($renderer);
+        $controller = $this->createController($renderer);
         $request    = new Request(['ids' => 'heroicons-outline:home,bi:house']);
         $response   = $controller->__invoke($request);
 
@@ -48,7 +63,7 @@ final class IconSvgControllerTest extends TestCase
         $renderer = $this->createMock(IconRendererInterface::class);
         $renderer->method('renderIcon')->willReturn('<svg></svg>');
 
-        $controller = new IconSvgController($renderer);
+        $controller = $this->createController($renderer);
         $request    = new Request([], [], [], [], [], [
             'CONTENT_TYPE'   => 'application/json',
             'REQUEST_METHOD' => 'POST',
@@ -65,7 +80,7 @@ final class IconSvgControllerTest extends TestCase
     public function testEmptyIdsReturnsEmptyObject(): void
     {
         $renderer   = $this->createMock(IconRendererInterface::class);
-        $controller = new IconSvgController($renderer);
+        $controller = $this->createController($renderer);
         $request    = new Request();
         $response   = $controller->__invoke($request);
 
@@ -78,7 +93,7 @@ final class IconSvgControllerTest extends TestCase
     public function testPostWithNonJsonContentTypeUsesGetPath(): void
     {
         $renderer   = $this->createMock(IconRendererInterface::class);
-        $controller = new IconSvgController($renderer);
+        $controller = $this->createController($renderer);
         $request    = new Request([], [], [], [], [], [
             'CONTENT_TYPE'   => 'text/plain',
             'REQUEST_METHOD' => 'POST',
@@ -95,7 +110,7 @@ final class IconSvgControllerTest extends TestCase
     public function testPostWithIdsNotArrayReturnsEmptyObject(): void
     {
         $renderer   = $this->createMock(IconRendererInterface::class);
-        $controller = new IconSvgController($renderer);
+        $controller = $this->createController($renderer);
         $request    = new Request([], [], [], [], [], [
             'CONTENT_TYPE'   => 'application/json',
             'REQUEST_METHOD' => 'POST',
@@ -122,7 +137,7 @@ final class IconSvgControllerTest extends TestCase
                 return '<svg>ok</svg>';
             });
 
-        $controller = new IconSvgController($renderer);
+        $controller = $this->createController($renderer);
         $request    = new Request(['ids' => 'heroicons-outline:home,bi:house']);
         $response   = $controller->__invoke($request);
 
@@ -138,7 +153,7 @@ final class IconSvgControllerTest extends TestCase
         $renderer = $this->createMock(IconRendererInterface::class);
         $renderer->method('renderIcon')->with('bi:house')->willReturn('<svg>house</svg>');
 
-        $controller = new IconSvgController($renderer);
+        $controller = $this->createController($renderer);
         $request    = new Request(['ids' => 'bi:house,,heroicons-outline:home']);
         $response   = $controller->__invoke($request);
 
@@ -146,5 +161,40 @@ final class IconSvgControllerTest extends TestCase
         self::assertCount(2, $data);
         self::assertArrayHasKey('bi:house', $data);
         self::assertArrayHasKey('heroicons-outline:home', $data);
+    }
+
+    /** IDs not in the configured icon list are not rendered and omitted from the response. */
+    public function testIdsNotInAllowedListAreOmitted(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->expects(self::once())->method('renderIcon')->with('heroicons-outline:home')->willReturn('<svg>home</svg>');
+
+        $controller = $this->createController($renderer, ['heroicons-outline:home']);
+        $request    = new Request(['ids' => 'heroicons-outline:home,bi:house,unknown:icon']);
+        $response   = $controller->__invoke($request);
+
+        $data = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertArrayHasKey('heroicons-outline:home', $data);
+        self::assertArrayNotHasKey('bi:house', $data);
+        self::assertArrayNotHasKey('unknown:icon', $data);
+    }
+
+    /** SVG output is sanitized (script tags and event attributes removed). */
+    public function testSvgOutputIsSanitized(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->method('renderIcon')
+            ->with('heroicons-outline:home')
+            ->willReturn('<svg onload="alert(1)"><script>evil()</script><path d=""/></svg>');
+
+        $controller = $this->createController($renderer);
+        $request    = new Request(['ids' => 'heroicons-outline:home']);
+        $response   = $controller->__invoke($request);
+
+        $data = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $svg  = $data['heroicons-outline:home'] ?? '';
+        self::assertStringNotContainsString('script', $svg);
+        self::assertStringNotContainsString('onload', $svg);
+        self::assertStringContainsString('<path', $svg);
     }
 }

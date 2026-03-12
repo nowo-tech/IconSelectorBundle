@@ -15,9 +15,11 @@ use function in_array;
  * Icon identifiers follow Symfony UX Icons / Iconify format: prefix:name
  * (e.g. "heroicons-outline:home", "heroicons-solid:user", "bi:house").
  *
+ * Class is not final so it can be mocked in unit tests (e.g. IconSvgControllerTest).
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
-final readonly class IconListProvider
+readonly class IconListProvider
 {
     /**
      * Static list of common icons per set for the selector.

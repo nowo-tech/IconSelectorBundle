@@ -36,4 +36,29 @@ final class NowoIconSelectorTwigExtensionTest extends TestCase
         $ext = new NowoIconSelectorTwigExtension();
         self::assertStringStartsWith('bundles/' . NowoIconSelectorTwigExtension::ASSET_DIR . '/', $ext->assetPath('file.js'));
     }
+
+    /** Path traversal (..) is rejected and returns safe default path. */
+    public function testAssetPathRejectsPathTraversal(): void
+    {
+        $ext     = new NowoIconSelectorTwigExtension();
+        $default = 'bundles/' . NowoIconSelectorTwigExtension::ASSET_DIR . '/icon-selector.js';
+        self::assertSame($default, $ext->assetPath('../other/file.js'));
+        self::assertSame($default, $ext->assetPath('sub/../../etc/passwd'));
+    }
+
+    /** Invalid characters in filename yield safe default path. */
+    public function testAssetPathRejectsInvalidCharacters(): void
+    {
+        $ext     = new NowoIconSelectorTwigExtension();
+        $default = 'bundles/' . NowoIconSelectorTwigExtension::ASSET_DIR . '/icon-selector.js';
+        self::assertSame($default, $ext->assetPath('file<script>.js'));
+        self::assertSame($default, $ext->assetPath(''));
+    }
+
+    /** Subpath with slash is allowed. */
+    public function testAssetPathAllowsSubpath(): void
+    {
+        $ext = new NowoIconSelectorTwigExtension();
+        self::assertSame('bundles/nowoiconselector/css/theme.css', $ext->assetPath('css/theme.css'));
+    }
 }

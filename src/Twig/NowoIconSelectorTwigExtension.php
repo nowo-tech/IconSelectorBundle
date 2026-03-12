@@ -36,7 +36,16 @@ final class NowoIconSelectorTwigExtension extends AbstractExtension
     }
 
     /**
+     * Safe character set for asset path segments (alphanumeric, dot, hyphen, underscore, slash for subpaths).
+     * Rejects ".." and any character that could lead to path traversal or injection.
+     */
+    private const SAFE_FILENAME_PATTERN = '#^[a-zA-Z0-9._/-]+$#';
+
+    /**
      * Returns the asset path for a file in the bundle's public directory.
+     *
+     * The filename must not contain ".." and must match a safe character set to prevent path traversal.
+     * Use only literal or controlled values (e.g. "icon-selector.js", "css/theme.css").
      *
      * @param string $filename Filename or path relative to the bundle asset dir (e.g. "icon-selector.js")
      *
@@ -44,6 +53,11 @@ final class NowoIconSelectorTwigExtension extends AbstractExtension
      */
     public function assetPath(string $filename): string
     {
-        return 'bundles/' . self::ASSET_DIR . '/' . ltrim($filename, '/');
+        $filename = ltrim($filename, '/');
+        if ($filename === '' || str_contains($filename, '..') || preg_match(self::SAFE_FILENAME_PATTERN, $filename) !== 1) {
+            return 'bundles/' . self::ASSET_DIR . '/icon-selector.js';
+        }
+
+        return 'bundles/' . self::ASSET_DIR . '/' . $filename;
     }
 }

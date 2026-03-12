@@ -27,6 +27,15 @@ services:
   Nowo\IconSelectorBundle\Controller\Api\IconConfigController:
     public: true
 
+  Nowo\IconSelectorBundle\Controller\Api\IconSvgController:
+    arguments:
+      $iconRenderer: '@Symfony\UX\Icons\IconRendererInterface'
+      $iconListProvider: '@Nowo\IconSelectorBundle\Service\IconListProvider'
+      $svgSanitizer: '@Nowo\IconSelectorBundle\Service\SvgSanitizer'
+    public: true
+
+  Nowo\IconSelectorBundle\Service\SvgSanitizer: ~
+
   Nowo\IconSelectorBundle\Form\IconSelectorType:
     arguments:
       $iconListProvider: '@Nowo\IconSelectorBundle\Service\IconListProvider'

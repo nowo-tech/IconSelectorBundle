@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Controller\Api;
 
+use Nowo\IconSelectorBundle\Service\IconListProvider;
+use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,17 +24,19 @@ use function is_string;
  * without the browser making individual requests. Use this to batch-load SVGs
  * for the icon selector grid or Tom Select options.
  *
+ * Security: only icon IDs present in the configured icon sets (IconListProvider) are
+ * rendered; returned SVG is sanitized (script tags and event attributes removed).
+ *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
 final readonly class IconSvgController
 {
     private const MAX_IDS = 500;
 
-    /**
-     * @param IconRendererInterface $iconRenderer UX Icons renderer used to resolve icon IDs to SVG markup
-     */
     public function __construct(
         private IconRendererInterface $iconRenderer,
+        private IconListProvider $iconListProvider,
+        private SvgSanitizer $svgSanitizer,
     ) {
     }
 
@@ -44,6 +48,7 @@ final readonly class IconSvgController
      *
      * Response: {"id1": "<svg>...</svg>", "id2": "<svg>...</svg>"}
      * Failed or unknown icons are omitted or have an empty string.
+     * Only IDs that belong to the configured icon_sets are rendered.
      *
      * @param Request $request GET with query "ids" (comma-separated) or POST with JSON body {"ids": ["id1", "id2"]}
      *
@@ -57,18 +62,20 @@ final readonly class IconSvgController
             return new JsonResponse([], Response::HTTP_OK);
         }
 
-        $ids  = array_slice(array_unique($ids), 0, self::MAX_IDS);
-        $svgs = [];
+        $allowedIds = array_fill_keys($this->iconListProvider->getIcons(), true);
+        $ids        = array_slice(array_unique($ids), 0, self::MAX_IDS);
+        $svgs       = [];
 
         foreach ($ids as $id) {
-            if ($id === '') {
+            if ($id === '' || !isset($allowedIds[$id])) {
                 continue;
             }
             try {
-                $svgs[$id] = $this->iconRenderer->renderIcon($id, [
+                $raw = $this->iconRenderer->renderIcon($id, [
                     'class' => 'icon-selector-svg',
                     'style' => 'width:1.25rem;height:1.25rem;fill:currentColor;',
                 ]);
+                $svgs[$id] = $this->svgSanitizer->sanitize($raw);
             } catch (Throwable) {
                 $svgs[$id] = '';
             }
