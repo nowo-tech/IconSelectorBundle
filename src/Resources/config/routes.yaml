@@ -1,0 +1,4 @@
+nowo_icon_selector_api:
+  resource: '../../Controller/Api/'
+  type: attribute
+  prefix: ''

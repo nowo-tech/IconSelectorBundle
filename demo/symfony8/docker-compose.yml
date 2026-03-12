@@ -1,0 +1,31 @@
+name: icon-selector-demo-symfony8
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: icon-selector-demo-symfony8-php
+    working_dir: /app
+    ports:
+      - "${PORT:-8011}:80"
+    volumes:
+      - .:/app
+      - ../..:/var/icon-selector-bundle
+      - composer-cache:/root/.composer/cache
+    environment:
+      - COMPOSER_ALLOW_SUPERUSER=1
+      # Demo always runs in dev (Web Profiler, Twig Inspector, debug toolbar)
+      - APP_ENV=dev
+      - APP_DEBUG=1
+      - APP_SECRET=${APP_SECRET:-demo-secret}
+    networks:
+      - icon-selector-demo-network
+
+volumes:
+  composer-cache:
+    driver: local
+
+networks:
+  icon-selector-demo-network:
+    driver: bridge

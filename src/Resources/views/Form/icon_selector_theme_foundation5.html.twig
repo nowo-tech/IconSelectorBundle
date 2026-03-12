@@ -1,0 +1,24 @@
+{#
+  Form theme for IconSelectorType (Foundation 5 base).
+#}
+{% extends 'foundation_5_layout.html.twig' %}
+
+{% block icon_selector_widget %}
+{% set attr = attr|merge({
+    'data-controller': (attr['data-controller']|default('') ~ ' icon-selector')|trim,
+    'data-icon-selector-mode-value': form.vars.mode|default('direct'),
+    'data-icon-selector-icons-url-value': form.vars.icons_api_path|default('/api/icon-selector/icons'),
+    'class': (attr.class|default('') ~ ' icon-selector-widget')|trim
+}) %}
+<div {{ block('widget_container_attributes') }}>
+    <input type="text"
+           name="{{ full_name }}"
+           id="{{ id }}"
+           {% if value is not empty %}value="{{ value }}"{% endif %}
+           {{ block('widget_attributes') }}
+           data-icon-selector-target="input"
+           autocomplete="off"
+           class="icon-selector-input form-control" />
+    <div data-icon-selector-target="picker" class="icon-selector-picker mt-2" aria-hidden="true"></div>
+</div>
+{% endblock %}

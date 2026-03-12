@@ -1,0 +1,10 @@
+# Loaded only when nowo_icon_selector.use_iconify_collection is true.
+# Requires symfony/http-client to be available.
+
+services:
+  Nowo\IconSelectorBundle\Service\IconifyCollectionLoader:
+    arguments:
+      $httpClient: '@http_client'
+      $cache: '@cache.app'
+      $setMapping: []  # use default mapping (heroicons, bootstrap-icons)
+    public: false

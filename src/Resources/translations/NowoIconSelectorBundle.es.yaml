@@ -1,0 +1,18 @@
+# Icon Selector Bundle - Español
+placeholder: 'Elegir icono...'
+search_placeholder: 'Buscar iconos...'
+
+# Etiquetas de opciones (nombres de iconos como claves)
+home: Inicio
+user: Usuario
+cog-6-tooth: Ajustes
+arrow-right: 'Flecha derecha'
+document-text: Documento
+folder: Carpeta
+chart-bar: Gráfico
+envelope: Sobre
+person: Persona
+gear: Engranaje
+file-text: Archivo
+bar-chart: 'Gráfico de barras'
+house: Casa

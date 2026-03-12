@@ -1,0 +1,26 @@
+{
+  "name": "@nowo-tech/icon-selector-bundle",
+  "version": "1.0.0",
+  "description": "Assets build for Icon Selector Bundle (TypeScript)",
+  "private": true,
+  "packageManager": "pnpm@10.29.2",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "watch": "vite build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "tom-select": "^2.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "happy-dom": "^15.0.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "vitest": "^2.0.0"
+  },
+  "author": "Héctor Franco Aceituno <hectorfranco@nowo.tech>",
+  "license": "MIT"
+}

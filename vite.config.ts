@@ -1,0 +1,23 @@
+import { defineConfig } from 'vite';
+
+/**
+ * Vite configuration for the Icon Selector Bundle frontend assets.
+ * Builds TypeScript to a single IIFE in `src/Resources/public` for Symfony `assets:install`
+ * (output ends up at `public/bundles/nowoiconselector/icon-selector.js`).
+ */
+export default defineConfig({
+  build: {
+    outDir: 'src/Resources/public',
+    emptyOutDir: false,
+    rollupOptions: {
+      input: 'src/Resources/assets/src/icon-selector.ts',
+      output: {
+        format: 'iife',
+        entryFileNames: 'icon-selector.js',
+        assetFileNames: 'icon-selector.[ext]',
+      },
+    },
+    minify: true,
+    sourcemap: false,
+  },
+});

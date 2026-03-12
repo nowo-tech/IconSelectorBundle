@@ -1,0 +1,30 @@
+name: icon-selector-demo-symfony7
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: icon-selector-demo-symfony7-php
+    working_dir: /app
+    ports:
+      - "${PORT:-8010}:80"
+    volumes:
+      - .:/app
+      - ../..:/var/icon-selector-bundle
+      - composer-cache:/root/.composer/cache
+    environment:
+      - COMPOSER_ALLOW_SUPERUSER=1
+      - APP_ENV=${APP_ENV:-dev}
+      - APP_DEBUG=${APP_DEBUG:-1}
+      - APP_SECRET=${APP_SECRET:-demo-secret}
+    networks:
+      - icon-selector-demo-network
+
+volumes:
+  composer-cache:
+    driver: local
+
+networks:
+  icon-selector-demo-network:
+    driver: bridge

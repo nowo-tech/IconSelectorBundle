@@ -1,0 +1,38 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Nowo\IconSelectorBundle\Service\IconListProvider:
+    arguments:
+      $iconSets: '%nowo_icon_selector.icon_sets%'
+      $useIconifyCollection: '%nowo_icon_selector.use_iconify_collection%'
+      $collectionLoader: '@?Nowo\IconSelectorBundle\Service\IconifyCollectionLoader'
+    public: true
+
+  Nowo\IconSelectorBundle\Twig\NowoIconSelectorTwigExtension:
+    tags: ['twig.extension']
+
+  Nowo\IconSelectorBundle\Service\IconSelectorConfigProvider:
+    arguments:
+      $iconSets: '%nowo_icon_selector.icon_sets%'
+    public: false
+
+  Nowo\IconSelectorBundle\Controller\Api\IconListController:
+    arguments:
+      $iconListProvider: '@Nowo\IconSelectorBundle\Service\IconListProvider'
+    public: true
+
+  Nowo\IconSelectorBundle\Controller\Api\IconConfigController:
+    public: true
+
+  Nowo\IconSelectorBundle\Form\IconSelectorType:
+    arguments:
+      $iconListProvider: '@Nowo\IconSelectorBundle\Service\IconListProvider'
+      $iconSets: '%nowo_icon_selector.icon_sets%'
+      $iconsApiPath: '%nowo_icon_selector.icons_api_path%'
+      $iconRenderer: '@?Symfony\UX\Icons\IconRendererInterface'
+    tags:
+      - { name: form.type }
+    public: false

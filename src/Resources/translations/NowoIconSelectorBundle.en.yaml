@@ -1,0 +1,18 @@
+# Icon Selector Bundle - English
+placeholder: 'Choose icon...'
+search_placeholder: 'Search icons...'
+
+# Choice labels (icon names used as keys when choice_translation_domain is set)
+home: Home
+user: User
+cog-6-tooth: Settings
+arrow-right: 'Arrow right'
+document-text: Document
+folder: Folder
+chart-bar: Chart
+envelope: Envelope
+person: Person
+gear: Gear
+file-text: File
+bar-chart: 'Bar chart'
+house: House

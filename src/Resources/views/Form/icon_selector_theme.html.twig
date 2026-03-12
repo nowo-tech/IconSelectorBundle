@@ -1,0 +1,52 @@
+{#
+  Form theme for IconSelectorType (ChoiceType; form_div_layout base).
+  - tom_select: <select> enhanced with Tom Select (dropdown with SVG).
+  - direct/search: hidden input + picker (grid or search with icons).
+#}
+{% extends 'form_div_layout.html.twig' %}
+
+{% block icon_selector_widget %}
+{% set mode = form.vars.mode|default('direct') %}
+{% set trans_domain = form.vars.translation_domain|default('NowoIconSelectorBundle') %}
+{% set choice_domain = form.vars.choice_translation_domain|default(false) %}
+{% set placeholder_key = form.vars.placeholder|default('placeholder') %}
+{% set placeholder_text = placeholder_key|trans({}, trans_domain) %}
+{% set search_placeholder_key = form.vars.search_placeholder|default('search_placeholder') %}
+{% set search_placeholder_text = search_placeholder_key|trans({}, trans_domain) %}
+{% set attr = attr|merge({
+    'data-controller': (attr['data-controller']|default('') ~ ' icon-selector')|trim,
+    'data-icon-selector-mode-value': mode,
+    'data-icon-selector-icons-url-value': form.vars.icons_api_path|default('/api/icon-selector/icons'),
+    'data-icon-selector-config-url-value': form.vars.config_path|default(form.vars.icons_api_path|default('/api/icon-selector/icons')|replace({'/icons': '/config'})),
+    'data-icon-selector-search-placeholder': search_placeholder_text,
+    'class': (attr.class|default('') ~ ' icon-selector-widget')|trim
+}) %}
+<div {{ block('widget_container_attributes') }}>
+    {% if mode == 'tom_select' %}
+        <select name="{{ full_name }}"
+                id="{{ id }}"
+                {{ block('widget_attributes') }}
+                data-icon-selector-target="select"
+                class="form-select icon-selector-select">
+            <option value="">{{ placeholder_text }}</option>
+            {% for choice in form.vars.choices %}
+                <option value="{{ choice.value }}" {% if choice.value == value %}selected="selected"{% endif %}>{{ choice_domain ? choice.label|trans({}, choice_domain) : choice.label }}</option>
+            {% endfor %}
+        </select>
+    {% else %}
+        <input type="hidden"
+               name="{{ full_name }}"
+               id="{{ id }}"
+               {% if value is not empty %}value="{{ value }}"{% endif %}
+               {{ block('widget_attributes') }}
+               data-icon-selector-target="input"
+               class="icon-selector-input" />
+        <div data-icon-selector-target="picker" class="icon-selector-picker mt-2" aria-hidden="true">
+            {% if mode == 'search' %}
+                <input type="text" class="form-control mb-2 icon-selector-search" placeholder="{{ search_placeholder_text }}" data-icon-selector-target="search" autocomplete="off" />
+            {% endif %}
+            <div class="icon-selector-grid d-flex flex-wrap gap-2"></div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

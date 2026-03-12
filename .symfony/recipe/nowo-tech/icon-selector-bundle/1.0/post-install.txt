@@ -1,0 +1,14 @@
+Icon Selector Bundle has been installed!
+
+The following files have been created:
+  - config/packages/nowo_icon_selector.yaml (configuration)
+  - config/iconify_libraries_reference.md (reference of Iconify icon set prefixes)
+  - config/routes.yaml (bundle API routes import, if file didn't exist)
+
+Next steps:
+1. Publish assets: php bin/console assets:install
+2. Include the script in your layout where you use the icon selector (use the helper so the path is correct; the folder is "nowoiconselector", not "nowo_icon_selector"):
+   <script src="{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}"></script>
+3. Render the selected icon in Twig with {{ ux_icon(entity.icon) }} (symfony/ux-icons is a required dependency of the bundle).
+
+See docs/INSTALLATION.md and docs/CONFIGURATION.md for details.
