@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-03-12
+
+### Fixed
+
+- **Choice validation**: Icons with the same short name in different sets (e.g. `heroicons-outline:archive` and `heroicons-solid:archive`) no longer overwrite each other; choices use icon ID as key (`id => label`).
+- **"The selected choice is invalid"**: Submitting an icon ID not in the server-side list (e.g. from Iconify API) now succeeds when the value has valid format `prefix:name`; when `IconRendererInterface` is available, the bundle validates existence via backend render.
+- **Form options**: Resolved cyclic dependency in options resolver when resolving `choices` (introduced `resolveChoicesFromIconsAndSets` for the default value).
+- **buildView**: Explicit `options['choices']` is now respected for the view (e.g. when the controller passes a custom choices array).
+
+### Changed
+
+- **Demo**: Selected icon is passed via redirect query param (`?icon=...`) instead of session (PRG pattern); success flash message on submit.
+- **Demo**: Controllers use `id => label` for `iconsToChoices` to match bundle format.
+
+### Added
+
+- **IconChoiceLoader**: Custom choice loader that accepts submitted values with format `prefix:name` and optionally validates via UX Icons renderer.
+- **IconListProvider**: `heroicons-outline:archive` added to default icon list.
+
 ## [1.0.0] - 2026-03-11
 
 ### Added

@@ -2,6 +2,13 @@
 
 This document describes how to upgrade between versions of Icon Selector Bundle.
 
+## 1.0.1 (2026-03-12)
+
+No breaking changes. Improvements and fixes only.
+
+- Choice list format is now **icon ID => label** (previously label could be used as key, causing duplicates when the same name existed in multiple sets). If you passed custom `choices` to `IconSelectorType`, ensure the array is `[iconId => label]` (e.g. `['heroicons-outline:home' => 'home']`). The view still accepts the legacy `[label => iconId]` format for backward compatibility.
+- Submitted icon values not in the predefined list are accepted when they match `prefix:name` and (if UX Icons is available) the icon exists in the renderer.
+
 ## 1.0.0 (2026-03-11)
 
 First stable release. No upgrade steps required when installing for the first time.

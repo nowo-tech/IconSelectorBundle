@@ -7,13 +7,13 @@ namespace Nowo\IconSelectorBundle\Form;
 use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use Symfony\Component\Form\AbstractType;
-use Symfony\UX\Icons\IconRendererInterface;
 use Symfony\Component\Form\ChoiceList\View\ChoiceView;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\UX\Icons\IconRendererInterface;
 
 use function count;
 use function is_array;
@@ -68,8 +68,12 @@ final class IconSelectorType extends AbstractType
         $effectiveSets = $options['icon_sets'] ?? $this->iconSets;
         $iconsRaw      = is_array($options['icons']) && $options['icons'] !== [] ? $options['icons'] : $this->iconListProvider->getIconsForSets($effectiveSets);
         /** @var list<string> $icons */
-        $icons   = array_values($iconsRaw);
-        $choices = $this->choicesFromIcons($icons);
+        $icons = array_values($iconsRaw);
+        if (isset($options['choices']) && is_array($options['choices']) && $options['choices'] !== []) {
+            $choices = $this->normalizeChoicesForView($options['choices']);
+        } else {
+            $choices = $this->choicesFromIcons($icons);
+        }
         $view->vars['choices']                                     = $this->buildChoiceViews($choices);
         $view->vars['placeholder']                                 = $options['placeholder'] ?? null;
         $view->vars['placeholder_in_choices']                      = $view->vars['placeholder'] !== null && $view->vars['placeholder'] !== false;
@@ -115,25 +119,21 @@ final class IconSelectorType extends AbstractType
     }
 
     /**
-     * Resolves choices: explicit options['choices'] if provided, otherwise from icons/icon_sets.
-     * Only use when options['choices'] is already resolved (e.g. inside choice_loader).
+     * Normalizes choices to id => label for the view (buildChoiceViews).
+     * Accepts both id => label and label => id; if the key contains ':' it is treated as icon id.
      *
-     * @param Options $options Form options (may contain choices, icons, icon_sets)
+     * @param array<string, string> $choices Map of either icon ID to label or label to icon ID
      *
-     * @return array<string, string> Map of icon ID (value) to label
-     *
-     * @phpstan-ignore missingType.generics (Options interface is generic in Symfony)
+     * @return array<string, string> Map of icon ID to label
      */
-    private function resolveChoices(Options $options): array
+    private function normalizeChoicesForView(array $choices): array
     {
-        if (isset($options['choices']) && is_array($options['choices']) && $options['choices'] !== []) {
-            /** @var array<string, string> $choices */
-            $choices = $options['choices'];
-
+        $firstKey = array_key_first($choices);
+        if ($firstKey !== null && str_contains((string) $firstKey, ':')) {
             return $choices;
         }
 
-        return $this->resolveChoicesFromIconsAndSets($options);
+        return array_flip($choices);
     }
 
     /**
@@ -150,7 +150,7 @@ final class IconSelectorType extends AbstractType
         foreach ($icons as $id) {
             $parts = explode(':', $id);
             /** @phpstan-ignore greater.alwaysTrue (explode returns non-empty for non-empty string) */
-            $label = (count($parts) > 0 ? end($parts) : null) ?: $id;
+            $label        = (count($parts) > 0 ? end($parts) : null) ?: $id;
             $choices[$id] = $label;
         }
 
@@ -200,7 +200,7 @@ final class IconSelectorType extends AbstractType
             'translation_domain'        => 'NowoIconSelectorBundle',
             'choice_translation_domain' => 'NowoIconSelectorBundle',
             'choices'                   => $this->resolveChoicesFromIconsAndSets(...),
-            'choice_loader'             => fn (Options $options) => new IconChoiceLoader($options['choices'], $this->iconRenderer),
+            'choice_loader'             => fn (Options $options): IconChoiceLoader => new IconChoiceLoader($options['choices'], $this->iconRenderer),
             'placeholder'               => 'placeholder',
             'search_placeholder'        => 'search_placeholder',
             'choice_value'              => static fn ($choice) => $choice,
