@@ -55,10 +55,10 @@ class IconDemoController extends AbstractController
     public function grid(Request $request): Response
     {
         $request->setLocale($request->attributes->get('_locale', 'en'));
-        $locale  = $request->getLocale();
-        $field   = 'icon_direct';
-        $data    = [$field => $request->query->getString('icon', '')];
-        $icons   = $this->iconListProvider->getIcons();
+        $locale = $request->getLocale();
+        $field  = 'icon_direct';
+        $data   = [$field => $request->query->getString('icon', '')];
+        $icons  = $this->iconListProvider->getIcons();
 
         $form = $this->createFormBuilder($data, ['translation_domain' => 'messages'])
             ->add($field, IconSelectorType::class, [
@@ -90,10 +90,10 @@ class IconDemoController extends AbstractController
     public function search(Request $request): Response
     {
         $request->setLocale($request->attributes->get('_locale', 'en'));
-        $locale  = $request->getLocale();
-        $field   = 'icon_search';
-        $data    = [$field => $request->query->getString('icon', '')];
-        $icons   = $this->iconListProvider->getIcons();
+        $locale = $request->getLocale();
+        $field  = 'icon_search';
+        $data   = [$field => $request->query->getString('icon', '')];
+        $icons  = $this->iconListProvider->getIcons();
 
         $form = $this->createFormBuilder($data, ['translation_domain' => 'messages'])
             ->add($field, IconSelectorType::class, [
@@ -201,9 +201,9 @@ class IconDemoController extends AbstractController
     {
         $choices = [];
         foreach ($icons as $id) {
-            $parts         = explode(':', $id);
-            $label         = $parts !== [] ? end($parts) : $id;
-            $choices[$id]  = $label;
+            $parts        = explode(':', $id);
+            $label        = $parts !== [] ? end($parts) : $id;
+            $choices[$id] = $label;
         }
 
         return $choices;

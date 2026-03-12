@@ -8,6 +8,8 @@ use Symfony\Component\Form\ChoiceList\Loader\AbstractChoiceLoader;
 use Symfony\UX\Icons\IconRendererInterface;
 use Throwable;
 
+use function count;
+
 /**
  * Choice loader that accepts icon IDs (prefix:name) from the base list and also
  * any submitted value that matches the format and exists (verified via backend when possible).
@@ -40,7 +42,6 @@ final class IconChoiceLoader extends AbstractChoiceLoader
      * Accept values that match the icon ID format (prefix:name) even if not in the base list.
      *
      * @param array<int|string, string> $values
-     * @param callable|null $value
      *
      * @return array<int|string, string>
      */

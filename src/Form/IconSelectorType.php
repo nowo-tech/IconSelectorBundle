@@ -7,13 +7,13 @@ namespace Nowo\IconSelectorBundle\Form;
 use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use Symfony\Component\Form\AbstractType;
-use Symfony\UX\Icons\IconRendererInterface;
 use Symfony\Component\Form\ChoiceList\View\ChoiceView;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\UX\Icons\IconRendererInterface;
 
 use function count;
 use function is_array;
@@ -68,8 +68,8 @@ final class IconSelectorType extends AbstractType
         $effectiveSets = $options['icon_sets'] ?? $this->iconSets;
         $iconsRaw      = is_array($options['icons']) && $options['icons'] !== [] ? $options['icons'] : $this->iconListProvider->getIconsForSets($effectiveSets);
         /** @var list<string> $icons */
-        $icons   = array_values($iconsRaw);
-        $choices = $this->choicesFromIcons($icons);
+        $icons                                                     = array_values($iconsRaw);
+        $choices                                                   = $this->choicesFromIcons($icons);
         $view->vars['choices']                                     = $this->buildChoiceViews($choices);
         $view->vars['placeholder']                                 = $options['placeholder'] ?? null;
         $view->vars['placeholder_in_choices']                      = $view->vars['placeholder'] !== null && $view->vars['placeholder'] !== false;
@@ -150,7 +150,7 @@ final class IconSelectorType extends AbstractType
         foreach ($icons as $id) {
             $parts = explode(':', $id);
             /** @phpstan-ignore greater.alwaysTrue (explode returns non-empty for non-empty string) */
-            $label = (count($parts) > 0 ? end($parts) : null) ?: $id;
+            $label        = (count($parts) > 0 ? end($parts) : null) ?: $id;
             $choices[$id] = $label;
         }
 
