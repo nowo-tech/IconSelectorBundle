@@ -1,6 +1,6 @@
 controllers:
     resource:
-        path: '%kernel.project_dir%/src/Controller/'
+        path: ../src/Controller/
         namespace: App\Controller
     type: attribute
 

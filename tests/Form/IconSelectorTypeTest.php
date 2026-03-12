@@ -280,4 +280,32 @@ final class IconSelectorTypeTest extends TestCase
         self::assertSame('house', $view->vars['choices'][1]->label);
         self::assertSame('bi:house', $view->vars['choices'][1]->value);
     }
+
+    /** buildView with choices in id=>label format (key contains ':') uses them without flipping. */
+    public function testBuildViewWithChoicesIdToLabelFormat(): void
+    {
+        $type               = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '');
+        $view               = new FormView();
+        $view->vars['attr'] = [];
+        $form               = $this->createStub(FormInterface::class);
+
+        $type->buildView($view, $form, [
+            'mode'                      => 'tom_select',
+            'choices'                   => ['heroicons-outline:home' => 'home', 'bi:house' => 'house'],
+            'placeholder'               => null,
+            'required'                  => true,
+            'icon_sets'                 => null,
+            'icons_api_path'            => null,
+            'icons'                     => null,
+            'translation_domain'        => 'NowoIconSelectorBundle',
+            'choice_translation_domain' => 'NowoIconSelectorBundle',
+            'search_placeholder'        => 'search_placeholder',
+        ]);
+
+        self::assertCount(2, $view->vars['choices']);
+        self::assertSame('home', $view->vars['choices'][0]->label);
+        self::assertSame('heroicons-outline:home', $view->vars['choices'][0]->value);
+        self::assertSame('house', $view->vars['choices'][1]->label);
+        self::assertSame('bi:house', $view->vars['choices'][1]->value);
+    }
 }

@@ -5,12 +5,6 @@
 :80 {
 	root * /app/public
 	encode zstd br gzip
-	# Worker with watch: routing works (all requests → index.php) and worker restarts on file change so edits are visible
-	php_server {
-		worker {
-			file /app/public/index.php
-			num 2
-			watch /app
-		}
-	}
+	# Classic mode (no worker): each request runs in a new PHP process so the app always responds and file changes are visible
+	php_server
 }

@@ -12,5 +12,6 @@ framework:
 
 # Enable profiler in dev so the Web Profiler toolbar can collect and display data
 when@dev:
-    profiler:
-        only_exceptions: false
+    framework:
+        profiler:
+            only_exceptions: false

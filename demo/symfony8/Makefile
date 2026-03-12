@@ -24,9 +24,16 @@ up:
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || true; fi
 	docker-compose up -d
 	@echo "Waiting for container to be ready..."
-	@sleep 5
+	@for i in 1 2 3 4 5 6 7 8 9 10; do \
+		docker-compose exec -T php true 2>/dev/null && break; \
+		echo "  waiting... $$i/10"; sleep 2; \
+	done
+	@docker-compose exec -T php true 2>/dev/null || (echo "Container not running. Run: docker-compose logs php"; exit 1)
 	@echo "Installing dependencies..."
-	@docker-compose exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction
+	@docker-compose exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction --no-scripts
+	@echo "Running cache:clear and assets:install..."
+	@docker-compose exec -T php php -d memory_limit=256M bin/console cache:clear
+	@docker-compose exec -T php php bin/console assets:install public
 	@echo "App ready (see .env for PORT)."
 
 down:

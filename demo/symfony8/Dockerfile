@@ -23,8 +23,7 @@ RUN echo '#!/bin/sh' > /usr/local/bin/docker-entrypoint.sh && \
     echo 'git config --global --add safe.directory /app 2>/dev/null || true' >> /usr/local/bin/docker-entrypoint.sh && \
     echo 'git config --global --add safe.directory /var/icon-selector-bundle 2>/dev/null || true' >> /usr/local/bin/docker-entrypoint.sh && \
     echo 'mkdir -p /app/var/cache /app/var/log' >> /usr/local/bin/docker-entrypoint.sh && \
-    echo 'chmod -R 777 /app/var' >> /usr/local/bin/docker-entrypoint.sh && \
-    echo 'if [ ! -f /app/vendor/autoload_runtime.php ]; then composer install --no-interaction; fi' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo 'chmod -R 777 /app/var 2>/dev/null || true' >> /usr/local/bin/docker-entrypoint.sh && \
     echo 'if [ "${APP_ENV:-prod}" = "dev" ]; then cp /etc/frankenphp/Caddyfile.dev /etc/frankenphp/Caddyfile; fi' >> /usr/local/bin/docker-entrypoint.sh && \
     echo 'exec frankenphp run --config /etc/frankenphp/Caddyfile --adapter caddyfile' >> /usr/local/bin/docker-entrypoint.sh && \
     chmod +x /usr/local/bin/docker-entrypoint.sh
