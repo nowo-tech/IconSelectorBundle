@@ -12,7 +12,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/icon-selector-bundle",
-                "reference": "89dd455509366d2c6861d06303fed2f50aef273d"
+                "reference": "0aed0376a96c777d1ee48993c1e0ad2246b9b663"
             },
             "require": {
                 "php": ">=8.2 <8.6",

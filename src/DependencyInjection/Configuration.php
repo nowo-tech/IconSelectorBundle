@@ -49,6 +49,10 @@ final class Configuration implements ConfigurationInterface
                     ->info('Base form layout so the icon selector theme matches your app (e.g. form_div_layout.html.twig, bootstrap_5_layout.html.twig). Must match twig.form_themes.')
                     ->defaultValue('form_div_layout.html.twig')
                 ->end()
+                ->booleanNode('debug')
+                    ->info('When true, the frontend logs all debug/info/warn messages to the console. When false, only the initial "script loaded" message is shown.')
+                    ->defaultFalse()
+                ->end()
             ->end();
 
         return $treeBuilder;

@@ -44,12 +44,14 @@ final class IconSelectorType extends AbstractType
     /**
      * @param list<string> $iconSets Enabled icon set names from config (used when icon_sets option is null)
      * @param IconRendererInterface|null $iconRenderer Optional renderer to verify submitted icon IDs exist (e.g. via Iconify)
+     * @param bool $debug When true, frontend shows all console logs; when false, only "script loaded"
      */
     public function __construct(
         private readonly IconListProvider $iconListProvider,
         private readonly array $iconSets = [],
         private readonly string $iconsApiPath = '/api/icon-selector/icons',
         private readonly ?IconRendererInterface $iconRenderer = null,
+        private readonly bool $debug = false,
     ) {
     }
 
@@ -90,6 +92,7 @@ final class IconSelectorType extends AbstractType
         $view->vars['attr']['data-icon-selector-mode-value']       = $options['mode'];
         $view->vars['attr']['data-icon-selector-icons-url-value']  = $iconsApiPath;
         $view->vars['attr']['data-icon-selector-config-url-value'] = $view->vars['config_path'];
+        $view->vars['attr']['data-icon-selector-debug-value']      = $this->debug ? '1' : '0';
     }
 
     /**

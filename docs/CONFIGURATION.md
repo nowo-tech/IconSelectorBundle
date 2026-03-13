@@ -81,3 +81,16 @@ nowo_icon_selector:
 ```
 
 If you use a custom or third-party form theme not listed, set `form_theme` to the closest match (e.g. `form_div_layout.html.twig`); the widget will still work although the row/label markup may not match your framework exactly.
+
+### `debug`
+
+When `true`, the frontend script logs all debug/info/warn/error messages to the browser console (e.g. runInit, Tom Select polling, load more). When `false` (default), only the initial "script loaded" message (with build time) is shown.
+
+Default: `false`
+
+Example:
+
+```yaml
+nowo_icon_selector:
+    debug: true
+```

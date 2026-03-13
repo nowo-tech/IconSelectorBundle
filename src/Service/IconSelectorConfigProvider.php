@@ -39,9 +39,11 @@ final readonly class IconSelectorConfigProvider
 
     /**
      * @param list<string> $iconSets Configured icon set keys (e.g. heroicons, bootstrap-icons)
+     * @param bool $debug When true, frontend shows all console logs; when false, only "script loaded"
      */
     public function __construct(
         private array $iconSets = [],
+        private bool $debug = false,
     ) {
     }
 
@@ -65,6 +67,7 @@ final readonly class IconSelectorConfigProvider
         return [
             'iconify_base' => self::ICONIFY_BASE,
             'sets'         => $sets,
+            'debug'        => $this->debug,
         ];
     }
 

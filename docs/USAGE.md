@@ -49,3 +49,7 @@ The widget needs the bundle's JavaScript. Include it in your layout or in the pa
 Or manually: `{{ asset('bundles/nowoiconselector/icon-selector.js') }}`.
 
 Run `php bin/console assets:install` so that `public/bundles/nowoiconselector/` exists.
+
+## Troubleshooting (debug)
+
+If the selector does not show the initial value when the form is loaded with data, or you need to inspect load/scroll behaviour, enable **debug** in the bundle config. With `debug: true`, the frontend logs detailed messages to the browser console (initial value resolution, Tom Select options, grid entries, SVG loading). See [Configuration](CONFIGURATION.md#debug).

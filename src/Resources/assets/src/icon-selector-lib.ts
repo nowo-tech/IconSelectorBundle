@@ -4,6 +4,22 @@
  */
 
 import TomSelect from 'tom-select';
+import { createBundleLogger, type BundleLogger } from './logger';
+
+let bundleLogger: BundleLogger | null = null;
+
+/** Injects the bundle logger (called from entry point so scriptLoaded/buildTime can be used). */
+export function setBundleLogger(log: BundleLogger): void {
+  bundleLogger = log;
+}
+
+/** Returns the injected logger or a default one. */
+export function getLogger(): BundleLogger {
+  if (bundleLogger === null) {
+    bundleLogger = createBundleLogger('icon-selector');
+  }
+  return bundleLogger;
+}
 
 /** Data attribute holding the icons API URL (e.g. /api/icon-selector/icons). */
 export const ATTR_URL = 'data-icon-selector-icons-url-value';
@@ -17,12 +33,17 @@ export const ATTR_MODE = 'data-icon-selector-mode-value';
 /** Data attribute for the search input placeholder text. */
 export const ATTR_SEARCH_PLACEHOLDER = 'data-icon-selector-search-placeholder';
 
+/** Data attribute for debug mode: when "1", all console logs are shown; otherwise only "script loaded". */
+export const ATTR_DEBUG = 'data-icon-selector-debug-value';
+
 /** Widget config from GET /api/icon-selector/config (for 100% front Iconify flow). */
 export interface IconSelectorConfig {
   /** Base URL for Iconify API (e.g. https://api.iconify.design). */
   iconify_base: string;
   /** List of icon sets, each with key, label, and Iconify API prefixes. */
   sets: Array< { key: string; label: string; prefixes: string[] } >;
+  /** When true, frontend shows all console logs; when false, only "script loaded". */
+  debug?: boolean;
 }
 
 /** Single icon entry after loading a collection from Iconify. */
@@ -88,11 +109,18 @@ export interface IconOption {
   svg?: string;
 }
 
+/** Iconify API path for collection listing (icon names per prefix). */
 const ICONIFY_COLLECTION_URL = '/collection';
+/** Iconify API path for searching icons by query. */
+const ICONIFY_SEARCH_URL = '/search';
 /** Max icon names per Iconify .json request (URL length limit). */
 const ICONS_BATCH_MAX = 150;
-/** Batch size for progressive SVG loading in Tom Select (icons per request). */
+/** Batch size for progressive SVG loading in Tom Select full-list mode (icons per request). */
 const TOM_SELECT_SVG_BATCH = 150;
+/** Default limit for Iconify search API (min 32, max 999). */
+const ICONIFY_SEARCH_LIMIT = 64;
+/** Page size for "all icons" infinite scroll in Tom Select on-demand mode (icons per batch). First batch when opening with no query. */
+const TOM_SELECT_ONDEMAND_PAGE_SIZE = 100;
 
 /**
  * Fetches widget config from the bundle API.
@@ -111,7 +139,59 @@ export async function fetchIconifyConfig(configUrl: string): Promise<IconSelecto
   }
 }
 
-/** Iconify API collection response (list of icon names and optional categories). */
+/**
+ * Iconify API search response.
+ * @see https://iconify.design/docs/api/search.html
+ */
+interface IconifySearchResponse {
+  /** List of icon IDs (e.g. "heroicons-outline:home"). */
+  icons?: string[];
+  total?: number;
+  limit?: number;
+  start?: number;
+}
+
+/**
+ * Searches icons via Iconify API using bundle config (prefixes from configured sets).
+ *
+ * @param configUrl - Bundle config URL to get iconify_base and sets.
+ * @param query - Search query (case insensitive).
+ * @param limit - Max results (32–999); default ICONIFY_SEARCH_LIMIT.
+ * @returns Array of icon IDs (prefix:name), or empty array on failure.
+ */
+export async function fetchIconifySearch(
+  configUrl: string,
+  query: string,
+  limit: number = ICONIFY_SEARCH_LIMIT,
+): Promise<string[]> {
+  const config = await fetchIconifyConfig(configUrl);
+  if (!config?.iconify_base || !query.trim()) return [];
+  const base = config.iconify_base.replace(/\/$/, '');
+  const prefixes: string[] = [];
+  for (const set of config.sets) {
+    prefixes.push(...(set.prefixes ?? []));
+  }
+  if (prefixes.length === 0) return [];
+  const clampedLimit = Math.min(999, Math.max(32, limit));
+  const params = new URLSearchParams({
+    query: query.trim(),
+    prefixes: prefixes.join(','),
+    limit: String(clampedLimit),
+  });
+  try {
+    const res = await fetch(`${base}${ICONIFY_SEARCH_URL}?${params.toString()}`);
+    if (!res.ok) return [];
+    const data = (await res.json()) as IconifySearchResponse;
+    return Array.isArray(data.icons) ? data.icons : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Iconify API collection response (icon names and optional categories for a prefix).
+ * @see https://iconify.design/docs/api/collection.html
+ */
 interface CollectionResponse {
   prefix?: string;
   uncategorized?: string[];
@@ -152,6 +232,7 @@ export async function fetchIconifyCollection(
 }
 
 /** Iconify API icon data: body is SVG path/content. */
+/** Single icon data from Iconify API .json response (SVG path and dimensions). */
 interface IconifyIconData {
   body?: string;
   width?: number;
@@ -160,7 +241,10 @@ interface IconifyIconData {
   top?: number;
 }
 
-/** Iconify API .json response: icons map, optional default dimensions and aliases. */
+/**
+ * Iconify API .json response for a prefix (icons map, optional default dimensions and aliases).
+ * @see https://iconify.design/docs/api/icons.html
+ */
 interface IconifyIconsJsonResponse {
   icons?: Record<string, IconifyIconData>;
   aliases?: Record<string, { parent: string }>;
@@ -230,7 +314,7 @@ export async function fetchIconifyIconsBatch(
 
 /**
  * Fetches SVG markup for icon IDs (prefix:name) from Iconify API using bundle config.
- * Used as fallback for Tom Select when the backend /svg endpoint returns no SVGs.
+ * Used by the grid widget and by Tom Select when config is available (so SVGs come from Iconify, not the project /svg endpoint).
  *
  * @param configUrl - Bundle config URL to get iconify_base.
  * @param ids - List of full icon IDs (prefix:name).
@@ -316,10 +400,12 @@ export class IconSelectorIconifyWidget {
   private async load(): Promise<void> {
     const config = await fetchIconifyConfig(this.configUrl);
     if (!config) {
+      getLogger().warn('IconSelectorIconifyWidget: could not load config');
       this.picker.textContent = 'Could not load config.';
       return;
     }
     this.config = config;
+    getLogger().info('IconSelectorIconifyWidget (grid): config loaded, sets=', config.sets.length);
     const allEntries: IconifyIconEntry[] = [];
     for (const set of config.sets) {
       for (const prefix of set.prefixes) {
@@ -340,6 +426,7 @@ export class IconSelectorIconifyWidget {
       }
     }
     this.entries = allEntries;
+    getLogger().debug('IconSelectorIconifyWidget (grid): entries loaded', allEntries.length);
   }
 
   /** Returns entries filtered by set, category and search query. */
@@ -439,8 +526,10 @@ export class IconSelectorIconifyWidget {
     const isOpen = this.panelEl.style.display !== 'none';
     if (isOpen) {
       this.panelEl.style.display = 'none';
+      getLogger().debug('IconSelectorIconifyWidget (grid): panel closed');
     } else {
       this.panelEl.style.display = 'block';
+      getLogger().debug('IconSelectorIconifyWidget (grid): panel opened');
       this.renderPanelContent();
     }
   }
@@ -530,12 +619,14 @@ export class IconSelectorIconifyWidget {
           const prevCount = this.visibleCount;
           this.visibleCount = Math.min(this.visibleCount + IconSelectorIconifyWidget.PAGE_SIZE, filtered.length);
           const newEntries = filtered.slice(prevCount, this.visibleCount);
+          getLogger().debug('IconSelectorIconifyWidget (grid): scroll near bottom, loading more', { from: prevCount, to: this.visibleCount, count: newEntries.length });
           el.removeEventListener('scroll', onScroll);
           this.ensureSvgForEntries(newEntries, newEntries.length).then(() => {
             this.renderPanelContent().then(() => {
               const c = this.panelEl?.querySelector('.icon-selector-iconify-grid-container') as HTMLElement | null;
               if (c) c.scrollTop = prevScroll;
             });
+            getLogger().debug('IconSelectorIconifyWidget (grid): loaded more entries', newEntries.length, 'visibleCount=', this.visibleCount);
           });
         };
         el.addEventListener('scroll', onScroll);
@@ -565,12 +656,21 @@ export class IconSelectorIconifyWidget {
     this.picker.className = 'icon-selector-iconify-widget position-relative';
 
     const currentValue = this.input.value || '';
+    getLogger().debug('IconSelectorIconifyWidget (grid): render initial value', {
+      currentValue: currentValue || '(empty)',
+      entriesCount: this.entries.length,
+      foundInEntries: !!currentValue && this.entries.some((e) => e.id === currentValue),
+      sampleIds: this.entries.slice(0, 3).map((e) => e.id),
+    });
     if (currentValue) {
       const entry = this.entries.find((e) => e.id === currentValue);
       if (entry) {
         this.ensureSvgForEntries([entry], 1).then(() => {
           if (this.triggerEl) this.updateTriggerContent(this.triggerEl, currentValue);
+          getLogger().debug('IconSelectorIconifyWidget (grid): trigger updated with initial value', currentValue);
         });
+      } else {
+        getLogger().warn('IconSelectorIconifyWidget (grid): initial value not in entries', currentValue);
       }
     }
 
@@ -693,8 +793,9 @@ export class IconSelectorIconifyWidget {
 const ICON_SELECTOR_WIDGET_BATCH = 60;
 
 /**
- * Widget that renders an icon selector (grid or search) and syncs selection with a hidden input.
- * Uses a trigger + overlay panel; SVGs are loaded on first open and then on scroll (under demand).
+ * Legacy widget that renders an icon selector (grid or search) and syncs selection with a hidden input.
+ * Fetches the full icon list from the project API; SVGs are loaded on first open and then on scroll.
+ * Used when the bundle config has no sets (no Iconify-only mode).
  */
 export class IconSelectorWidget {
   private readonly container: HTMLElement;
@@ -756,9 +857,10 @@ export class IconSelectorWidget {
       this.icons = Array.isArray(data.icons)
         ? data.icons
         : (data.icons_by_set && (Object.values(data.icons_by_set).flat() as string[])) || [];
+      getLogger().info('IconSelectorWidget (grid): icons loaded', this.icons.length);
     } catch (e) {
       this.icons = [];
-      console.warn('IconSelector: could not load icons', e);
+      getLogger().warn('IconSelectorWidget (grid): could not load icons', e);
     }
   }
 
@@ -811,15 +913,18 @@ export class IconSelectorWidget {
     const firstIds = filtered.slice(0, this.visibleCount);
     const includeSelected = value && !firstIds.includes(value) && this.icons.includes(value);
     const idsToLoad = includeSelected ? [value, ...firstIds] : firstIds;
+    getLogger().debug('IconSelectorWidget (grid): loading first batch', idsToLoad.length);
     return this.loadSvgBatch(idsToLoad).then(() => {
       this.renderGridContent();
       this.attachGridScrollListener();
+      getLogger().debug('IconSelectorWidget (grid): first batch loaded, scroll listener attached');
     });
   }
 
   /** Opens the panel: first time loads first SVG batch and renders grid; then shows panel. */
   private openPanel(): void {
     if (!this.panelEl || !this.grid) return;
+    getLogger().debug('IconSelectorWidget (grid): panel opening');
     const filtered = this.getFilteredIcons();
     if (filtered.length === 0) {
       this.panelEl.style.display = 'block';
@@ -840,6 +945,7 @@ export class IconSelectorWidget {
     const isOpen = this.panelEl.style.display !== 'none';
     if (isOpen) {
       this.panelEl.style.display = 'none';
+      getLogger().debug('IconSelectorWidget (grid): panel closed');
     } else {
       this.openPanel();
     }
@@ -862,10 +968,12 @@ export class IconSelectorWidget {
     const prevCount = this.visibleCount;
     this.visibleCount = Math.min(this.visibleCount + ICON_SELECTOR_WIDGET_BATCH, filtered.length);
     const newIds = filtered.slice(prevCount, this.visibleCount);
+    getLogger().debug('IconSelectorWidget (grid): scroll near bottom, loading more', { from: prevCount, to: this.visibleCount, count: newIds.length });
     await this.loadSvgBatch(newIds);
     if (!this.grid) return;
     const value = this.input.value || '';
     newIds.forEach((iconId) => this.addButton(this.grid!, iconId, value, this.svgMap[iconId]));
+    getLogger().debug('IconSelectorWidget (grid): loaded more icons', newIds.length, 'visibleCount=', this.visibleCount);
   }
 
   private attachGridScrollListener(): void {
@@ -899,6 +1007,12 @@ export class IconSelectorWidget {
     this.picker.className = (this.picker.className || '').replace(/\bmt-2\b/, '').trim() + ' icon-selector-widget-dropdown position-relative';
 
     const value = this.input.value || '';
+    getLogger().debug('IconSelectorWidget (grid): render initial value', {
+      value: value || '(empty)',
+      iconsCount: this.icons.length,
+      valueInIcons: !!value && this.icons.includes(value),
+      sampleIds: this.icons.slice(0, 5),
+    });
     this.triggerEl = document.createElement('button');
     this.triggerEl.type = 'button';
     this.triggerEl.className = 'icon-selector-trigger form-control form-control-sm d-flex align-items-center gap-2 text-start';
@@ -952,8 +1066,12 @@ export class IconSelectorWidget {
     });
 
     if (value) {
+      getLogger().debug('IconSelectorWidget (grid): loading SVG for initial value', value);
       this.loadSvgBatch([value]).then(() => {
         if (this.triggerEl) this.updateTriggerContent(this.triggerEl, value);
+        getLogger().debug('IconSelectorWidget (grid): trigger updated with initial value', value, 'svgInMap:', !!this.svgMap[value]);
+      }).catch((err) => {
+        getLogger().warn('IconSelectorWidget (grid): failed to load SVG for initial value', value, err);
       });
     }
   }
@@ -1042,22 +1160,167 @@ export function getOptionsFromScript(inputId: string): IconOption[] | null {
 }
 
 /**
- * Initializes Tom Select on the given select/input: uses pre-loaded options if provided, otherwise fetches from the API.
- * When the backend /svg returns no SVGs, fetches from Iconify API if configUrl is provided (so icons show in the dropdown).
- *
- * @param el - Select or input element to enhance.
- * @param url - Icons API URL when options are fetched dynamically.
- * @param optionsWithSvg - Pre-built options (e.g. from getOptionsFromScript); may include svg for dropdown rendering.
- * @param configUrl - Optional bundle config URL (e.g. /api/icon-selector/config); used to fetch SVGs from Iconify when backend returns none.
+ * Tom Select instance methods used for progressive SVG updates and lazy loading.
+ * Subset of the full Tom Select API; only the methods we call are declared here.
  */
-/** Tom Select instance methods used for progressive SVG updates and lazy loading. */
 interface TomSelectInstance {
+  addOption(data: IconOption, userCreated?: boolean): void;
   updateOption(value: string, data: IconOption): void;
   refreshOptions(triggerDropdown: boolean): void;
+  /** Set selected value; second arg = silent (no change event). Used to refresh item display after adding option. */
+  setValue(value: string, silent?: boolean): void;
   on(event: string, callback: (dropdown?: HTMLElement) => void): void;
+  /** Dropdown content element (scroll container for infinite-scroll listener). */
   dropdown_content?: HTMLElement;
 }
 
+/**
+ * State for infinite-scroll "all icons" when Tom Select dropdown is opened with empty query.
+ * Tracks current prefix, offset within that prefix's names, and a cache of fetched collection names.
+ */
+interface TomSelectLoadMoreState {
+  /** Bundle config URL (used to resolve iconify_base and fetch SVGs). */
+  configUrl: string;
+  /** Iconify API base URL (e.g. https://api.iconify.design). */
+  iconify_base: string;
+  /** Flat list of all prefixes from configured sets (e.g. heroicons-outline, bi). */
+  allPrefixes: string[];
+  /** Index into allPrefixes for the current collection. */
+  prefixIndex: number;
+  /** Offset within the current prefix's name list. */
+  offset: number;
+  /** Cache: prefix -> array of icon names from fetchIconifyCollection. */
+  cache: Map<string, string[]>;
+}
+
+/** Property key on the select/input element where LoadMoreState is stored. */
+const LOAD_MORE_STATE_KEY = '_iconSelectorLoadMoreState';
+
+/**
+ * Returns the next page of icon options from configured collections (by prefix, then offset).
+ * Fetches collection names for the current prefix if not cached, slices the next page,
+ * fetches SVGs from Iconify, and advances state. Used for infinite scroll when the dropdown
+ * is opened without typing.
+ *
+ * @param state - Load-more state (mutated: prefixIndex, offset, cache).
+ * @returns Next batch of IconOption (up to TOM_SELECT_ONDEMAND_PAGE_SIZE), or empty array when no more.
+ */
+async function getNextBatchFromCollections(state: TomSelectLoadMoreState): Promise<IconOption[]> {
+  const pageSize = TOM_SELECT_ONDEMAND_PAGE_SIZE;
+  while (state.prefixIndex < state.allPrefixes.length) {
+    const prefix = state.allPrefixes[state.prefixIndex];
+    if (!state.cache.has(prefix)) {
+      const { names } = await fetchIconifyCollection(state.iconify_base, prefix);
+      state.cache.set(prefix, names);
+    }
+    const names = state.cache.get(prefix)!;
+    const slice = names.slice(state.offset, state.offset + pageSize);
+    state.offset += slice.length;
+    if (state.offset >= names.length) {
+      state.prefixIndex += 1;
+      state.offset = 0;
+    }
+    if (slice.length === 0) continue;
+    const ids = slice.map((name) => `${prefix}:${name}`);
+    const svgMap = await fetchIconifySvgsForIds(state.configUrl, ids);
+    return ids.map((id) => {
+      const text = id.split(/[:/]/).pop() ?? id;
+      return { value: id, text, svg: svgMap[id] ?? '' };
+    });
+  }
+  return [];
+}
+
+/**
+ * On-demand load for Tom Select when using Iconify.
+ * - Empty query: initializes or reuses load-more state, returns the first batch of icons from
+ *   configured collections (first prefix, first N names), so the user sees icons without typing.
+ *   Further batches are loaded on scroll via getNextBatchFromCollections.
+ * - Non-empty query: calls Iconify search API, fetches SVGs for results, passes options to callback.
+ *
+ * @param query - User search query (empty when dropdown opens without typing).
+ * @param callback - Tom Select callback to pass the options array.
+ * @param configUrl - Bundle config URL (e.g. /api/icon-selector/config).
+ * @param currentValue - Currently selected icon ID (prefix:name).
+ * @param stateHost - Object to store load-more state (e.g. Tom Select instance) so scroll handler can read it.
+ */
+async function loadTomSelectOnDemand(
+  query: string,
+  callback: (opts: IconOption[]) => void,
+  configUrl: string,
+  currentValue: string,
+  stateHost: Record<string, TomSelectLoadMoreState | undefined>,
+): Promise<void> {
+  const q = (query ?? '').trim();
+  if (q.length > 0) {
+    const ids = await fetchIconifySearch(configUrl, q, ICONIFY_SEARCH_LIMIT);
+    if (ids.length === 0) {
+      callback([]);
+      return;
+    }
+    const svgMap = await fetchIconifySvgsForIds(configUrl, ids);
+    const options: IconOption[] = ids.map((id) => {
+      const text = id.split(/[:/]/).pop() ?? id;
+      return { value: id, text, svg: svgMap[id] ?? '' };
+    });
+    callback(options);
+    return;
+  }
+
+  // Empty query: show first batch of "all" icons and set up state for infinite scroll
+  let state = stateHost[LOAD_MORE_STATE_KEY];
+  if (!state) {
+    const config = await fetchIconifyConfig(configUrl);
+    if (!config?.iconify_base || !config.sets?.length) {
+      if (currentValue && currentValue.includes(':')) {
+        const svgMap = await fetchIconifySvgsForIds(configUrl, [currentValue]);
+        const text = currentValue.split(/[:/]/).pop() ?? currentValue;
+        callback([{ value: currentValue, text, svg: svgMap[currentValue] ?? '' }]);
+      } else {
+        callback([]);
+      }
+      return;
+    }
+    const allPrefixes: string[] = [];
+    for (const set of config.sets) {
+      allPrefixes.push(...(set.prefixes ?? []));
+    }
+    state = {
+      configUrl,
+      iconify_base: config.iconify_base.replace(/\/$/, ''),
+      allPrefixes,
+      prefixIndex: 0,
+      offset: 0,
+      cache: new Map(),
+    };
+    stateHost[LOAD_MORE_STATE_KEY] = state;
+  } else {
+    // Each time dropdown opens with empty query, show first batch again
+    state.prefixIndex = 0;
+    state.offset = 0;
+  }
+
+  try {
+    let firstBatch = await getNextBatchFromCollections(state);
+    if (firstBatch.length === 0 && state.allPrefixes.length > 0) {
+      // Fallback: collection API may be unavailable; use search with a common character to get initial icons
+      const ids = await fetchIconifySearch(configUrl, 'a', TOM_SELECT_ONDEMAND_PAGE_SIZE);
+      if (ids.length > 0) {
+        const svgMap = await fetchIconifySvgsForIds(state.configUrl, ids);
+        firstBatch = ids.map((id) => ({
+          value: id,
+          text: id.split(/[:/]/).pop() ?? id,
+          svg: svgMap[id] ?? '',
+        }));
+      }
+    }
+    callback(firstBatch);
+  } catch {
+    callback([]);
+  }
+}
+
+/** Placeholder HTML when an option has no SVG yet. */
 const TOM_SELECT_SVG_PLACEHOLDER = '<span class="icon-selector-option-svg" style="width:1.25rem;height:1.25rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:currentColor;opacity:0.12;border-radius:2px;"></span>';
 
 /**
@@ -1088,6 +1351,17 @@ function tomSelectRenderItem(data: IconOption): string {
   return `<div class="d-flex align-items-center gap-2">${TOM_SELECT_SVG_PLACEHOLDER}<span>${label}</span></div>`;
 }
 
+/**
+ * Initializes Tom Select on the given select or input for icon selection.
+ * If pre-loaded options are provided, uses them; otherwise, when configUrl is set and returns
+ * sets, uses on-demand mode (Iconify search + "all icons" with infinite scroll). Else uses
+ * full list from the project icons API with lazy SVG loading.
+ *
+ * @param el - Select or input element to enhance.
+ * @param url - Icons API URL when options are fetched dynamically (full-list mode).
+ * @param optionsWithSvg - Pre-built options (e.g. from getOptionsFromScript); when present, used as-is.
+ * @param configUrl - Optional bundle config URL; when set and config has sets, enables on-demand Iconify mode.
+ */
 export function initTomSelect(
   el: HTMLSelectElement | HTMLInputElement,
   url: string,
@@ -1098,7 +1372,16 @@ export function initTomSelect(
   const opts = optionsWithSvg ?? [];
   const options = opts.length ? opts : [];
 
+  getLogger().info('initTomSelect:', {
+    hasPreloadedOptions: options.length > 0,
+    configUrl: configUrl ?? null,
+    elTag: el.tagName,
+    elValueRaw: (el as HTMLSelectElement | HTMLInputElement).value,
+    valuePassed: value || '(empty)',
+  });
+
   if (options.length > 0) {
+    getLogger().info('using preloaded options (no on-demand, no scroll load-more)');
     new TomSelect(el, {
       valueField: 'value',
       labelField: 'text',
@@ -1114,18 +1397,303 @@ export function initTomSelect(
     return;
   }
 
+  // When configUrl is set, try on-demand mode (Iconify search) first
+  if (configUrl) {
+    fetchIconifyConfig(configUrl).then((config) => {
+      if (config?.sets?.length) {
+        getLogger().info('using on-demand mode (Iconify), sets:', config.sets.length);
+        initTomSelectOnDemand(el, configUrl, value);
+        return;
+      }
+      getLogger().info('config has no sets, using full-list mode');
+      initTomSelectFullList(el, url, configUrl, value);
+    }).catch((err) => {
+      getLogger().warn('config fetch failed, using full-list mode', err);
+      initTomSelectFullList(el, url, configUrl, value);
+    });
+    return;
+  }
+
+  getLogger().info('no configUrl, using full-list mode');
+  initTomSelectFullList(el, url, undefined, value);
+}
+
+/** Interval ms for polling scroll position when dropdown is open (fallback when scroll events don't fire). */
+const LOAD_MORE_POLL_INTERVAL_MS = 150;
+
+/** Find the scrollable element in the dropdown: the one with overflow auto/scroll, or dropdown_content. */
+function findScrollableInDropdown(content: HTMLElement): HTMLElement {
+  const oy = (getComputedStyle(content).overflowY || getComputedStyle(content).overflow).toLowerCase();
+  if (oy === 'auto' || oy === 'scroll' || oy === 'overlay') return content;
+  for (let i = 0; i < content.children.length; i++) {
+    const child = content.children[i] as HTMLElement;
+    const found = findScrollableInDropdown(child);
+    if (found !== child) return found;
+    const cOy = (getComputedStyle(child).overflowY || getComputedStyle(child).overflow).toLowerCase();
+    if (cOy === 'auto' || cOy === 'scroll' || cOy === 'overlay') return child;
+  }
+  return content;
+}
+
+/**
+ * Tom Select with on-demand loading.
+ * - When the user types: options come from Iconify search API.
+ * - When the dropdown opens with no query: first batch of "all" icons from configured collections
+ *   is shown; on scroll near bottom, further batches are loaded (infinite scroll via polling).
+ */
+function initTomSelectOnDemand(
+  el: HTMLSelectElement | HTMLInputElement,
+  configUrl: string,
+  currentValue: string,
+): void {
+  getLogger().info('initTomSelectOnDemand: creating Tom Select', {
+    currentValue: currentValue || '(empty)',
+    hasValue: !!currentValue,
+    valueFormat: currentValue && currentValue.includes(':') ? 'prefix:name' : currentValue ? 'other' : 'n/a',
+  });
+  const ts = new TomSelect(el, {
+    valueField: 'value',
+    labelField: 'text',
+    searchField: ['text', 'value'],
+    options: [],
+    items: currentValue ? [currentValue] : [],
+    maxOptions: null,
+    /** Allow load() to be called with empty query so dropdown opens with first batch of "all" icons. */
+    shouldLoad: () => true,
+    load: (query: string, callback: (opts: IconOption[]) => void) => {
+      loadTomSelectOnDemand(query, callback, configUrl, currentValue, ts as unknown as Record<string, TomSelectLoadMoreState | undefined>);
+    },
+    render: {
+      option: tomSelectRenderOption,
+      item: tomSelectRenderItem,
+    },
+  }) as unknown as TomSelectInstance;
+
+  /** Set window.__iconSelectorDebugScroll = true in console to see scroll/load-more logs. */
+  const DEBUG_SCROLL =
+    typeof window !== 'undefined' &&
+    ((window as unknown as { __iconSelectorDebugScroll?: boolean }).__iconSelectorDebugScroll ?? true);
+
+  let pollTickCount = 0;
+
+  ts.on('dropdown_open', () => {
+    try {
+      getLogger().info('dropdown_open fired');
+      /** Do not call load() manually here: Tom Select calls it when dropdown opens (shouldLoad: true). Calling it without correct this/callback causes "Cannot read properties of undefined (reading 'can.load')". */
+      const content = (ts as unknown as { dropdown_content?: HTMLElement }).dropdown_content;
+      getLogger().debug('dropdown_open: content=', content, 'keys(ts)=', typeof ts === 'object' && ts !== null ? Object.keys(ts as object).filter((k) => k.toLowerCase().includes('dropdown')).slice(0, 10) : []);
+      getLogger().info('dropdown_open: content=', !!content, content?.className ?? 'n/a', 'state=', !!(ts as unknown as Record<string, unknown>)[LOAD_MORE_STATE_KEY]);
+      if (DEBUG_SCROLL) {
+        getLogger().debug('dropdown_open (debug):', {
+          hasContent: !!content,
+          contentClassName: content?.className,
+          contentTagName: content?.tagName,
+          stateRefHasState: !!(ts as unknown as Record<string, unknown>)[LOAD_MORE_STATE_KEY],
+        });
+      }
+      if (!content) {
+        getLogger().warn('dropdown_open: no content, polling not started');
+        return;
+      }
+
+      const scrollEl = findScrollableInDropdown(content);
+      getLogger().info('dropdown_open: content ok, scrollEl=', scrollEl.tagName, scrollEl.className, 'starting polling');
+
+      const stateRef = ts as unknown as Record<string, TomSelectLoadMoreState | undefined>;
+      let loadMoreInProgress = false;
+      const threshold = 80;
+      pollTickCount = 0;
+
+      const tryLoadMore = (): void => {
+      pollTickCount += 1;
+      const state = stateRef[LOAD_MORE_STATE_KEY];
+      const searchQuery = (ts as unknown as { control_input?: HTMLInputElement }).control_input?.value?.trim() ?? '';
+      const scrollElForTick = findScrollableInDropdown(content);
+      const scrollTop = scrollElForTick.scrollTop;
+      const scrollHeight = scrollElForTick.scrollHeight;
+      const clientHeight = scrollElForTick.clientHeight;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+      const wouldTrigger =
+        !!state && !loadMoreInProgress && searchQuery.length === 0 && distanceFromBottom <= threshold;
+      const skipReason = !state
+        ? 'no state'
+        : loadMoreInProgress
+          ? 'load in progress'
+          : searchQuery.length > 0
+            ? 'search not empty'
+            : distanceFromBottom > threshold
+              ? `distance=${distanceFromBottom} > ${threshold}`
+              : null;
+
+      const shouldLogTick =
+        pollTickCount <= 5 ||
+        pollTickCount % 15 === 0 ||
+        distanceFromBottom < 200 ||
+        wouldTrigger;
+      if (shouldLogTick) {
+        getLogger().info(
+          'poll tick',
+          pollTickCount,
+          'hasState=',
+          !!state,
+          'distanceFromBottom=',
+          distanceFromBottom,
+          'threshold=',
+          threshold,
+          wouldTrigger ? '→ FETCH' : '→ skip: ' + skipReason,
+        );
+      }
+
+      if (pollTickCount === 1) {
+        getLogger().info('poll first tick (scrollEl):', {
+          scrollTop,
+          scrollHeight,
+          clientHeight,
+          distanceFromBottom,
+          hasState: !!state,
+          scrollElTag: scrollElForTick.tagName,
+          scrollElClass: scrollElForTick.className,
+        });
+      }
+
+      if (DEBUG_SCROLL) {
+        const logEvery = 20;
+        const shouldLog = pollTickCount === 1 || pollTickCount % logEvery === 0 || distanceFromBottom < 150;
+        if (shouldLog) {
+          getLogger().debug('poll tick (debug)', pollTickCount, {
+            hasState: !!state,
+            loadMoreInProgress,
+            searchQuery: searchQuery || '(empty)',
+            scrollElTag: scrollElForTick.tagName,
+            scrollElClass: scrollElForTick.className,
+            scrollTop,
+            scrollHeight,
+            clientHeight,
+            distanceFromBottom,
+            threshold,
+            wouldTrigger: distanceFromBottom <= threshold && !!state && !loadMoreInProgress && searchQuery.length === 0,
+          });
+        }
+      }
+
+      if (!state) return;
+      if (loadMoreInProgress) return;
+      if (searchQuery.length > 0) return;
+      if (distanceFromBottom > threshold) return;
+
+      loadMoreInProgress = true;
+      getLogger().info('loadMore: FETCHING next batch (scroll near bottom), distanceFromBottom=', distanceFromBottom);
+      const scrollContainer = findScrollableInDropdown(content);
+      const savedScrollTop = scrollContainer.scrollTop;
+      getNextBatchFromCollections(state).then((opts) => {
+        getLogger().info('loadMore: got', opts.length, 'options');
+        if (opts.length > 0) {
+          for (const o of opts) ts.addOption(o, false);
+          ts.refreshOptions(false);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              scrollContainer.scrollTop = savedScrollTop;
+            });
+          });
+        }
+      }).finally(() => {
+        loadMoreInProgress = false;
+      });
+    };
+
+      /** Poll scroll position while dropdown is open; scroll events are unreliable in Tom Select's DOM. */
+      const pollId = window.setInterval(tryLoadMore, LOAD_MORE_POLL_INTERVAL_MS);
+      getLogger().info('polling started, interval id:', pollId);
+      ts.on('dropdown_close', () => {
+        getLogger().info('dropdown_close, clearing interval', pollId);
+        window.clearInterval(pollId);
+      });
+    } catch (e) {
+      getLogger().error('dropdown_open error', e);
+    }
+  });
+
+  // Ensure the selected value is available as option with SVG so the trigger displays it
+  if (currentValue && currentValue.includes(':')) {
+    getLogger().debug('Tom Select: fetching SVG for initial value', currentValue);
+    fetchIconifySvgsForIds(configUrl, [currentValue])
+      .then((svgMap) => {
+        try {
+          const svg = svgMap[currentValue] ?? '';
+          const text = currentValue.split(/[:/]/).pop() ?? currentValue;
+          const option: IconOption = { value: currentValue, text, svg };
+          getLogger().debug('Tom Select: setting option for initial value', {
+            currentValue,
+            hasSvg: !!svg,
+            svgLength: svg.length,
+          });
+          try {
+            ts.addOption(option, false);
+          } catch (e) {
+            getLogger().debug('Tom Select: addOption failed, trying updateOption', e);
+            ts.updateOption(currentValue, option);
+          }
+          ts.refreshOptions(false);
+          // Force item re-render so the trigger shows the SVG (option data may not be applied until value is set again)
+          ts.setValue(currentValue, true);
+        } catch (err) {
+          getLogger().warn('Tom Select: exception applying initial value', {
+            currentValue,
+            hasSvg: !!svgMap?.[currentValue],
+            svgLength: (svgMap?.[currentValue] ?? '').length,
+            error: err,
+          });
+        }
+      })
+      .catch((err) => {
+        getLogger().warn('Tom Select: failed to fetch SVG for initial value', currentValue, err);
+      });
+  } else if (currentValue) {
+    getLogger().debug('Tom Select: initial value not in prefix:name format, skipping addOption', currentValue);
+  }
+
+  // Preload first batch of "all" icons so dropdown shows results when opened with no query
+  loadTomSelectOnDemand('', (opts) => {
+    if (opts.length > 0) {
+      for (const o of opts) ts.addOption(o, false);
+      ts.refreshOptions(false);
+    }
+  }, configUrl, currentValue, ts as unknown as Record<string, TomSelectLoadMoreState | undefined>);
+}
+
+/**
+ * Tom Select with full list from the project icons API and lazy SVG loading.
+ * Fetches all icon IDs from the API, creates options without SVG, then loads SVGs in batches
+ * on dropdown open (from Iconify when configUrl is set, else from project /svg endpoint).
+ *
+ * @param el - Select or input element.
+ * @param url - Icons API URL (e.g. /api/icon-selector/icons).
+ * @param configUrl - Optional config URL for Iconify SVG fallback.
+ * @param currentValue - Currently selected icon ID.
+ */
+function initTomSelectFullList(
+  el: HTMLSelectElement | HTMLInputElement,
+  url: string,
+  configUrl: string | undefined,
+  currentValue: string,
+): void {
   fetch(url)
     .then((res) => res.json())
     .then((data: IconsApiResponse) => {
       const icons = Array.isArray(data.icons)
         ? data.icons
         : (data.icons_by_set && Object.values(data.icons_by_set).flat()) ?? [];
-      const currentValue = el instanceof HTMLSelectElement ? el.value : el.value;
       const apiOptions: IconOption[] = icons.map((id) => ({
         value: id,
         text: id.split(/[:/]/).pop() ?? id,
         svg: '',
       }));
+      getLogger().debug('Tom Select (full-list): initial value', {
+        currentValue: currentValue || '(empty)',
+        iconsCount: icons.length,
+        valueInIcons: !!currentValue && icons.includes(currentValue),
+      });
       const ts = new TomSelect(el, {
         valueField: 'value',
         labelField: 'text',
@@ -1140,15 +1708,30 @@ export function initTomSelect(
       }) as unknown as TomSelectInstance;
       const svgUrl = url.replace(/\/$/, '') + '/svg';
       if (currentValue && icons.includes(currentValue)) {
-        loadTomSelectSingleSvg(currentValue, ts, svgUrl, configUrl).then(() => ts.refreshOptions(false));
+        getLogger().debug('Tom Select (full-list): loading SVG for initial value', currentValue);
+        loadTomSelectSingleSvg(currentValue, ts, svgUrl, configUrl).then(() => {
+          ts.refreshOptions(false);
+          getLogger().debug('Tom Select (full-list): SVG loaded for initial value', currentValue);
+        }).catch((err) => {
+          getLogger().warn('Tom Select (full-list): failed to load SVG for initial value', currentValue, err);
+        });
+      } else if (currentValue) {
+        getLogger().warn('Tom Select (full-list): initial value not in API icons list', currentValue);
       }
       setupTomSelectSvgsLazy(icons, ts, svgUrl, configUrl, currentValue);
     })
-    .catch((e) => console.warn('IconSelector (tom_select): could not load icons', e));
+    .catch((e) => getLogger().warn('IconSelector (tom_select): could not load icons', e));
 }
 
 /**
- * Loads SVG for a single icon (e.g. selected value) so it displays in the control. Used on init.
+ * Loads SVG for a single icon (e.g. the selected value) so it displays in the Tom Select control.
+ * Used on init in full-list mode. When configUrl is set, fetches from Iconify; otherwise from
+ * the project /svg endpoint.
+ *
+ * @param iconId - Full icon ID (prefix:name).
+ * @param ts - Tom Select instance (option is updated in place).
+ * @param svgUrl - Project SVG batch endpoint URL.
+ * @param configUrl - Optional bundle config URL for Iconify SVG fetch.
  */
 async function loadTomSelectSingleSvg(
   iconId: string,
@@ -1156,18 +1739,27 @@ async function loadTomSelectSingleSvg(
   svgUrl: string,
   configUrl: string | undefined,
 ): Promise<void> {
-  const svgMap = await fetchSvgBatch(svgUrl, [iconId]);
-  let svg = svgMap[iconId] ?? '';
-  if (!svg && iconId.includes(':') && configUrl) {
+  let svg = '';
+  if (configUrl && iconId.includes(':')) {
     const iconify = await fetchIconifySvgsForIds(configUrl, [iconId]);
     svg = iconify[iconId] ?? '';
+  } else {
+    const svgMap = await fetchSvgBatch(svgUrl, [iconId]);
+    svg = svgMap[iconId] ?? '';
   }
   const text = iconId.split(/[:/]/).pop() ?? iconId;
   ts.updateOption(iconId, { value: iconId, text, svg });
 }
 
 /**
- * Loads a single batch of SVGs and updates Tom Select options.
+ * Loads a single batch of SVGs for the given icon IDs and updates the corresponding Tom Select options.
+ * When configUrl is set and IDs are in prefix:name form, fetches from Iconify; otherwise from
+ * the project /svg endpoint. Used in full-list mode for progressive SVG loading.
+ *
+ * @param batch - Array of icon IDs to load.
+ * @param ts - Tom Select instance.
+ * @param svgUrl - Project SVG batch endpoint URL.
+ * @param configUrl - Optional bundle config URL for Iconify.
  */
 async function processTomSelectSvgBatch(
   batch: string[],
@@ -1176,12 +1768,11 @@ async function processTomSelectSvgBatch(
   configUrl: string | undefined,
 ): Promise<void> {
   if (batch.length === 0) return;
-  let svgMap = await fetchSvgBatch(svgUrl, batch);
-  const hasIconifyIds = batch.every((id) => id.includes(':'));
-  const filledCount = Object.values(svgMap).filter((s) => s && s.length > 0).length;
-  if (hasIconifyIds && filledCount === 0 && configUrl) {
-    const iconifySvgs = await fetchIconifySvgsForIds(configUrl, batch);
-    Object.assign(svgMap, iconifySvgs);
+  let svgMap: Record<string, string>;
+  if (configUrl && batch.every((id) => id.includes(':'))) {
+    svgMap = await fetchIconifySvgsForIds(configUrl, batch);
+  } else {
+    svgMap = await fetchSvgBatch(svgUrl, batch);
   }
   for (const id of batch) {
     const text = id.split(/[:/]/).pop() ?? id;
@@ -1191,8 +1782,15 @@ async function processTomSelectSvgBatch(
 }
 
 /**
- * Sets up SVG loading for Tom Select: on dropdown open, one initial request then chained
- * requests until all icons have their SVGs (no scroll-based loading).
+ * Sets up progressive SVG loading for Tom Select in full-list mode.
+ * On dropdown open, loads SVGs in batches (chained requests) until all icons have their SVGs.
+ * Does not use scroll-based loading; all options are present from the start, only SVGs are filled in.
+ *
+ * @param icons - Full list of icon IDs (from project API).
+ * @param ts - Tom Select instance.
+ * @param svgUrl - Project SVG batch endpoint URL.
+ * @param configUrl - Optional bundle config URL for Iconify SVG fetch.
+ * @param currentValue - Currently selected icon ID (its SVG is loaded first).
  */
 function setupTomSelectSvgsLazy(
   icons: string[],
@@ -1240,17 +1838,31 @@ function setupTomSelectSvgsLazy(
  * @param iconsUrl - Icons API URL (e.g. /api/icon-selector/icons).
  * @returns Config URL (e.g. /api/icon-selector/config).
  */
+/**
+ * Derives the bundle config endpoint URL from the icons API URL.
+ * e.g. /api/icon-selector/icons -> /api/icon-selector/config
+ *
+ * @param iconsUrl - Icons API URL (e.g. /api/icon-selector/icons).
+ * @returns Config URL (e.g. /api/icon-selector/config).
+ */
 function getConfigUrl(iconsUrl: string): string {
   return iconsUrl.replace(/\/icons\/?$/, '/config');
 }
 
 /**
- * Scans the DOM for elements with data-controller containing "icon-selector".
- * Prefers Iconify-only widget when config endpoint returns sets; otherwise Tom Select (tom_select) or legacy IconSelectorWidget.
+ * Scans the DOM for elements with data-controller containing "icon-selector" and initializes the appropriate widget.
+ * When config URL returns sets, uses Iconify widget (grid/search) or Tom Select on-demand (tom_select mode).
+ * Otherwise uses legacy IconSelectorWidget or Tom Select with full list from the project API.
  * Skips containers already marked with data-icon-selector-init="1".
  */
 export function runInit(): void {
-  document.querySelectorAll<HTMLElement>('[data-controller*="icon-selector"]').forEach((container) => {
+  const containers = document.querySelectorAll<HTMLElement>('[data-controller*="icon-selector"]');
+  const first = containers[0];
+  if (first) {
+    const debugAttr = first.getAttribute(ATTR_DEBUG);
+    getLogger().setDebug(debugAttr === '1');
+  }
+  containers.forEach((container) => {
     if (container.getAttribute('data-icon-selector-init') === '1') return;
     container.setAttribute('data-icon-selector-init', '1');
     const url = container.getAttribute(ATTR_URL) || '/api/icon-selector/icons';
@@ -1262,6 +1874,7 @@ export function runInit(): void {
     );
     if (select && mode === 'tom_select') {
       const optionsWithSvg = getOptionsFromScript(select.id);
+      getLogger().info('runInit: tom_select mode, configUrl=', configUrl, 'preloadedOptions=', optionsWithSvg?.length ?? 0);
       initTomSelect(select, url, optionsWithSvg, configUrl);
       return;
     }

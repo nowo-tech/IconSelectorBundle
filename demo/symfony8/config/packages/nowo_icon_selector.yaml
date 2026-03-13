@@ -1,4 +1,5 @@
 nowo_icon_selector:
+    debug: true
     icon_sets:
         - heroicons
         - bootstrap-icons

@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-03-12
+
+### Added
+
+- **Debug mode**: New config option `debug` (default `false`). When `true`, the frontend logs all debug/info/warn/error messages to the console; when `false`, only the initial "script loaded" message (with build time) is shown. Exposed via `data-icon-selector-debug-value` on the widget and in the API response (`GET /api/icon-selector/config`).
+- **Bundle logger**: Reusable logger (`logger.ts`) with levels (debug, info, warn, error), styles and emoji; `setDebug(enabled)` to toggle verbose logging; used across Tom Select and grid widgets.
+- **Debug logs for initial value**: When the form loads with a value set, debug logs (when `debug: true`) show how the value is resolved in Tom Select (on-demand and full-list) and in both grid widgets (Iconify and legacy), to troubleshoot "value not found" issues.
+
+### Fixed
+
+- **Tom Select initial value**: When the form loads with a value already set (e.g. after submit or edit), the Tom Select trigger now shows the correct icon. The option is added or updated with SVG via `addOption`/`updateOption`, then `setValue` is called so the item re-renders with the icon. Exceptions during this flow are caught and logged.
+- **Tom Select dropdown_open error**: Removed the manual `load('')` call inside `dropdown_open`, which was invoked without Tom Select's context and caused `TypeError: Cannot read properties of undefined (reading 'can.load')`. Tom Select now calls `load` on its own when the dropdown opens (`shouldLoad: true`).
+- **Tom Select scroll position**: When loading more icons on scroll (infinite scroll), the dropdown scroll position is now restored after appending options so the list does not jump.
+
+### Changed
+
+- **Tom Select on-demand**: Infinite scroll implemented via polling (scroll events were unreliable in Tom Select's DOM). First batch loads when the dropdown opens; further batches load when the user scrolls near the bottom. Scroll position is preserved after each "load more".
+- **Grid widgets**: All console output in IconSelectorIconifyWidget and IconSelectorWidget now goes through the bundle logger and is hidden when `debug: false`.
+- **IconSelectorConfigProvider**: `getConfig()` now includes a `debug` key (boolean). **IconSelectorType** injects `debug` from config and sets `data-icon-selector-debug-value` on the form view for the frontend.
+
 ## [1.0.2] - 2026-03-12
 
 ### Fixed

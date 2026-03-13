@@ -17,6 +17,7 @@ services:
   Nowo\IconSelectorBundle\Service\IconSelectorConfigProvider:
     arguments:
       $iconSets: '%nowo_icon_selector.icon_sets%'
+      $debug: '%nowo_icon_selector.debug%'
     public: true
 
   Nowo\IconSelectorBundle\Controller\Api\IconListController:
@@ -44,6 +45,7 @@ services:
       $iconSets: '%nowo_icon_selector.icon_sets%'
       $iconsApiPath: '%nowo_icon_selector.icons_api_path%'
       $iconRenderer: '@?Symfony\UX\Icons\IconRendererInterface'
+      $debug: '%nowo_icon_selector.debug%'
     tags:
       - { name: form.type }
     public: false

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // This file is auto-generated and is for apps only. Bundles SHOULD NOT rely on its content.
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
@@ -735,6 +737,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     use_iconify_collection?: bool|Param, // When true, fetch the full icon list from api.iconify.design/collection for each icon_sets entry (requires symfony/http-client). When false, use the bundle static list. // Default: false
  *     icons_api_path?: scalar|Param|null, // Path for the JSON API that returns available icons. Used by the frontend to fetch the list. // Default: "/api/icon-selector/icons"
  *     form_theme?: scalar|Param|null, // Base form layout so the icon selector theme matches your app (e.g. form_div_layout.html.twig, bootstrap_5_layout.html.twig). Must match twig.form_themes. // Default: "form_div_layout.html.twig"
+ *     debug?: bool|Param, // When true, the frontend logs all debug/info/warn messages to the console. When false, only the initial "script loaded" message is shown. // Default: false
  * }
  * @psalm-type NowoTwigInspectorConfig = array{
  *     enabled_extensions?: list<scalar|Param|null>,

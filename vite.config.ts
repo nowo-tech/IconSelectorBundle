@@ -6,6 +6,9 @@ import { defineConfig } from 'vite';
  * (output ends up at `public/bundles/nowoiconselector/icon-selector.js`).
  */
 export default defineConfig({
+  define: {
+    __ICON_SELECTOR_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   build: {
     outDir: 'src/Resources/public',
     emptyOutDir: false,
