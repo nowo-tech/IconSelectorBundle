@@ -2,6 +2,12 @@
 
 This document describes how to upgrade between versions of Icon Selector Bundle.
 
+## 1.0.2 (2026-03-12)
+
+No breaking changes. Internal fix and demo improvements only.
+
+- **IconConfigController** now receives `IconSelectorConfigProvider` via constructor (service definition unchanged from a consumer perspective). If you extended or replaced this controller, ensure your implementation accepts the provider in the constructor.
+
 ## 1.0.1 (2026-03-12)
 
 No breaking changes. Improvements and fixes only.

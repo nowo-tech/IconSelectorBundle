@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-03-12
+
+### Fixed
+
+- **IconConfigController**: Dependency injection for `$configProvider` — now injected via constructor and explicit service binding, fixing the "requires that you provide a value for the \$configProvider argument" error when the controller is resolved as a service (e.g. in Symfony 7 demo).
+
+### Changed
+
+- **Demo Symfony 7**: Added `symfony/translation` and `symfony/http-client` to `composer.json` (required for framework translator and Iconify collection). Fixed routing paths (controllers `../src/Controller/`, Framework/WebProfiler use `routing/*.xml`). Profiler config under `when@dev` corrected. `make up` now runs `composer install` and `cache:clear` in one-off containers before starting the server and waits for HTTP response; FrankenPHP dev mode uses classic (non-worker) so the app responds reliably.
+- **Demo Symfony 8**: Same `make up` flow and FrankenPHP classic mode in dev for consistency; `Caddyfile.dev` mounted via docker-compose so changes apply without rebuild.
+
 ## [1.0.1] - 2026-03-12
 
 ### Fixed

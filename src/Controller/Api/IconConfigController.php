@@ -18,16 +18,19 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final readonly class IconConfigController
 {
+    public function __construct(
+        private IconSelectorConfigProvider $configProvider,
+    ) {
+    }
+
     /**
      * Returns the widget configuration as JSON (iconify_base and sets with prefixes).
-     *
-     * @param IconSelectorConfigProvider $configProvider Injected provider for iconify base URL and set definitions
      *
      * @return JsonResponse JSON object with keys: iconify_base, sets
      */
     #[Route(path: '/api/icon-selector/config', name: 'nowo_icon_selector_api_config', methods: ['GET'])]
-    public function __invoke(IconSelectorConfigProvider $configProvider): JsonResponse
+    public function __invoke(): JsonResponse
     {
-        return new JsonResponse($configProvider->getConfig());
+        return new JsonResponse($this->configProvider->getConfig());
     }
 }

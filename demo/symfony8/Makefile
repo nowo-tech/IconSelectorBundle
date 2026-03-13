@@ -22,19 +22,20 @@ help:
 
 up:
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || true; fi
+	@echo "Installing dependencies (one-off container)..."
+	@docker-compose run --rm -T --entrypoint composer -e COMPOSER_MEMORY_LIMIT=-1 php install --no-interaction --no-scripts
+	@echo "Warming cache and installing assets..."
+	@docker-compose run --rm -T --entrypoint php php -d memory_limit=256M bin/console cache:clear
+	@docker-compose run --rm -T --entrypoint php php bin/console assets:install public
+	@echo "Starting server..."
 	docker-compose up -d
-	@echo "Waiting for container to be ready..."
-	@for i in 1 2 3 4 5 6 7 8 9 10; do \
-		docker-compose exec -T php true 2>/dev/null && break; \
-		echo "  waiting... $$i/10"; sleep 2; \
-	done
-	@docker-compose exec -T php true 2>/dev/null || (echo "Container not running. Run: docker-compose logs php"; exit 1)
-	@echo "Installing dependencies..."
-	@docker-compose exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction --no-scripts
-	@echo "Running cache:clear and assets:install..."
-	@docker-compose exec -T php php -d memory_limit=256M bin/console cache:clear
-	@docker-compose exec -T php php bin/console assets:install public
-	@echo "App ready (see .env for PORT)."
+	@echo "Waiting for app to respond..."
+	@PORT=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2); PORT=$${PORT:-8011}; \
+	for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do \
+		curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$PORT/" 2>/dev/null | grep -qE '^[23]' && echo "App ready at http://127.0.0.1:$$PORT/" && exit 0; \
+		echo "  waiting... $$i/15"; sleep 2; \
+	done; \
+	echo "App did not respond in time. Check: docker-compose logs php"; exit 1
 
 down:
 	docker-compose down

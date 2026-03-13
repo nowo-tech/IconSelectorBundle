@@ -20,8 +20,8 @@ final class IconConfigControllerTest extends TestCase
     public function testReturnsConfigWithIconifyBaseAndSets(): void
     {
         $provider   = new IconSelectorConfigProvider(['heroicons', 'bootstrap-icons']);
-        $controller = new IconConfigController();
-        $response   = $controller->__invoke($provider);
+        $controller = new IconConfigController($provider);
+        $response   = $controller->__invoke();
 
         self::assertSame(200, $response->getStatusCode());
         $data = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -39,8 +39,8 @@ final class IconConfigControllerTest extends TestCase
     public function testReturnsEmptySetsWhenNoIconSetsConfigured(): void
     {
         $provider   = new IconSelectorConfigProvider([]);
-        $controller = new IconConfigController();
-        $response   = $controller->__invoke($provider);
+        $controller = new IconConfigController($provider);
+        $response   = $controller->__invoke();
 
         $data = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
         self::assertSame([], $data['sets']);

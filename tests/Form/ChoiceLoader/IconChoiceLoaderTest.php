@@ -6,6 +6,7 @@ namespace Nowo\IconSelectorBundle\Tests\Form\ChoiceLoader;
 
 use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Symfony\UX\Icons\IconRendererInterface;
 
 /**
@@ -46,7 +47,7 @@ final class IconChoiceLoaderTest extends TestCase
     public function testLoadChoicesForValuesAcceptsValidFormatWhenNoRenderer(): void
     {
         $choices = ['heroicons-outline:home' => 'home'];
-        $loader  = new IconChoiceLoader($choices, null);
+        $loader  = new IconChoiceLoader($choices);
 
         $result = $loader->loadChoicesForValues(['heroicons-outline:archive']);
 
@@ -56,7 +57,7 @@ final class IconChoiceLoaderTest extends TestCase
     public function testLoadChoicesForValuesRejectsInvalidFormatWhenNoRenderer(): void
     {
         $choices = ['heroicons-outline:home' => 'home'];
-        $loader  = new IconChoiceLoader($choices, null);
+        $loader  = new IconChoiceLoader($choices);
 
         $result = $loader->loadChoicesForValues(['no-colon', 'single:', ':onlyprefix', '']);
 
@@ -91,7 +92,7 @@ final class IconChoiceLoaderTest extends TestCase
     {
         $choices  = ['heroicons-outline:home' => 'home'];
         $renderer = $this->createMock(IconRendererInterface::class);
-        $renderer->method('renderIcon')->with('bad:icon', [])->willThrowException(new \RuntimeException('Not found'));
+        $renderer->method('renderIcon')->with('bad:icon', [])->willThrowException(new RuntimeException('Not found'));
         $loader = new IconChoiceLoader($choices, $renderer);
 
         $result = $loader->loadChoicesForValues(['bad:icon']);
@@ -102,7 +103,7 @@ final class IconChoiceLoaderTest extends TestCase
     public function testLoadChoicesForValuesSkipsEmptyString(): void
     {
         $choices = ['heroicons-outline:home' => 'home'];
-        $loader  = new IconChoiceLoader($choices, null);
+        $loader  = new IconChoiceLoader($choices);
 
         $result = $loader->loadChoicesForValues(['']);
 

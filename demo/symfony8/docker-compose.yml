@@ -12,6 +12,7 @@ services:
     volumes:
       - .:/app
       - ../..:/var/icon-selector-bundle
+      - ./docker/frankenphp/Caddyfile.dev:/etc/frankenphp/Caddyfile.dev
       - composer-cache:/root/.composer/cache
     environment:
       - COMPOSER_ALLOW_SUPERUSER=1
