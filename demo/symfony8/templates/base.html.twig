@@ -32,6 +32,9 @@
                     <li class="nav-item">
                         <a class="nav-link {{ _current_route == 'app_demo_heroicons' ? 'active' : '' }}" href="{{ path('app_demo_heroicons', { _locale: _locale }) }}">{{ 'demo.label_icon_heroicons'|trans({}, 'messages') }}</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ _current_route == 'app_demo_background' ? 'active' : '' }}" href="{{ path('app_demo_background', { _locale: _locale }) }}">{{ 'demo.page_background_title'|trans({}, 'messages') }}</a>
+                    </li>
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">

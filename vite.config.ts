@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
  * Vite configuration for the Icon Selector Bundle frontend assets.
  * Builds TypeScript to a single IIFE in `src/Resources/public` for Symfony `assets:install`
  * (output ends up at `public/bundles/nowoiconselector/icon-selector.js`).
+ * Stimulus controller source is in Resources/assets/controllers/ for apps that use Stimulus (UX component pattern).
  */
 export default defineConfig({
   define: {

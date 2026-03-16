@@ -50,6 +50,17 @@ Or manually: `{{ asset('bundles/nowoiconselector/icon-selector.js') }}`.
 
 Run `php bin/console assets:install` so that `public/bundles/nowoiconselector/` exists.
 
+## UX component (Stimulus controller)
+
+The widget behaves like a **Symfony UX component**: when HTML containing the icon selector is injected into the page (e.g. from an API or a Turbo frame), it is **initialized automatically** — no manual call. The bundle does this in two ways:
+
+1. **MutationObserver (default)** — The main script (`icon-selector.js`) starts an observer when it loads. Any new element with `data-controller*="icon-selector"` that appears in the DOM is initialized automatically.
+2. **Optional Stimulus controller** — If your app uses [Stimulus](https://stimulus.hotwired.dev/), you can register the bundle’s controller so the selector is connected when Stimulus sees it (same pattern as other UX components). Load `icon-selector.js` first (it sets `window.NowoIconSelector`), then in your Stimulus app register the controller from the bundle’s source:
+   - Controller source: `Resources/assets/controllers/icon_selector_controller.ts` (extends `Controller`, calls `NowoIconSelector.initIconSelectorContainer(this.element)` in `connect()`).
+   - Add your bundle’s `Resources/assets/controllers` path to your Stimulus app and register the controller as `icon-selector`. The form theme already outputs `data-controller="icon-selector"` (Stimulus naming), so once registered, Stimulus will connect it when the element is in the DOM.
+
+The demo “Load as UX component (controller)” shows loading a fragment via fetch and injecting it; the widget initializes without any extra call.
+
 ## Troubleshooting (debug)
 
 If the selector does not show the initial value when the form is loaded with data, or you need to inspect load/scroll behaviour, enable **debug** in the bundle config. With `debug: true`, the frontend logs detailed messages to the browser console (initial value resolution, Tom Select options, grid entries, SVG loading). See [Configuration](CONFIGURATION.md#debug).

@@ -1,5 +1,5 @@
 # Icon Selector Bundle - Development
-.PHONY: help up down build shell install test test-coverage cs-check cs-fix qa clean assets assets-build assets-watch ensure-up rector rector-dry phpstan release-check composer-sync update validate
+.PHONY: help up down build shell install test test-coverage cs-check cs-fix qa clean assets assets-build assets-watch assets-test test-ts ensure-up rector rector-dry phpstan release-check release-check-demos composer-sync update validate
 
 COMPOSE_FILE ?= docker-compose.yml
 COMPOSE     ?= docker-compose -f $(COMPOSE_FILE)
@@ -16,7 +16,8 @@ help:
 	@echo "  assets          Build TypeScript (pnpm install + pnpm run build)"
 	@echo "  assets-build    Alias for assets"
 	@echo "  assets-watch    Watch and rebuild TS on change"
-	@echo "  assets-test     Run Vitest (TypeScript unit tests)"
+	@echo "  test-ts         Run TypeScript (Vitest) unit tests"
+	@echo "  assets-test     Alias of test-ts"
 	@echo "  test            Run PHPUnit tests"
 	@echo "  test-coverage   Run tests with code coverage"
 	@echo "  cs-check / cs-fix  Code style"
@@ -68,9 +69,11 @@ assets-build: assets
 assets-watch: ensure-up
 	$(COMPOSE) exec $(SERVICE_PHP) pnpm run watch
 
-assets-test: ensure-up
+# TypeScript/Vitest tests (bundle has TS)
+test-ts: ensure-up
 	$(COMPOSE) exec -T -e CI=true $(SERVICE_PHP) pnpm install --no-frozen-lockfile 2>/dev/null || true
-	$(COMPOSE) exec -T $(SERVICE_PHP) pnpm run test
+	$(COMPOSE) exec -T $(SERVICE_PHP) pnpm run test:coverage
+assets-test: test-ts
 
 test: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer install --no-interaction
@@ -102,13 +105,10 @@ composer-sync: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer validate --strict
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer update --no-install
 
-release-check: ensure-up
-	$(COMPOSE) exec -T $(SERVICE_PHP) composer validate --strict
-	$(COMPOSE) exec -T $(SERVICE_PHP) composer cs-fix
-	$(COMPOSE) exec -T $(SERVICE_PHP) composer cs-check
-	$(COMPOSE) exec -T $(SERVICE_PHP) composer rector-dry
-	$(COMPOSE) exec -T $(SERVICE_PHP) composer phpstan
-	$(COMPOSE) exec $(SERVICE_PHP) composer test-coverage
+release-check: ensure-up composer-sync cs-fix cs-check rector-dry phpstan test-coverage test-ts release-check-demos
+
+release-check-demos:
+	@$(MAKE) -C demo release-check 2>/dev/null || true
 
 clean:
 	rm -rf vendor node_modules .phpunit.cache coverage .php-cs-fixer.cache

@@ -3,7 +3,7 @@
 
 DEMOS := symfony7 symfony8
 
-.PHONY: help clean test-all test-coverage-all verify-all
+.PHONY: help clean test-all test-coverage-all verify-all release-check release-verify
 .PHONY: $(foreach demo,$(DEMOS),up-$(demo) down-$(demo) restart-$(demo) build-$(demo) install-$(demo) update-bundle-$(demo) shell-$(demo) logs-$(demo) test-$(demo) test-coverage-$(demo) verify-$(demo))
 .PHONY: up down restart build install update-bundle test shell logs test-coverage verify
 
@@ -27,6 +27,9 @@ help:
 		echo "  test-coverage-$$demo  Run tests with coverage for $$version demo"; \
 		echo ""; \
 	done
+	@echo "  release-check    Pre-release: test-coverage-all, release-verify"
+	@echo "  release-verify   For each demo: up → healthcheck HTTP 200 → down"
+	@echo ""
 	@echo "Generic (use DEMO=<name>): make up DEMO=symfony7, make update-bundle DEMO=symfony8, etc."
 	@echo ""
 	@echo "Access: Symfony 7 http://localhost:8010  |  Symfony 8 http://localhost:8011"
@@ -156,6 +159,22 @@ logs:
 verify:
 	@[ -n "$(DEMO)" ] || { echo "Usage: make verify DEMO=symfony7|symfony8"; exit 1; }
 	@$(MAKE) verify-$(DEMO)
+
+# release-verify: for each demo up → sleep → healthcheck HTTP 200 → down
+release-verify:
+	@for demo in $(DEMOS); do \
+		port=$$(grep '^PORT=' $$demo/.env 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+		[ -z "$$port" ] && port=$$(case $$demo in symfony7) echo 8010;; symfony8) echo 8011;; *) echo 8010;; esac); \
+		echo "Release verify: $$demo (port $$port)..."; \
+		$(MAKE) up-$$demo; sleep 12; \
+		code=$$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$$port 2>/dev/null || echo "000"); \
+		$(MAKE) down-$$demo 2>/dev/null || true; \
+		if [ "$$code" != "200" ]; then echo "$$demo healthcheck failed (HTTP $$code)"; exit 1; fi; \
+		echo "OK $$demo (HTTP $$code)"; \
+	done
+	@echo "All demos passed release-verify."
+release-check: test-coverage-all release-verify
+	@echo "All demos passed release-check."
 
 clean:
 	@rm -rf $(foreach demo,$(DEMOS),$(demo)/vendor $(demo)/var $(demo)/.phpunit.cache)

@@ -193,6 +193,42 @@ class IconDemoController extends AbstractController
     }
 
     /**
+     * Demo page: load icon selector in background (fetch HTML and inject into page).
+     * Shows that the bundle's MutationObserver initializes widgets in dynamically injected HTML.
+     */
+    #[Route(path: '/{_locale}/demo/background', name: 'app_demo_background', requirements: self::LOCALE_REQUIREMENT, defaults: ['_locale' => 'en'], methods: ['GET'])]
+    public function background(Request $request): Response
+    {
+        $request->setLocale($request->attributes->get('_locale', 'en'));
+
+        return $this->render('icon_demo/background.html.twig');
+    }
+
+    /**
+     * Returns HTML fragment with an icon selector form (for background-load demo).
+     * Called via fetch() from the demo page; injected HTML is auto-initialized by the bundle's MutationObserver.
+     */
+    #[Route(path: '/{_locale}/demo/background-fragment', name: 'app_demo_background_fragment', requirements: self::LOCALE_REQUIREMENT, defaults: ['_locale' => 'en'], methods: ['GET'])]
+    public function backgroundFragment(Request $request): Response
+    {
+        $request->setLocale($request->attributes->get('_locale', 'en'));
+        $icons = $this->iconListProvider->getIcons();
+        $form  = $this->createFormBuilder(['icon' => ''], ['translation_domain' => 'messages'])
+            ->add('icon', IconSelectorType::class, [
+                'mode'                      => IconSelectorType::MODE_DIRECT,
+                'label'                     => 'demo.label_icon_grid',
+                'icons'                     => $icons,
+                'translation_domain'        => 'messages',
+                'choice_translation_domain' => false,
+            ])
+            ->getForm();
+
+        return $this->render('icon_demo/_background_fragment.html.twig', [
+            'form' => $form,
+        ]);
+    }
+
+    /**
      * @param list<string> $icons
      *
      * @return array<string, string> Map of icon ID to label (for ChoiceType, key = value submitted)

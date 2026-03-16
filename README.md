@@ -122,6 +122,10 @@ $builder->add('icon', IconSelectorType::class, [
 - [Security](docs/SECURITY.md)
 - [Engram](docs/ENGRAM.md)
 
+### Additional documentation
+
+- [Demo with FrankenPHP (development and production)](docs/DEMO-FRANKENPHP.md) — development vs production setup, Web Profiler, Twig Inspector; reusable for other bundles
+
 ## Requirements
 
 - PHP >= 8.2, < 8.6
@@ -143,9 +147,11 @@ From the bundle root:
 
 ```bash
 make -C demo/symfony8 up
-make -C demo/symfony8 install
+# or make -C demo/symfony7 up
 # Open http://localhost:8011 (or the port in the demo .env)
 ```
+
+See [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md) for development vs production setup (worker mode, Twig cache, OPcache).
 
 ## Development
 

@@ -1849,6 +1849,115 @@ function getConfigUrl(iconsUrl: string): string {
   return iconsUrl.replace(/\/icons\/?$/, '/config');
 }
 
+/** Selector for icon selector container elements (Stimulus-style). */
+const ICON_SELECTOR_CONTAINER_SELECTOR = '[data-controller*="icon-selector"]';
+
+/** Attribute set on containers after they have been initialized (avoids double-init). */
+const ATTR_INIT = 'data-icon-selector-init';
+
+/**
+ * Returns true if any node in the list is or contains an icon-selector container that is not yet initialized.
+ * Used by the MutationObserver to decide whether to run init after DOM changes.
+ */
+function hasUninitializedIconSelectorInNodes(nodes: NodeList | Node[]): boolean {
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (node.nodeType !== Node.ELEMENT_NODE) continue;
+    const el = node as HTMLElement;
+    const candidates = el.matches?.(ICON_SELECTOR_CONTAINER_SELECTOR)
+      ? [el]
+      : Array.from(el.querySelectorAll<HTMLElement>(ICON_SELECTOR_CONTAINER_SELECTOR));
+    for (const c of candidates) {
+      if (c.getAttribute(ATTR_INIT) !== '1') return true;
+    }
+  }
+  return false;
+}
+
+let observerStarted = false;
+let observeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+const OBSERVE_DEBOUNCE_MS = 100;
+
+/**
+ * Starts a MutationObserver on document.body so that when new HTML is injected (e.g. from an API response),
+ * any new icon-selector containers are initialized automatically. Safe to call multiple times; observer
+ * is only started once.
+ */
+function startObserving(): void {
+  if (observerStarted || typeof document === 'undefined' || !document.body) return;
+  if (typeof MutationObserver === 'undefined') return;
+  observerStarted = true;
+  const observer = new MutationObserver((mutations) => {
+    let hasNew = false;
+    for (const m of mutations) {
+      if (m.addedNodes.length && hasUninitializedIconSelectorInNodes(m.addedNodes)) {
+        hasNew = true;
+        break;
+      }
+    }
+    if (!hasNew) return;
+    if (observeDebounceTimer) clearTimeout(observeDebounceTimer);
+    observeDebounceTimer = setTimeout(() => {
+      observeDebounceTimer = null;
+      runInit();
+    }, OBSERVE_DEBOUNCE_MS);
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  getLogger().debug('icon-selector: MutationObserver started for dynamic content');
+}
+
+/**
+ * Initializes a single icon-selector container (e.g. one element with data-controller*="icon-selector").
+ * Can be called from a Stimulus controller's connect() so the widget behaves like a UX component:
+ * when the element is connected to the DOM, it initializes automatically.
+ *
+ * @param container - Root element that has data-controller containing "icon-selector" and the expected targets/inputs.
+ * @returns true if the container was initialized, false if skipped (already init, or invalid).
+ */
+export function initIconSelectorContainer(container: HTMLElement): boolean {
+  if (!container.matches?.(ICON_SELECTOR_CONTAINER_SELECTOR)) return false;
+  if (container.getAttribute(ATTR_INIT) === '1') return false;
+
+  const debugAttr = container.getAttribute(ATTR_DEBUG);
+  if (debugAttr !== null) getLogger().setDebug(debugAttr === '1');
+
+  const url = container.getAttribute(ATTR_URL) || '/api/icon-selector/icons';
+  const configUrl = container.getAttribute(ATTR_CONFIG_URL) || getConfigUrl(url);
+  const mode = container.getAttribute(ATTR_MODE) || 'direct';
+
+  const select = container.querySelector<HTMLSelectElement>(
+    '[data-icon-selector-target="select"], .icon-selector-select',
+  );
+  if (select && mode === 'tom_select') {
+    container.setAttribute(ATTR_INIT, '1');
+    const optionsWithSvg = getOptionsFromScript(select.id);
+    getLogger().info('runInit: tom_select mode, configUrl=', configUrl, 'preloadedOptions=', optionsWithSvg?.length ?? 0);
+    initTomSelect(select, url, optionsWithSvg, configUrl);
+    return true;
+  }
+
+  const input = container.querySelector<HTMLInputElement>(
+    '[data-icon-selector-target="input"], .icon-selector-input',
+  );
+  const picker = container.querySelector<HTMLElement>(
+    '[data-icon-selector-target="picker"], .icon-selector-picker',
+  );
+  if (!input || !picker) return false;
+  container.setAttribute(ATTR_INIT, '1');
+
+  const searchPlaceholder = container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ?? undefined;
+  fetchIconifyConfig(configUrl).then((config) => {
+    if (config?.sets?.length) {
+      new IconSelectorIconifyWidget(container, input, picker, configUrl, searchPlaceholder);
+    } else {
+      new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder);
+    }
+  }).catch(() => {
+    new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder);
+  });
+  return true;
+}
+
 /**
  * Scans the DOM for elements with data-controller containing "icon-selector" and initializes the appropriate widget.
  * When config URL returns sets, uses Iconify widget (grid/search) or Tom Select on-demand (tom_select mode).
@@ -1856,46 +1965,21 @@ function getConfigUrl(iconsUrl: string): string {
  * Skips containers already marked with data-icon-selector-init="1".
  */
 export function runInit(): void {
-  const containers = document.querySelectorAll<HTMLElement>('[data-controller*="icon-selector"]');
+  const containers = document.querySelectorAll<HTMLElement>(ICON_SELECTOR_CONTAINER_SELECTOR);
   const first = containers[0];
   if (first) {
     const debugAttr = first.getAttribute(ATTR_DEBUG);
     getLogger().setDebug(debugAttr === '1');
   }
-  containers.forEach((container) => {
-    if (container.getAttribute('data-icon-selector-init') === '1') return;
-    container.setAttribute('data-icon-selector-init', '1');
-    const url = container.getAttribute(ATTR_URL) || '/api/icon-selector/icons';
-    const configUrl = container.getAttribute(ATTR_CONFIG_URL) || getConfigUrl(url);
-    const mode = container.getAttribute(ATTR_MODE) || 'direct';
+  containers.forEach((container) => initIconSelectorContainer(container));
+}
 
-    const select = container.querySelector<HTMLSelectElement>(
-      '[data-icon-selector-target="select"], .icon-selector-select',
-    );
-    if (select && mode === 'tom_select') {
-      const optionsWithSvg = getOptionsFromScript(select.id);
-      getLogger().info('runInit: tom_select mode, configUrl=', configUrl, 'preloadedOptions=', optionsWithSvg?.length ?? 0);
-      initTomSelect(select, url, optionsWithSvg, configUrl);
-      return;
-    }
-
-    const input = container.querySelector<HTMLInputElement>(
-      '[data-icon-selector-target="input"], .icon-selector-input',
-    );
-    const picker = container.querySelector<HTMLElement>(
-      '[data-icon-selector-target="picker"], .icon-selector-picker',
-    );
-    if (!input || !picker) return;
-
-    const searchPlaceholder = container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ?? undefined;
-    fetchIconifyConfig(configUrl).then((config) => {
-      if (config?.sets?.length) {
-        new IconSelectorIconifyWidget(container, input, picker, configUrl, searchPlaceholder);
-      } else {
-        new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder);
-      }
-    }).catch(() => {
-      new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder);
-    });
-  });
+/**
+ * Runs initial discovery of icon-selector containers and starts a MutationObserver so that
+ * any icon-selector markup injected later (e.g. from an API response) is initialized automatically.
+ * Call this once when the script loads (e.g. on DOMContentLoaded or immediately if DOM ready).
+ */
+export function runInitAndObserve(): void {
+  runInit();
+  startObserving();
 }

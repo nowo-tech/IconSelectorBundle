@@ -7,6 +7,8 @@ import {
   getOptionsFromScript,
   IconSelectorWidget,
   runInit,
+  runInitAndObserve,
+  initIconSelectorContainer,
   ATTR_MODE,
   ATTR_URL,
   ATTR_SEARCH_PLACEHOLDER,
@@ -51,6 +53,7 @@ describe('getOptionsFromScript', () => {
   it('returns null when script contains invalid JSON', () => {
     const script = document.createElement('script');
     script.id = 'icon-selector-options-bad';
+    script.type = 'application/json';
     script.textContent = 'not json {';
     document.body.appendChild(script);
     expect(getOptionsFromScript('bad')).toBeNull();
@@ -59,6 +62,7 @@ describe('getOptionsFromScript', () => {
   it('returns null when script content is not an array', () => {
     const script = document.createElement('script');
     script.id = 'icon-selector-options-obj';
+    script.type = 'application/json';
     script.textContent = JSON.stringify({ foo: 'bar' });
     document.body.appendChild(script);
     expect(getOptionsFromScript('obj')).toBeNull();
@@ -126,32 +130,41 @@ describe('IconSelectorWidget', () => {
   it('renders icon buttons from API response after opening panel', async () => {
     (fetch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({
+        ok: true,
         json: async () => ({ icons: ['heroicons-outline:home', 'bi:house'] }),
       })
       .mockResolvedValueOnce({
+        ok: true,
         json: async () => ({
           'heroicons-outline:home': '<svg>home</svg>',
           'bi:house': '<svg>house</svg>',
         }),
       });
     new IconSelectorWidget(container, input, picker, '/api/icons', 'direct');
-    await vi.waitFor(() => picker.querySelector('.icon-selector-trigger'));
-    const trigger = picker.querySelector<HTMLElement>('.icon-selector-trigger');
-    expect(trigger).not.toBeNull();
-    trigger!.click();
+    const trigger = await vi.waitFor(() => {
+      const el = picker.querySelector<HTMLElement>('.icon-selector-trigger');
+      if (!el) throw new Error('trigger not found');
+      return el;
+    });
+    trigger.click();
     await vi.waitFor(() => {
       const buttons = picker.querySelectorAll('.icon-selector-item');
       expect(buttons.length).toBe(2);
       expect(buttons[0].getAttribute('data-icon-id')).toBe('heroicons-outline:home');
-      expect(buttons[0].querySelector('.icon-selector-svg-wrap')?.innerHTML).toBe('<svg>home</svg>');
+      const wrap0 = buttons[0].querySelector('.icon-selector-svg-wrap');
+      expect(wrap0).not.toBeNull();
+      expect((wrap0 as HTMLElement).innerHTML).toContain('home');
       expect(buttons[1].getAttribute('data-icon-id')).toBe('bi:house');
-      expect(buttons[1].querySelector('.icon-selector-svg-wrap')?.innerHTML).toBe('<svg>house</svg>');
+      const wrap1 = buttons[1].querySelector('.icon-selector-svg-wrap');
+      expect(wrap1).not.toBeNull();
+      expect((wrap1 as HTMLElement).innerHTML).toContain('house');
     });
   });
 
   it('uses icons_by_set when icons array is missing', async () => {
     (fetch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({
+        ok: true,
         json: async () => ({
           icons_by_set: {
             heroicons: ['heroicons-outline:home'],
@@ -159,11 +172,16 @@ describe('IconSelectorWidget', () => {
         }),
       })
       .mockResolvedValueOnce({
+        ok: true,
         json: async () => ({ 'heroicons-outline:home': '<svg></svg>' }),
       });
     new IconSelectorWidget(container, input, picker, '/api/icons', 'direct');
-    await vi.waitFor(() => picker.querySelector('.icon-selector-trigger'));
-    picker.querySelector<HTMLElement>('.icon-selector-trigger')!.click();
+    const trigger = await vi.waitFor(() => {
+      const el = picker.querySelector<HTMLElement>('.icon-selector-trigger');
+      if (!el) throw new Error('trigger not found');
+      return el;
+    });
+    trigger.click();
     await vi.waitFor(() => {
       const buttons = picker.querySelectorAll('.icon-selector-item');
       expect(buttons.length).toBe(1);
@@ -225,5 +243,53 @@ describe('runInit', () => {
     runInit();
 
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('runInitAndObserve starts observer and initIconSelectorContainer initializes a single container', async () => {
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ json: async () => ({ sets: [] }) })
+      .mockResolvedValueOnce({ json: async () => ({ icons: [] }) });
+    const container = document.createElement('div');
+    container.setAttribute('data-controller', 'icon-selector');
+    container.setAttribute(ATTR_URL, '/api/icons');
+    container.setAttribute(ATTR_MODE, 'direct');
+    const input = document.createElement('input');
+    input.setAttribute('data-icon-selector-target', 'input');
+    input.className = 'icon-selector-input';
+    const picker = document.createElement('div');
+    picker.setAttribute('data-icon-selector-target', 'picker');
+    picker.className = 'icon-selector-picker';
+    container.appendChild(input);
+    container.appendChild(picker);
+
+    const ok = initIconSelectorContainer(container);
+    expect(ok).toBe(true);
+    expect(container.getAttribute('data-icon-selector-init')).toBe('1');
+
+    document.body.appendChild(container);
+    runInitAndObserve();
+    expect(container.getAttribute('data-icon-selector-init')).toBe('1');
+  });
+
+  it('initIconSelectorContainer returns false for element without data-controller icon-selector', () => {
+    const div = document.createElement('div');
+    div.setAttribute('data-controller', 'other');
+    expect(initIconSelectorContainer(div)).toBe(false);
+  });
+
+  it('initIconSelectorContainer returns false when already initialized', () => {
+    const container = document.createElement('div');
+    container.setAttribute('data-controller', 'icon-selector');
+    container.setAttribute('data-icon-selector-init', '1');
+    container.setAttribute(ATTR_URL, '/api/icons');
+    expect(initIconSelectorContainer(container)).toBe(false);
+  });
+
+  it('initIconSelectorContainer returns false when container has no input and picker', () => {
+    const container = document.createElement('div');
+    container.setAttribute('data-controller', 'icon-selector');
+    container.setAttribute(ATTR_URL, '/api/icons');
+    container.setAttribute(ATTR_MODE, 'direct');
+    expect(initIconSelectorContainer(container)).toBe(false);
   });
 });

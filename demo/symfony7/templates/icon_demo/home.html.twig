@@ -24,6 +24,10 @@
             <a href="{{ path('app_demo_heroicons', { _locale: app.request.locale }) }}">{{ 'demo.label_icon_heroicons'|trans({}, 'messages') }}</a>
             <span class="text-muted small"> — {{ 'demo.page_heroicons_lead'|trans({}, 'messages') }}</span>
         </li>
+        <li class="list-group-item">
+            <a href="{{ path('app_demo_background', { _locale: app.request.locale }) }}">{{ 'demo.page_background_title'|trans({}, 'messages') }}</a>
+            <span class="text-muted small"> — {{ 'demo.page_background_lead'|trans({}, 'messages')|striptags|trim }}</span>
+        </li>
     </ul>
 </div>
 {% endblock %}

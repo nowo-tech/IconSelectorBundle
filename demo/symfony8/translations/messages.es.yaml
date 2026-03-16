@@ -1,4 +1,8 @@
 # Demo app – Spanish
+# Keys used by IconSelectorType when translation_domain is messages
+placeholder: 'Elegir icono...'
+search_placeholder: 'Buscar iconos...'
+
 demo:
   title: 'Demo Icon Selector'
   menu_home: 'Inicio'
@@ -25,3 +29,11 @@ demo:
   page_tom_select_lead: 'Dropdown con búsqueda e iconos visibles.'
   page_heroicons_title: 'Selector de icono – Solo Heroicons'
   page_heroicons_lead: 'Tom Select limitado al set Heroicons (opción icon_sets).'
+  page_background_title: 'Cargar como componente UX (controller)'
+  page_background_lead: 'Misma idea que un componente Symfony UX con controlador Stimulus: el HTML se carga en background (p. ej. por API) y se inyecta en la página. El selector de iconos de ese HTML se <strong>inicializa solo</strong> al aparecer en el DOM, sin llamar al script a mano. El bundle usa un MutationObserver (o puedes registrar el controlador Stimulus opcional para que actúe como un UX controller).'
+  background_load_button: 'Cargar componente selector de iconos'
+  background_load_again: 'Cargar de nuevo'
+  background_loading: 'Cargando…'
+  background_placeholder: 'El componente aparecerá aquí al pulsar el botón.'
+  background_error: 'Error al cargar el fragmento.'
+  background_fragment_loaded: 'Este formulario se cargó como fragmento; el widget se inicializó automáticamente (estilo controller).'
