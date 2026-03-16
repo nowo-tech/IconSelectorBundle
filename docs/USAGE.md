@@ -36,30 +36,50 @@ With attributes:
 {{ ux_icon(entity.icon, { class: 'size-4 text-primary' }) }}
 ```
 
-## Including the script
+## Frontend: two ways to load the widget
 
-The widget needs the bundle's JavaScript. Include it in your layout or in the page where the form is rendered. Prefer the Twig function so the URL always matches the path created by `assets:install` (folder is `nowoiconselector`, not the config alias `nowo_icon_selector`):
+The form type always renders HTML with `data-controller="icon-selector"`. You choose **how** the widget is initialized:
+
+| | **Option A: Script (normal JS)** | **Option B: Stimulus controller** |
+|---|---|---|
+| **Idea** | Include the bundle's built script. It runs on load and initializes every icon selector (and any injected later). | Register the bundle's Stimulus controller. Your JS bundle includes the controller + lib; no separate script. |
+| **Requires** | A `<script>` tag; `assets:install`. | A project that already uses [Stimulus](https://stimulus.hotwired.dev/) (Symfony UX, Vite, Webpack, importmaps). |
+| **When to use** | Classic multi-page app, no JS bundler, or you prefer a single script. | Single-page feel, Turbo, or you already bundle JS with Stimulus. |
+
+Use **one** of the two options below (not both).
+
+### Option A: Use as normal JS (script tag)
+
+For classic Symfony apps or when you want to drop in one script.
+
+1. Publish assets: `php bin/console assets:install`.
+2. Include the script in your layout or the page where the form is rendered:
 
 ```twig
 <script src="{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}"></script>
 ```
 
-(The bundle ships a single JS file; Tom Select styles are inlined. No separate CSS file.)
-
 Or manually: `{{ asset('bundles/nowoiconselector/icon-selector.js') }}`.
 
-Run `php bin/console assets:install` so that `public/bundles/nowoiconselector/` exists.
+The script (single file; Tom Select styles are inlined) runs on load, finds all `data-controller*="icon-selector"` elements and initializes them. It also starts a **MutationObserver**, so icon selectors injected later (e.g. from an API or Turbo frame) are initialized automatically.
 
-## UX component (Stimulus controller)
+### Option B: Use as Stimulus controller
 
-The widget behaves like a **Symfony UX component**: when HTML containing the icon selector is injected into the page (e.g. from an API or a Turbo frame), it is **initialized automatically** — no manual call. The bundle does this in two ways:
+For projects that already use Stimulus. The controller imports the lib directly, so you **do not** load `icon-selector.js`.
 
-1. **MutationObserver (default)** — The main script (`icon-selector.js`) starts an observer when it loads. Any new element with `data-controller*="icon-selector"` that appears in the DOM is initialized automatically.
-2. **Optional Stimulus controller** — If your app uses [Stimulus](https://stimulus.hotwired.dev/), you can register the bundle’s controller so the selector is connected when Stimulus sees it (same pattern as other UX components). Load `icon-selector.js` first (it sets `window.NowoIconSelector`), then in your Stimulus app register the controller from the bundle’s source:
-   - Controller source: `Resources/assets/controllers/icon_selector_controller.ts` (extends `Controller`, calls `NowoIconSelector.initIconSelectorContainer(this.element)` in `connect()`).
-   - Add your bundle’s `Resources/assets/controllers` path to your Stimulus app and register the controller as `icon-selector`. The form theme already outputs `data-controller="icon-selector"` (Stimulus naming), so once registered, Stimulus will connect it when the element is in the DOM.
+1. **Register the controller** in your Stimulus app. The controller is in the bundle at `Resources/assets/controllers/icon_selector_controller.ts` (it extends Stimulus `Controller` and calls `initIconSelectorContainer(this.element)` in `connect()`).
+   - Add the bundle's `Resources/assets/controllers` path to your Stimulus loaders, or copy the controller into your app.
+   - Register it as `icon-selector`: `application.register('icon-selector', IconSelectorController)` (or the equivalent in your setup).
 
-The demo “Load as UX component (controller)” shows loading a fragment via fetch and injecting it; the widget initializes without any extra call.
+2. **Tom Select mode**: If you use `mode: 'tom_select'`, ensure Tom Select CSS is loaded in your app (e.g. `import 'tom-select/dist/css/tom-select.css'` in your entry).
+
+The form theme already outputs `data-controller="icon-selector"` on the wrapper. When Stimulus connects that element, it initializes the widget. No script tag for the bundle is needed.
+
+- **Symfony UX / importmaps**: Add the bundle controllers path so the `icon-selector` controller is resolved.
+- **Vite / Webpack**: Import and register the controller in your Stimulus entry; the bundler will include the icon-selector lib.
+
+The demo "Load as UX component (controller)" shows loading a fragment via fetch and injecting it; the widget initializes when the controller connects.
+
 
 ## Troubleshooting (debug)
 

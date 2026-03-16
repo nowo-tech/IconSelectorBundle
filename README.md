@@ -59,15 +59,11 @@ return [
 
 ## Usage
 
-1. Add the field to your form with `IconSelectorType::class` and option `mode`: `'direct'` or `'search'`.
-2. Include the bundle script in your layout or form page. Use the provided Twig function so the URL matches the path created by `assets:install` (the folder is `nowoiconselector`, not the config alias `nowo_icon_selector`):
-   ```twig
-   <script src="{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}"></script>
-   ```
-   Or manually: `{{ asset('bundles/nowoiconselector/icon-selector.js') }}`.  
-   **Note:** The assets folder is `nowoiconselector` (no underscore). If you get 404 for `bundles/nowo_icon_selector/...`, use the Twig function above or the path `bundles/nowoiconselector/...`.
-3. Run `php bin/console assets:install` so the script is available.
-4. The submitted value is a string (e.g. `heroicons-outline:home`). Render it with `{{ ux_icon(entity.icon) }}` (Symfony UX Icons is a required dependency).
+1. Add the field to your form with `IconSelectorType::class` and option `mode`: `'direct'`, `'search'`, or `'tom_select'`.
+2. **Load the widget** in one of two ways (see [Usage → Frontend](docs/USAGE.md#frontend-two-ways-to-load-the-widget) for details):
+   - **Option A (normal JS):** Include the bundle script in your layout: `{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}`. Run `php bin/console assets:install` once. The script initializes all icon selectors on load and any injected later (MutationObserver).
+   - **Option B (Stimulus controller):** If your app uses Stimulus, register the bundle's `icon-selector` controller. No script tag needed; your JS bundle includes the lib. For `tom_select` mode, load Tom Select CSS in your app.
+3. The submitted value is a string (e.g. `heroicons-outline:home`). Render it with `{{ ux_icon(entity.icon) }}` (Symfony UX Icons is a required dependency).
 
 Example:
 

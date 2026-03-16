@@ -2,6 +2,14 @@
 
 This document describes how to upgrade between versions of Icon Selector Bundle.
 
+## 1.0.4 (2026-03-12)
+
+No breaking changes.
+
+- **Stimulus controller**: The controller now imports `initIconSelectorContainer` from the lib directly. You no longer need to load `icon-selector.js` before the controller when your app bundle includes the controller (the bundler will include the lib). The script `icon-selector.js` is still used when you do not use the Stimulus controller (e.g. classic script tag). If you relied on `window.NowoIconSelector`, it is still set by the script for backward compatibility.
+- **Debug**: With debug enabled, the controller logs "input inicializado" after initializing a container.
+- **Demos**: New demo routes for "Load as UX component" and load-in-background fragment; translations for `search_placeholder` in `messages` domain when the form uses `translation_domain => 'messages'`.
+
 ## 1.0.3 (2026-03-12)
 
 No breaking changes.

@@ -42,13 +42,11 @@ This copies the bundle's `Resources/public/` contents to `public/bundles/nowoico
 
 4. **Form theme**: The bundle automatically prepends its form theme to `twig.form_themes` according to the `form_theme` option in `config/packages/nowo_icon_selector.yaml` (default: `form_div_layout.html.twig`). If your app uses another form layout (e.g. Bootstrap 5), set `form_theme: 'bootstrap_5_layout.html.twig'` so the icon selector row and widget match. See [Configuration](CONFIGURATION.md#form_theme).
 
-5. Include the script in your layout or form template where you use the icon selector:
+5. **Load the widget** in one of two ways (see [Usage → Frontend](USAGE.md#frontend-two-ways-to-load-the-widget)):
+   - **Script (normal JS):** Include `icon-selector.js` in your layout (e.g. `{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}`). The script is in `Resources/public/` after `assets:install`.
+   - **Stimulus controller:** If your app uses Stimulus, register the bundle's `icon-selector` controller; you do not need to load the script. The controller is in `Resources/assets/controllers/icon_selector_controller.ts`.
 
-```twig
-<script src="{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}"></script>
-```
-
-The script is built from TypeScript (Vite) in the bundle; the compiled file is in `Resources/public/`. If you work on the bundle, run `make assets` (or `pnpm install && pnpm run build`) to rebuild.
+If you work on the bundle, run `make assets` (or `pnpm install && pnpm run build`) to rebuild the script.
 
 ## Symfony UX Icons
 

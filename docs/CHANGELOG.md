@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-03-12
+
+### Added
+
+- **Stimulus controller (UX component)**: Optional Stimulus controller initializes the icon selector when the element connects (e.g. Turbo frames, HTML injected via API). Register `application.register('icon-selector', IconSelectorController)`. The controller imports the lib directly, so you do not need to load `icon-selector.js` if your app bundle includes the controller. Tom Select CSS still required for `tom_select` mode. See [Usage](docs/USAGE.md#ux-component-stimulus-controller).
+- **MutationObserver**: When using the script entry point, `runInitAndObserve()` starts a MutationObserver so that containers with `data-controller*="icon-selector"` added dynamically (e.g. from an API response) are initialized automatically.
+- **Demo "Load as UX component"**: Demo pages for the controller pattern and "load in background" (HTML fragment via fetch); routes `demo/background` and `demo/background-fragment` in Symfony 7 and 8 demos.
+- **Debug log in controller**: When debug is on (`data-icon-selector-debug-value="1"`), the Stimulus controller logs "input inicializado" after initializing the container.
+
+### Changed
+
+- **Stimulus controller**: No longer depends on `window.NowoIconSelector`; imports `initIconSelectorContainer` directly from the lib. Apps that bundle the controller get the full logic without loading `icon-selector.js` separately.
+- **TypeScript tests**: Vitest with happy-dom; coverage limited to `logger.ts` with 100% threshold; `make assets-test` runs `pnpm run test:coverage`.
+
+### Fixed
+
+- **Icon selector test (SVG wrap)**: Fetch mocks in Vitest now include `ok: true` so the SVG batch response is accepted and icon buttons render with `.icon-selector-svg-wrap`.
+
 ## [1.0.3] - 2026-03-12
 
 ### Added
