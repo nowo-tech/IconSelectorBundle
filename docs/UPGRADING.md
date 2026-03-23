@@ -2,6 +2,14 @@
 
 This document describes how to upgrade between versions of Icon Selector Bundle.
 
+## 1.0.5 (2026-03-23)
+
+No breaking changes.
+
+- **Twig template overrides**: The bundle registers its Twig views path via a compiler pass so that application overrides in `templates/bundles/NowoIconSelectorBundle/...` are consulted first. If you override templates, ensure the directory name is `NowoIconSelectorBundle` (no `NowoIconSelector`).
+- **Debug logs**: In debug mode the Stimulus controller logs `"input initialized"` (English) instead of `"input inicializado"` (Spanish). Only affects console output.
+- **Demos/dev tooling**: Demo containers install `nodejs`, `npm` and `pnpm`, and demo dev dependencies are updated.
+
 ## 1.0.4 (2026-03-12)
 
 No breaking changes.

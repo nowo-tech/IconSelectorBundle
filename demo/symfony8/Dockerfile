@@ -2,8 +2,9 @@
 # https://frankenphp.dev/docs/docker/
 FROM dunglas/frankenphp:1-php8.4-alpine
 
-RUN apk add --no-cache git unzip bash
+RUN apk add --no-cache git unzip bash nodejs npm
 RUN install-php-extensions zip
+RUN npm install -g pnpm
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN git config --global --add safe.directory /app && \

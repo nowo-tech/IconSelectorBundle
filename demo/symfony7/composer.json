@@ -56,7 +56,7 @@
         }
     ],
     "require-dev": {
-        "nowo-tech/twig-inspector-bundle": "^1.0",
+        "nowo-tech/twig-inspector-bundle": "*",
         "symfony/debug-bundle": "^7.0",
         "symfony/var-dumper": "^7.0",
         "symfony/web-profiler-bundle": "^7.0"

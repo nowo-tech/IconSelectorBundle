@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-03-23
+
+### Changed
+
+- **Twig template overrides**: The bundle now registers its Twig views path via a compiler pass (`TwigPathsPass`) so that application overrides in `templates/bundles/NowoIconSelectorBundle/...` are consulted first (matching the documented behaviour).
+- **Stimulus controller debug log**: In debug mode, the controller logs `"input initialized"` (English) instead of `"input inicializado"` (Spanish).
+
+### Updated
+
+- **Frontend tooling**: Bumped `tom-select` to `2.5.2` and updated related `pnpm` dependencies/tooling.
+- **Demos/dev tooling**: Demo containers now install `nodejs`, `npm` and `pnpm`; demo `twig-inspector` dev dependency is loosened to `*`.
+
 ## [1.0.4] - 2026-03-12
 
 ### Added

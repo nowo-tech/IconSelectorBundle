@@ -19,7 +19,7 @@ export default class IconSelectorController extends Controller {
     if (this.element instanceof HTMLElement) {
       const ok = initIconSelectorContainer(this.element);
       if (ok) {
-        getLogger().debug('icon-selector (controller): input inicializado', this.element);
+        getLogger().debug('icon-selector (controller): input initialized', this.element);
       }
     }
   }

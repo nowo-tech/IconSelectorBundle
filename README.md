@@ -111,6 +111,7 @@ $builder->add('icon', IconSelectorType::class, [
 - [Installation](docs/INSTALLATION.md)
 - [Configuration](docs/CONFIGURATION.md)
 - [Usage](docs/USAGE.md)
+- [Overriding bundle templates](docs/USAGE.md#overriding-bundle-templates)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Upgrading](docs/UPGRADING.md)

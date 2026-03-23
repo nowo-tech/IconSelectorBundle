@@ -66,7 +66,7 @@ final class NowoIconSelectorExtensionTest extends TestCase
         self::assertTrue($container->has(IconifyCollectionLoader::class));
     }
 
-    /** Asserts prepend() adds form_themes and paths to Twig when Twig extension is loaded. */
+    /** Asserts prepend() adds form_themes to Twig when Twig extension is loaded. */
     public function testPrependAddsTwigPathsWhenTwigExtensionPresent(): void
     {
         $twigExtension = new class extends Extension {
@@ -92,7 +92,6 @@ final class NowoIconSelectorExtensionTest extends TestCase
         self::assertNotEmpty($twigConfig);
         $config = $twigConfig[0] ?? [];
         self::assertArrayHasKey('form_themes', $config);
-        self::assertArrayHasKey('paths', $config);
     }
 
     /** Asserts prepend() uses default form theme when configured theme is not in the map. */
@@ -121,7 +120,7 @@ final class NowoIconSelectorExtensionTest extends TestCase
         self::assertNotEmpty($twigConfig);
         $config = $twigConfig[0] ?? [];
         self::assertArrayHasKey('form_themes', $config);
-        self::assertContains('@NowoIconSelector/Form/icon_selector_theme.html.twig', $config['form_themes']);
+        self::assertContains('@NowoIconSelectorBundle/Form/icon_selector_theme.html.twig', $config['form_themes']);
     }
 
     /** Asserts prepend() does not fail when Twig extension is not registered. */

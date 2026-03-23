@@ -10,8 +10,6 @@ use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
-use function dirname;
-
 /**
  * Loads bundle configuration and services.
  *
@@ -24,17 +22,17 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
 {
     /** @var array<string, string> Map form_theme config value to bundle theme path. */
     private const FORM_THEME_MAP = [
-        'form_div_layout.html.twig'               => '@NowoIconSelector/Form/icon_selector_theme.html.twig',
-        'form_table_layout.html.twig'             => '@NowoIconSelector/Form/icon_selector_theme_table.html.twig',
-        'bootstrap_5_layout.html.twig'            => '@NowoIconSelector/Form/icon_selector_theme_bootstrap5.html.twig',
-        'bootstrap_5_horizontal_layout.html.twig' => '@NowoIconSelector/Form/icon_selector_theme_bootstrap5_horizontal.html.twig',
-        'bootstrap_4_layout.html.twig'            => '@NowoIconSelector/Form/icon_selector_theme_bootstrap4.html.twig',
-        'bootstrap_4_horizontal_layout.html.twig' => '@NowoIconSelector/Form/icon_selector_theme_bootstrap4_horizontal.html.twig',
-        'bootstrap_3_layout.html.twig'            => '@NowoIconSelector/Form/icon_selector_theme_bootstrap3.html.twig',
-        'bootstrap_3_horizontal_layout.html.twig' => '@NowoIconSelector/Form/icon_selector_theme_bootstrap3_horizontal.html.twig',
-        'foundation_5_layout.html.twig'           => '@NowoIconSelector/Form/icon_selector_theme_foundation5.html.twig',
-        'foundation_6_layout.html.twig'           => '@NowoIconSelector/Form/icon_selector_theme_foundation6.html.twig',
-        'tailwind_2_layout.html.twig'             => '@NowoIconSelector/Form/icon_selector_theme_tailwind2.html.twig',
+        'form_div_layout.html.twig'               => '@NowoIconSelectorBundle/Form/icon_selector_theme.html.twig',
+        'form_table_layout.html.twig'             => '@NowoIconSelectorBundle/Form/icon_selector_theme_table.html.twig',
+        'bootstrap_5_layout.html.twig'            => '@NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap5.html.twig',
+        'bootstrap_5_horizontal_layout.html.twig' => '@NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap5_horizontal.html.twig',
+        'bootstrap_4_layout.html.twig'            => '@NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap4.html.twig',
+        'bootstrap_4_horizontal_layout.html.twig' => '@NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap4_horizontal.html.twig',
+        'bootstrap_3_layout.html.twig'            => '@NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap3.html.twig',
+        'bootstrap_3_horizontal_layout.html.twig' => '@NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap3_horizontal.html.twig',
+        'foundation_5_layout.html.twig'           => '@NowoIconSelectorBundle/Form/icon_selector_theme_foundation5.html.twig',
+        'foundation_6_layout.html.twig'           => '@NowoIconSelectorBundle/Form/icon_selector_theme_foundation6.html.twig',
+        'tailwind_2_layout.html.twig'             => '@NowoIconSelectorBundle/Form/icon_selector_theme_tailwind2.html.twig',
     ];
 
     /**
@@ -61,14 +59,14 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
     }
 
     /**
-     * Prepends Twig paths and form themes so the icon selector theme is applied.
-     * Registers the bundle views path and adds the matching form theme to twig.form_themes.
+     * Prepends the bundle form theme to twig.form_themes so the icon selector widget is used.
+     * The bundle's view path is registered via TwigPathsPass (at the end of the loader) so that
+     * application overrides in templates/bundles/NowoIconSelectorBundle/ take precedence.
      *
      * @param ContainerBuilder $container Container builder
      */
     public function prepend(ContainerBuilder $container): void
     {
-        $viewsPath = dirname(__DIR__, 2) . '/src/Resources/views';
         if (!$container->hasExtension('twig')) {
             return;
         }
@@ -79,7 +77,6 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
         $themePath = self::FORM_THEME_MAP[$formTheme] ?? self::FORM_THEME_MAP['form_div_layout.html.twig'];
 
         $container->prependExtensionConfig('twig', [
-            'paths'       => [$viewsPath => 'NowoIconSelector'],
             'form_themes' => [$themePath],
         ]);
     }

@@ -84,3 +84,43 @@ The demo "Load as UX component (controller)" shows loading a fragment via fetch 
 ## Troubleshooting (debug)
 
 If the selector does not show the initial value when the form is loaded with data, or you need to inspect load/scroll behaviour, enable **debug** in the bundle config. With `debug: true`, the frontend logs detailed messages to the browser console (initial value resolution, Tom Select options, grid entries, SVG loading). See [Configuration](CONFIGURATION.md#debug).
+
+## Overriding bundle templates
+
+The bundle registers its Twig views so that `@NowoIconSelectorBundle/...` works, and it adds its view path **after** the application paths. Your overrides in **`templates/bundles/NowoIconSelectorBundle/`** are therefore checked first. Place a file there with the **same relative path** as in the bundle; Twig will use your template instead of the bundle’s.
+
+**Important:** The directory name under `templates/bundles/` must match the bundle name returned by `Bundle::getName()`. With Symfony’s default behaviour, the `Bundle` suffix is removed from the bundle class short name. For this bundle the class is `NowoIconSelectorBundle`, so the name is **`NowoIconSelectorBundle`**. Use:
+
+- `templates/bundles/NowoIconSelectorBundle/`
+
+### Bundle template paths (form themes)
+
+The bundle provides multiple form themes under `Resources/views/Form/` so you can match your UI framework. Override them by copying the file you use into your app:
+
+| Bundle path (relative to `Resources/views/`) | Override in your project |
+|---------------------------------------------|--------------------------|
+| `Form/icon_selector_theme.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme.html.twig` |
+| `Form/icon_selector_theme_bootstrap3.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap3.html.twig` |
+| `Form/icon_selector_theme_bootstrap3_horizontal.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap3_horizontal.html.twig` |
+| `Form/icon_selector_theme_bootstrap4.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap4.html.twig` |
+| `Form/icon_selector_theme_bootstrap4_horizontal.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap4_horizontal.html.twig` |
+| `Form/icon_selector_theme_bootstrap5.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap5.html.twig` |
+| `Form/icon_selector_theme_bootstrap5_horizontal.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_bootstrap5_horizontal.html.twig` |
+| `Form/icon_selector_theme_tailwind2.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_tailwind2.html.twig` |
+| `Form/icon_selector_theme_foundation5.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_foundation5.html.twig` |
+| `Form/icon_selector_theme_foundation6.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_foundation6.html.twig` |
+| `Form/icon_selector_theme_table.html.twig` | `templates/bundles/NowoIconSelectorBundle/Form/icon_selector_theme_table.html.twig` |
+
+After adding or changing overrides, clear the Twig cache if needed: `php bin/console cache:clear`.
+
+To override only specific blocks (e.g. change the wrapper markup but keep the rest), extend the original with the `@!` prefix so Twig uses the bundle template, not your override: `{% extends "@!NowoIconSelectorBundle/Form/icon_selector_theme.html.twig" %}`.
+
+## Overriding translations
+
+The form type uses the translation domain **`NowoIconSelectorBundle`** by default (`translation_domain` and `choice_translation_domain`). You can override or add strings by placing files in your app’s `translations/` directory with the same domain and locale:
+
+- `translations/NowoIconSelectorBundle.en.yaml`
+- `translations/NowoIconSelectorBundle.es.yaml`
+- etc.
+
+Define the same keys as in the bundle (e.g. `placeholder`, `search_placeholder`, and choice labels such as `home`, `user`). Your values replace the bundle’s for that locale. You can also use `translation_domain` and `search_placeholder` on the form field to point to another domain (e.g. `messages`) or a custom key.
