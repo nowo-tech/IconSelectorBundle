@@ -41,14 +41,17 @@ Supported set names for the Iconify API mapping: `heroicons` (outline + solid), 
 
 ### `icons_api_path`
 
-Path for the JSON endpoint that returns available icons. The frontend script fetches this URL to build the selector. The bundle also exposes:
+Path for the JSON endpoint that returns available icons. The frontend script fetches this URL to build the selector. The JavaScript **derives the widget config URL** from the same base by replacing the trailing `/icons` segment with `/config` (e.g. `/api/icon-selector/icons` → `/api/icon-selector/config`).
 
-- **Batch SVG endpoint** at `{icons_api_path}/svg` (e.g. `/api/icon-selector/icons/svg`): GET or POST with icon IDs returns a map of icon ID to SVG markup (using Symfony UX Icons server-side).
-- **Config endpoint** at a path derived from the icons path (e.g. `/api/icon-selector/config`): GET returns `iconify_base` and `sets` (key, label, prefixes) for the Iconify-based frontend when available.
+The bundle registers **fixed Symfony routes** (see `Controller/Api/`): icon list, batch SVG, and config. Defaults:
+
+- **Icon list (GET):** `/api/icon-selector/icons`
+- **Batch SVG (GET/POST):** `/api/icon-selector/icons/svg`
+- **Widget config (GET):** `/api/icon-selector/config`
+
+**Keep `icons_api_path` equal to the icon list URL your application actually serves** (normally the default above). If you change this value, you must expose the same routes under the new paths (e.g. custom `routes.yaml` or a prefix) so the browser and the `…/svg` / `…/config` pair still match what the controllers handle. **Do not** only change the YAML without matching routes — the widget would call the wrong URL.
 
 Default: `/api/icon-selector/icons`
-
-Change it if you need to mount the API under a different path (e.g. behind a prefix).
 
 ### `form_theme`
 

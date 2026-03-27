@@ -1,5 +1,17 @@
 # Usage
 
+## Table of contents
+
+- [Form type](#form-type)
+- [Rendering the selected icon](#rendering-the-selected-icon)
+- [Frontend: two ways to load the widget](#frontend-two-ways-to-load-the-widget)
+  - [Option A: Use as normal JS (script tag)](#option-a-use-as-normal-js-script-tag)
+  - [Option B: Use as Stimulus controller](#option-b-use-as-stimulus-controller)
+- [Troubleshooting (debug)](#troubleshooting-debug)
+- [Overriding bundle templates](#overriding-bundle-templates)
+  - [Bundle template paths (form themes)](#bundle-template-paths-form-themes)
+- [Overriding translations](#overriding-translations)
+
 ## Form type
 
 Add the icon selector to any form. The value is a string (icon identifier).

@@ -1,6 +1,6 @@
 # Icon Selector Bundle
 
-[![CI](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/icon-selector-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/icon-selector-bundle.svg)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7%20%7C%208-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/icon-selector-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/IconSelectorBundle)
+[![CI](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/icon-selector-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/icon-selector-bundle.svg)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7%20%7C%208-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/icon-selector-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/IconSelectorBundle) [![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/icon-selector-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/IconSelectorBundle) so more developers can find it.
 
@@ -33,7 +33,7 @@ Looking for **icon selector**, **icon picker**, **Symfony form icon**, **UX Icon
 - ✅ **Form theme** aligned with your app: set `form_theme` to match `twig.form_themes` (form_div, Bootstrap 5, etc.)
 - ✅ **Frontend**: TypeScript + Vite; built script in `Resources/public/` for `assets:install`
 - ✅ **Demos** (Symfony 7 and 8) with both selector types, persisting the chosen icon string
-- ✅ **Demos run with FrankenPHP** (Caddy, HTTP on port 80, **runtime worker** mode)
+- ✅ **Demos run with FrankenPHP** (Caddy, HTTP on port 80 in the container). Default **`APP_ENV=dev`** uses **Caddyfile.dev** (no PHP worker so template/PHP changes show on refresh). **Worker mode** applies to a production-style setup — see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md)
 - ✅ **Internationalizable**: uses Symfony Translation; domain `NowoIconSelectorBundle` for placeholder, search placeholder and choice labels; override with `translation_domain` and `search_placeholder` options
 
 ## Installation
@@ -52,8 +52,8 @@ With **Symfony Flex**, the recipe (if available) registers the bundle and adds c
 <?php
 
 return [
-    // ...
-    Nowo\IconSelectorBundle\NowoIconSelectorBundle::class => ['all' => true],
+  // ...
+  Nowo\IconSelectorBundle\NowoIconSelectorBundle::class => ['all' => true],
 ];
 ```
 
@@ -61,8 +61,8 @@ return [
 
 1. Add the field to your form with `IconSelectorType::class` and option `mode`: `'direct'`, `'search'`, or `'tom_select'`.
 2. **Load the widget** in one of two ways (see [Usage → Frontend](docs/USAGE.md#frontend-two-ways-to-load-the-widget) for details):
-   - **Option A (normal JS):** Include the bundle script in your layout: `{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}`. Run `php bin/console assets:install` once. The script initializes all icon selectors on load and any injected later (MutationObserver).
-   - **Option B (Stimulus controller):** If your app uses Stimulus, register the bundle's `icon-selector` controller. No script tag needed; your JS bundle includes the lib. For `tom_select` mode, load Tom Select CSS in your app.
+  - **Option A (normal JS):** Include the bundle script in your layout: `{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}`. Run `php bin/console assets:install` once. The script initializes all icon selectors on load and any injected later (MutationObserver).
+  - **Option B (Stimulus controller):** If your app uses Stimulus, register the bundle's `icon-selector` controller. No script tag needed; your JS bundle includes the lib. For `tom_select` mode, load Tom Select CSS in your app.
 3. The submitted value is a string (e.g. `heroicons-outline:home`). Render it with `{{ ux_icon(entity.icon) }}` (Symfony UX Icons is a required dependency).
 
 Example:
@@ -71,8 +71,8 @@ Example:
 use Nowo\IconSelectorBundle\Form\IconSelectorType;
 
 $builder->add('icon', IconSelectorType::class, [
-    'mode'  => 'direct',  // or 'search'
-    'label' => 'Choose an icon',
+  'mode' => 'direct', // or 'search'
+  'label' => 'Choose an icon',
 ]);
 ```
 
@@ -84,8 +84,9 @@ Create `config/packages/nowo_icon_selector.yaml` (or rely on defaults). Options:
 
 - **icon_sets**: list of icon libraries (e.g. `heroicons`, `bootstrap-icons`). Only these are available in the selector.
 - **use_iconify_collection**: when `true`, the selector loads the **full** icon list from [api.iconify.design](https://iconify.design/docs/api/collection.html) for each library (requires `symfony/http-client`). When `false`, a small built-in list is used.
-- **icons_api_path**: path for the JSON API that returns icons (default: `/api/icon-selector/icons`).
+- **icons_api_path**: URL path for the JSON icon list API (default: `/api/icon-selector/icons`). Must match the route the bundle exposes (see [CONFIGURATION.md](docs/CONFIGURATION.md#icons_api_path)).
 - **form_theme**: base form layout so the icon selector theme matches your app (e.g. `form_div_layout.html.twig`, `bootstrap_5_layout.html.twig`). Must match the same value you use in `twig.form_themes`.
+- **debug**: when `true`, the frontend logs detailed messages to the browser console; when `false` (default), only a short “script loaded” line.
 
 Full options: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
@@ -99,10 +100,10 @@ The bundle uses Symfony’s [Translation component](https://symfony.com/doc/curr
 
 ```php
 $builder->add('icon', IconSelectorType::class, [
-    'mode'                => 'tom_select',
-    'translation_domain'   => 'messages',  // use your app domain
-    'placeholder'          => 'my.placeholder.key',
-    'search_placeholder'   => 'my.search.placeholder',
+  'mode'        => 'tom_select',
+  'translation_domain'  => 'messages', // use your app domain
+  'placeholder'     => 'my.placeholder.key',
+  'search_placeholder'  => 'my.search.placeholder',
 ]);
 ```
 
@@ -111,7 +112,6 @@ $builder->add('icon', IconSelectorType::class, [
 - [Installation](docs/INSTALLATION.md)
 - [Configuration](docs/CONFIGURATION.md)
 - [Usage](docs/USAGE.md)
-- [Overriding bundle templates](docs/USAGE.md#overriding-bundle-templates)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Upgrading](docs/UPGRADING.md)
@@ -121,6 +121,7 @@ $builder->add('icon', IconSelectorType::class, [
 
 ### Additional documentation
 
+- [Overriding bundle templates](docs/USAGE.md#overriding-bundle-templates)
 - [Demo with FrankenPHP (development and production)](docs/DEMO-FRANKENPHP.md) — development vs production setup, Web Profiler, Twig Inspector; reusable for other bundles
 
 ## Requirements
@@ -132,20 +133,20 @@ $builder->add('icon', IconSelectorType::class, [
 
 ## Demo
 
-Demos (Symfony 7 and 8) are in `demo/symfony7` and `demo/symfony8`. Each uses **FrankenPHP** with **Caddy** (HTTP on port 80, **runtime worker** mode). Each shows a form with icon selector fields (grid, search, Tom Select, Heroicons); the chosen icon strings are stored in session.
+Demos (Symfony 7 and 8) are in `demo/symfony7` and `demo/symfony8`. Each uses **FrankenPHP** with **Caddy** (HTTP on port 80 inside the container). **`docker-compose`** sets **`APP_ENV=dev`**: the entrypoint uses **Caddyfile.dev** (no PHP worker), so edits to Twig/PHP are visible on refresh. A **production-style** stack uses the default Caddyfile with **worker** mode — see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md). Each demo shows icon selector fields (grid, search, Tom Select, Heroicons); the chosen icon strings are stored in session.
 
 | Grid (direct) | Tom Select |
 |--------------|------------|
 | ![Icon selector – Grid](docs/images/demo-grid.png) | ![Icon selector – Tom Select](docs/images/demo-tom-select.png) |
 
-**FrankenPHP worker:** The demos are configured to run with FrankenPHP in worker mode (`worker /app/public/index.php` in the Caddyfile), so the application stays loaded between requests. Access is via HTTP (no HTTPS) on the container port 80.
+**Host ports:** Symfony 7 demo defaults to **8010**, Symfony 8 to **8011** (`PORT` in each demo’s `.env`). Access is HTTP (no HTTPS) mapped from the host to port 80 in the container.
 
 From the bundle root:
 
 ```bash
 make -C demo/symfony8 up
 # or make -C demo/symfony7 up
-# Open http://localhost:8011 (or the port in the demo .env)
+# Open http://localhost:8011 (symfony8) or http://localhost:8010 (symfony7), unless PORT is overridden
 ```
 
 See [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md) for development vs production setup (worker mode, Twig cache, OPcache).
@@ -160,6 +161,12 @@ Run tests and QA with Docker: `make up && make install && make test` (or `make t
 - **release-check**: cs-fix, cs-check, rector-dry, phpstan, test-coverage
 
 **Building assets (TypeScript + Vite):** `make assets` (runs `pnpm install` and `pnpm run build` in the container) or locally: `pnpm install && pnpm run build`. Watch mode: `make assets-watch` or `pnpm run watch`. **TypeScript unit tests (Vitest):** `make assets-test` or `pnpm run test`.
+
+## Tests and coverage
+
+- Tests: PHPUnit (PHP), Vitest (TS/JS)
+- PHP: 99.25%
+- TS/JS: 100%
 
 ## License
 

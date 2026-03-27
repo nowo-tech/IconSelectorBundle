@@ -1,5 +1,24 @@
 # Security Policy
 
+## Table of contents
+
+- [Supported Versions](#supported-versions)
+- [Reporting a Vulnerability](#reporting-a-vulnerability)
+  - [How to Report](#how-to-report)
+  - [Response Timeline](#response-timeline)
+  - [Disclosure Policy](#disclosure-policy)
+- [Security considerations for integrators](#security-considerations-for-integrators)
+- [Security review (bundle code)](#security-review-bundle-code)
+  - [1. API endpoint `/api/icon-selector/icons/svg` (IconSvgController)](#1-api-endpoint-apiicon-selectoriconssvg-iconsvgcontroller)
+  - [2. Twig function `nowo_icon_selector_asset_path(filename)`](#2-twig-function-nowo_icon_selector_asset_pathfilename)
+  - [3. Form choice loader (IconChoiceLoader)](#3-form-choice-loader-iconchoiceloader)
+  - [4. IconifyCollectionLoader](#4-iconifycollectionloader)
+  - [5. Response and Content-Type](#5-response-and-content-type)
+  - [Summary](#summary)
+- [Preferred Languages](#preferred-languages)
+- [Contact](#contact)
+- [Release security checklist (12.4.1)](#release-security-checklist-1241)
+
 ## Supported Versions
 
 | Version | Supported          |
@@ -102,3 +121,23 @@ We prefer all communications to be in English or Spanish.
 
 - **Maintainer**: [Héctor Franco Aceituno](https://github.com/HecFranco)
 - **Organization**: [nowo-tech](https://github.com/nowo-tech)
+
+## Release security checklist (12.4.1)
+
+Before tagging a release, confirm:
+
+| Item | Notes |
+|------|--------|
+| **SECURITY.md** | This document is current and linked from the README where applicable. |
+| **`.gitignore` and `.env`** | `.env` and local env files are ignored; no committed secrets. |
+| **No secrets in repo** | No API keys, passwords, or tokens in tracked files. |
+| **Recipe / Flex** | Default recipe or installer templates do not ship production secrets. |
+| **Input / output** | Inputs validated; outputs escaped in Twig/templates where user-controlled. |
+| **Dependencies** | `composer audit` run; issues triaged. |
+| **Logging** | Logs do not print secrets, tokens, or session identifiers unnecessarily. |
+| **Cryptography** | If used: keys from secure config; never hardcoded. |
+| **Permissions / exposure** | Routes and admin features documented; roles configured for production. |
+| **Limits / DoS** | Timeouts, size limits, rate limits where applicable. |
+
+Record confirmation in the release PR or tag notes.
+

@@ -34,3 +34,11 @@ coverage.xml
 /var/
 /vendor/
 ###< symfony/framework-bundle ###
+
+# Archives / compressed
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z

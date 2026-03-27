@@ -1,5 +1,5 @@
 # Icon Selector Bundle - Development
-.PHONY: help up down build shell install test test-coverage cs-check cs-fix qa clean assets assets-build assets-watch assets-test test-ts ensure-up rector rector-dry phpstan release-check release-check-demos composer-sync update validate
+.PHONY: help up down build shell install test test-coverage coverage-php-percent cs-check cs-fix qa clean assets assets-build assets-watch assets-test test-ts ensure-up rector rector-dry phpstan release-check release-check-demos composer-sync update validate validate-translations
 
 COMPOSE_FILE ?= docker-compose.yml
 COMPOSE     ?= docker-compose -f $(COMPOSE_FILE)
@@ -72,7 +72,8 @@ assets-watch: ensure-up
 # TypeScript/Vitest tests (bundle has TS)
 test-ts: ensure-up
 	$(COMPOSE) exec -T -e CI=true $(SERVICE_PHP) pnpm install --no-frozen-lockfile 2>/dev/null || true
-	$(COMPOSE) exec -T $(SERVICE_PHP) pnpm run test:coverage
+	$(COMPOSE) exec -T $(SERVICE_PHP) pnpm run test:coverage | tee coverage-ts.txt
+	sh .scripts/ts-coverage-percent.sh coverage-ts.txt
 assets-test: test-ts
 
 test: ensure-up
@@ -81,7 +82,8 @@ test: ensure-up
 
 test-coverage: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer install --no-interaction
-	$(COMPOSE) exec $(SERVICE_PHP) composer test-coverage
+	$(COMPOSE) exec $(SERVICE_PHP) composer test-coverage | tee coverage-php.txt
+	sh .scripts/php-coverage-percent.sh coverage-php.txt
 
 cs-check: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer cs-check
@@ -97,6 +99,9 @@ rector-dry: ensure-up
 
 phpstan: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer phpstan
+
+validate-translations: ensure-up
+	$(COMPOSE) exec -T $(SERVICE_PHP) php bin/console lint:yaml src/Resources/translations
 
 qa: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer qa

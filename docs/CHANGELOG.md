@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Documentation
+
+- **README** — FrankenPHP demos: default **`APP_ENV=dev`** uses **Caddyfile.dev** (no worker); worker mode documented as production-style. **Host ports** 8010 (symfony7) / 8011 (symfony8) clarified. **`icons_api_path`** and **`debug`** summarized in the configuration section.
+- **CONFIGURATION.md** — **`icons_api_path`**: documents fixed routes (`/icons`, `/icons/svg`, `/config`), client derivation of the config URL, and that the value must match the served routes.
+- **DEMO-FRANKENPHP.md** — Example `bundles.php` aligned with **demo/symfony8** (formatting).
+
 ## [1.0.5] - 2026-03-23
 
 ### Changed

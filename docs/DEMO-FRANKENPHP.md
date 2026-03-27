@@ -51,7 +51,7 @@ The demo applications are configured for **local development and debugging**:
 - **Nowo Twig Inspector** (`Nowo\TwigInspectorBundle\NowoTwigInspectorBundle`) — enabled in `dev` and `test`. Allows inspecting which Twig template and block produced each part of the HTML (e.g. via comments in the output or a browser overlay).
 - **Symfony UX Icons** — used to render the selected icon in the form and in Twig.
 
-Example `config/bundles.php` (Symfony 8 demo):
+Example `config/bundles.php` (aligned with **demo/symfony8**):
 
 ```php
 <?php
