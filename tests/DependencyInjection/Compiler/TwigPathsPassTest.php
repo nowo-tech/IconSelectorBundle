@@ -27,7 +27,7 @@ final class TwigPathsPassTest extends TestCase
         self::assertSame('addPath', $calls[0][0]);
         self::assertSame(
             [dirname(__DIR__, 3) . '/src/Resources/views', 'NowoIconSelectorBundle'],
-            $calls[0][1]
+            $calls[0][1],
         );
     }
 
