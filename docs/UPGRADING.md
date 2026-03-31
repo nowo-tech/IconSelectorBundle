@@ -2,6 +2,14 @@
 
 This document describes how to upgrade between versions of Icon Selector Bundle.
 
+## 1.0.6 (2026-03-31)
+
+No breaking changes.
+
+- **Compatibility expanded**: PHP is now `>=8.1 <8.6` and Symfony components are now `^6.0 || ^7.0 || ^8.0`.
+- **Coverage output in Makefile**: `make test-coverage` and `make test-ts` now print a global coverage summary at the end (PHP and TS respectively).
+- **Scrutinizer support**: `.scrutinizer.yml` was added for code rating/duplication and coverage-aware test execution.
+
 ## 1.0.5 (2026-03-23)
 
 No breaking changes.

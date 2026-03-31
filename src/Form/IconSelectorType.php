@@ -17,8 +17,10 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\UX\Icons\IconRendererInterface;
 use Throwable;
 
+use function array_slice;
 use function count;
 use function is_array;
+use function is_string;
 
 /**
  * Form type for selecting an icon (grid, search, or tom_select mode).
@@ -96,8 +98,8 @@ final class IconSelectorType extends AbstractType
         $view->vars['attr']['data-icon-selector-icons-url-value']  = $iconsApiPath;
         $view->vars['attr']['data-icon-selector-config-url-value'] = $view->vars['config_path'];
         $view->vars['attr']['data-icon-selector-debug-value']      = $this->debug ? '1' : '0';
-        $currentValue                                               = is_string($view->vars['value'] ?? null) ? $view->vars['value'] : '';
-        $view->vars['tom_select_preloaded_options']                 = $options['mode'] === self::MODE_TOM_SELECT
+        $currentValue                                              = is_string($view->vars['value'] ?? null) ? $view->vars['value'] : '';
+        $view->vars['tom_select_preloaded_options']                = $options['mode'] === self::MODE_TOM_SELECT
             ? $this->buildTomSelectPreloadedOptions($choices, $currentValue)
             : [];
     }
@@ -113,7 +115,7 @@ final class IconSelectorType extends AbstractType
      */
     private function buildTomSelectPreloadedOptions(array $choices, string $selectedId): array
     {
-        if ($this->iconRenderer === null || $choices === []) {
+        if (!$this->iconRenderer instanceof IconRendererInterface || $choices === []) {
             return [];
         }
 
@@ -126,10 +128,10 @@ final class IconSelectorType extends AbstractType
 
         $out = [];
         foreach ($idsToPreload as $id) {
-            if (!is_string($id) || $id === '') {
+            if ($id === '') {
                 continue;
             }
-            $label = $choices[$id] ?? ((string) (explode(':', $id)[1] ?? $id));
+            $label = $choices[$id] ?? (explode(':', $id)[1] ?? $id);
             $svg   = '';
             try {
                 $raw = $this->iconRenderer->renderIcon($id, [

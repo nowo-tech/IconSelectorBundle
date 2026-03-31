@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-03-31
+
+### Added
+
+- **Scrutinizer**: Added `.scrutinizer.yml` with PHP/coverage checks and Node test execution.
+- **Coverage summaries in Makefile**: `make test-coverage` now prints the global PHP lines coverage via `.scripts/php-coverage-percent.sh`, and `make test-ts` prints the global TS conservative coverage via `.scripts/ts-coverage-percent.sh`.
+
+### Changed
+
+- **Compatibility ranges**: Expanded support to **PHP `>=8.1 <8.6`** and Symfony components **`^6.0 || ^7.0 || ^8.0`** (runtime and dev requirements).
+- **Demo UX (make up)**: Symfony 7/8 demo Makefiles now print `Demo started at: http://localhost:<PORT>` once HTTP is ready.
+
 ### Documentation
 
 - **README** — FrankenPHP demos: default **`APP_ENV=dev`** uses **Caddyfile.dev** (no worker); worker mode documented as production-style. **Host ports** 8010 (symfony7) / 8011 (symfony8) clarified. **`icons_api_path`** and **`debug`** summarized in the configuration section.

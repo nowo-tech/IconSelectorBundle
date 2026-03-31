@@ -32,8 +32,7 @@ final class IconSelectorTypeTest extends TestCase
         array $iconSets = [],
         string $iconsApiPath = '',
         ?IconRendererInterface $iconRenderer = null,
-    ): IconSelectorType
-    {
+    ): IconSelectorType {
         return new IconSelectorType($provider, $iconSets, $iconsApiPath, $iconRenderer, new SvgSanitizer());
     }
 
@@ -269,11 +268,11 @@ final class IconSelectorTypeTest extends TestCase
             ->with('heroicons-outline:home')
             ->willReturn('<svg><path d="ok"/></svg>');
 
-        $type               = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
-        $view               = new FormView();
-        $view->vars['attr'] = [];
+        $type                = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
+        $view                = new FormView();
+        $view->vars['attr']  = [];
         $view->vars['value'] = 'heroicons-outline:home';
-        $form               = $this->createStub(FormInterface::class);
+        $form                = $this->createStub(FormInterface::class);
 
         $type->buildView($view, $form, [
             'mode'                      => 'tom_select',
