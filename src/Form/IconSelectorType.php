@@ -6,6 +6,7 @@ namespace Nowo\IconSelectorBundle\Form;
 
 use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
+use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\ChoiceList\View\ChoiceView;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -14,6 +15,7 @@ use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\UX\Icons\IconRendererInterface;
+use Throwable;
 
 use function count;
 use function is_array;
@@ -51,6 +53,7 @@ final class IconSelectorType extends AbstractType
         private readonly array $iconSets = [],
         private readonly string $iconsApiPath = '/api/icon-selector/icons',
         private readonly ?IconRendererInterface $iconRenderer = null,
+        private readonly ?SvgSanitizer $svgSanitizer = null,
         private readonly bool $debug = false,
     ) {
     }
@@ -93,6 +96,59 @@ final class IconSelectorType extends AbstractType
         $view->vars['attr']['data-icon-selector-icons-url-value']  = $iconsApiPath;
         $view->vars['attr']['data-icon-selector-config-url-value'] = $view->vars['config_path'];
         $view->vars['attr']['data-icon-selector-debug-value']      = $this->debug ? '1' : '0';
+        $currentValue                                               = is_string($view->vars['value'] ?? null) ? $view->vars['value'] : '';
+        $view->vars['tom_select_preloaded_options']                 = $options['mode'] === self::MODE_TOM_SELECT
+            ? $this->buildTomSelectPreloadedOptions($choices, $currentValue)
+            : [];
+    }
+
+    /**
+     * Builds preloaded options for Tom Select to reduce initial visual lag.
+     * If a value is selected, preloads that icon first. If empty, preloads a small first page.
+     *
+     * @param array<string, string> $choices Map of icon ID to label
+     * @param string $selectedId Current selected value
+     *
+     * @return list<array{value: string, text: string, svg: string}>
+     */
+    private function buildTomSelectPreloadedOptions(array $choices, string $selectedId): array
+    {
+        if ($this->iconRenderer === null || $choices === []) {
+            return [];
+        }
+
+        $idsToPreload = [];
+        if ($selectedId !== '') {
+            $idsToPreload[] = $selectedId;
+        } else {
+            $idsToPreload = array_slice(array_keys($choices), 0, 12);
+        }
+
+        $out = [];
+        foreach ($idsToPreload as $id) {
+            if (!is_string($id) || $id === '') {
+                continue;
+            }
+            $label = $choices[$id] ?? ((string) (explode(':', $id)[1] ?? $id));
+            $svg   = '';
+            try {
+                $raw = $this->iconRenderer->renderIcon($id, [
+                    'class' => 'icon-selector-svg',
+                    'style' => 'width:1.25rem;height:1.25rem;fill:currentColor;',
+                ]);
+                $svg = $this->svgSanitizer?->sanitize($raw) ?? $raw;
+            } catch (Throwable) {
+                $svg = '';
+            }
+
+            $out[] = [
+                'value' => $id,
+                'text'  => $label,
+                'svg'   => $svg,
+            ];
+        }
+
+        return $out;
     }
 
     /**

@@ -45,6 +45,7 @@ services:
       $iconSets: '%nowo_icon_selector.icon_sets%'
       $iconsApiPath: '%nowo_icon_selector.icons_api_path%'
       $iconRenderer: '@?Symfony\UX\Icons\IconRendererInterface'
+      $svgSanitizer: '@Nowo\IconSelectorBundle\Service\SvgSanitizer'
       $debug: '%nowo_icon_selector.debug%'
     tags:
       - { name: form.type }

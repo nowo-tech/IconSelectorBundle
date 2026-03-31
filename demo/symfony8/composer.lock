@@ -12,18 +12,18 @@
             "dist": {
                 "type": "path",
                 "url": "/var/icon-selector-bundle",
-                "reference": "2a5d09547f7c12760a70b49c80e424fafee93973"
+                "reference": "f3b26b2b653e542c8a581bc19a5d9fcedfa3f804"
             },
             "require": {
-                "php": ">=8.2 <8.6",
-                "symfony/config": "^7.0 || ^8.0",
-                "symfony/dependency-injection": "^7.0 || ^8.0",
-                "symfony/form": "^7.0 || ^8.0",
-                "symfony/framework-bundle": "^7.0 || ^8.0",
-                "symfony/http-foundation": "^7.0 || ^8.0",
-                "symfony/http-kernel": "^7.0 || ^8.0",
-                "symfony/routing": "^7.0 || ^8.0",
-                "symfony/twig-bundle": "^7.0 || ^8.0",
+                "php": ">=8.1 <8.6",
+                "symfony/config": "^6.0 || ^7.0 || ^8.0",
+                "symfony/dependency-injection": "^6.0 || ^7.0 || ^8.0",
+                "symfony/form": "^6.0 || ^7.0 || ^8.0",
+                "symfony/framework-bundle": "^6.0 || ^7.0 || ^8.0",
+                "symfony/http-foundation": "^6.0 || ^7.0 || ^8.0",
+                "symfony/http-kernel": "^6.0 || ^7.0 || ^8.0",
+                "symfony/routing": "^6.0 || ^7.0 || ^8.0",
+                "symfony/twig-bundle": "^6.0 || ^7.0 || ^8.0",
                 "symfony/ux-icons": "^1.0 || ^2.0"
             },
             "require-dev": {
@@ -34,10 +34,10 @@
                 "phpstan/phpstan-symfony": "^2.0",
                 "phpunit/phpunit": "^11.0",
                 "rector/rector": "^2.0",
-                "symfony/browser-kit": "^7.0 || ^8.0",
-                "symfony/dom-crawler": "^7.0 || ^8.0",
-                "symfony/http-client": "^7.0 || ^8.0",
-                "symfony/yaml": "^7.0 || ^8.0"
+                "symfony/browser-kit": "^6.0 || ^7.0 || ^8.0",
+                "symfony/dom-crawler": "^6.0 || ^7.0 || ^8.0",
+                "symfony/http-client": "^6.0 || ^7.0 || ^8.0",
+                "symfony/yaml": "^6.0 || ^7.0 || ^8.0"
             },
             "suggest": {
                 "symfony/http-client": "Required when use_iconify_collection is true (to fetch full icon lists from api.iconify.design)"
@@ -61,10 +61,10 @@
             },
             "scripts": {
                 "test": [
-                    "@php vendor/bin/phpunit"
+                    "@php vendor/bin/phpunit --color=always"
                 ],
                 "test-coverage": [
-                    "@php vendor/bin/phpunit --coverage-html coverage --coverage-clover coverage.xml --coverage-text"
+                    "@php vendor/bin/phpunit  --color=always --coverage-html coverage --coverage-clover coverage.xml --coverage-text"
                 ],
                 "cs-check": [
                     "@php vendor/bin/php-cs-fixer fix --dry-run --diff"

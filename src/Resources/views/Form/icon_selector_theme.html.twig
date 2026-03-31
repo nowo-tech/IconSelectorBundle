@@ -15,12 +15,47 @@
 {% set search_placeholder_text = search_placeholder_key|trans({}, trans_domain) %}
 {% set attr = attr|merge({
     'data-controller': (attr['data-controller']|default('') ~ ' icon-selector')|trim,
+    'data-icon-selector-enhanced': '0',
     'data-icon-selector-mode-value': mode,
     'data-icon-selector-icons-url-value': form.vars.icons_api_path|default('/api/icon-selector/icons'),
     'data-icon-selector-config-url-value': form.vars.config_path|default(form.vars.icons_api_path|default('/api/icon-selector/icons')|replace({'/icons': '/config'})),
     'data-icon-selector-search-placeholder': search_placeholder_text,
     'class': (attr.class|default('') ~ ' icon-selector-widget')|trim
 }) %}
+<style>
+    .icon-selector-widget[data-icon-selector-enhanced="0"] .icon-selector-loading-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        margin-top: .5rem;
+        font-size: .875rem;
+        color: #6c757d;
+    }
+    .icon-selector-widget[data-icon-selector-enhanced="1"] .icon-selector-loading-indicator {
+        display: none;
+    }
+    .icon-selector-widget[data-icon-selector-enhanced="0"][data-icon-selector-mode-value="tom_select"] .icon-selector-select {
+        visibility: hidden;
+    }
+    .icon-selector-widget[data-icon-selector-enhanced="0"][data-icon-selector-mode-value="tom_select"] .ts-wrapper,
+    .icon-selector-widget[data-icon-selector-enhanced="0"][data-icon-selector-mode-value="tom_select"] .ts-dropdown {
+        display: none !important;
+    }
+    .icon-selector-widget[data-icon-selector-enhanced="0"]:not([data-icon-selector-mode-value="tom_select"]) .icon-selector-picker {
+        display: none !important;
+    }
+    .icon-selector-loading-spinner {
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid #dee2e6;
+        border-top-color: #6c757d;
+        border-radius: 50%;
+        animation: icon-selector-spin .8s linear infinite;
+    }
+    @keyframes icon-selector-spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
 <div {{ block('widget_container_attributes') }}>
     {% if mode == 'tom_select' %}
         <select name="{{ full_name }}"
@@ -33,6 +68,13 @@
                 <option value="{{ choice.value }}" {% if choice.value == value %}selected="selected"{% endif %}>{{ choice_domain ? choice.label|trans({}, choice_domain) : choice.label }}</option>
             {% endfor %}
         </select>
+        {% if form.vars.tom_select_preloaded_options is defined and form.vars.tom_select_preloaded_options is not empty %}
+            <script type="application/json" id="icon-selector-options-{{ id }}">{{ form.vars.tom_select_preloaded_options|json_encode|raw }}</script>
+        {% endif %}
+        <div class="icon-selector-loading-indicator" aria-live="polite">
+            <span class="icon-selector-loading-spinner" aria-hidden="true"></span>
+            <span>{{ 'search_placeholder'|trans({}, trans_domain) }}</span>
+        </div>
     {% else %}
         <input type="hidden"
                name="{{ full_name }}"
@@ -46,6 +88,10 @@
                 <input type="text" class="form-control mb-2 icon-selector-search" placeholder="{{ search_placeholder_text }}" data-icon-selector-target="search" autocomplete="off" />
             {% endif %}
             <div class="icon-selector-grid d-flex flex-wrap gap-2"></div>
+        </div>
+        <div class="icon-selector-loading-indicator" aria-live="polite">
+            <span class="icon-selector-loading-spinner" aria-hidden="true"></span>
+            <span>{{ 'search_placeholder'|trans({}, trans_domain) }}</span>
         </div>
     {% endif %}
 </div>

@@ -6,10 +6,12 @@ namespace Nowo\IconSelectorBundle\Tests\Form;
 
 use Nowo\IconSelectorBundle\Form\IconSelectorType;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
+use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\UX\Icons\IconRendererInterface;
 
 use function count;
 
@@ -25,9 +27,14 @@ final class IconSelectorTypeTest extends TestCase
      *
      * @param list<string> $iconSets Enabled icon set names
      */
-    private function createType(IconListProvider $provider, array $iconSets = [], string $iconsApiPath = ''): IconSelectorType
+    private function createType(
+        IconListProvider $provider,
+        array $iconSets = [],
+        string $iconsApiPath = '',
+        ?IconRendererInterface $iconRenderer = null,
+    ): IconSelectorType
     {
-        return new IconSelectorType($provider, $iconSets, $iconsApiPath);
+        return new IconSelectorType($provider, $iconSets, $iconsApiPath, $iconRenderer, new SvgSanitizer());
     }
 
     /**
@@ -252,6 +259,40 @@ final class IconSelectorTypeTest extends TestCase
         self::assertCount(2, $view->vars['choices']);
         self::assertSame('Elegir...', $view->vars['placeholder']);
         self::assertTrue($view->vars['placeholder_in_choices']);
+    }
+
+    public function testBuildViewTomSelectPreloadsSelectedOptionWithSvg(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->expects(self::once())
+            ->method('renderIcon')
+            ->with('heroicons-outline:home')
+            ->willReturn('<svg><path d="ok"/></svg>');
+
+        $type               = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
+        $view               = new FormView();
+        $view->vars['attr'] = [];
+        $view->vars['value'] = 'heroicons-outline:home';
+        $form               = $this->createStub(FormInterface::class);
+
+        $type->buildView($view, $form, [
+            'mode'                      => 'tom_select',
+            'choices'                   => ['heroicons-outline:home' => 'home'],
+            'placeholder'               => null,
+            'required'                  => true,
+            'icon_sets'                 => null,
+            'icons_api_path'            => null,
+            'icons'                     => null,
+            'translation_domain'        => 'NowoIconSelectorBundle',
+            'choice_translation_domain' => 'NowoIconSelectorBundle',
+            'search_placeholder'        => 'search_placeholder',
+        ]);
+
+        self::assertArrayHasKey('tom_select_preloaded_options', $view->vars);
+        self::assertCount(1, $view->vars['tom_select_preloaded_options']);
+        self::assertSame('heroicons-outline:home', $view->vars['tom_select_preloaded_options'][0]['value']);
+        self::assertSame('home', $view->vars['tom_select_preloaded_options'][0]['text']);
+        self::assertStringContainsString('<svg>', $view->vars['tom_select_preloaded_options'][0]['svg']);
     }
 
     public function testBuildViewFillsChoicesFromIconsWhenChoicesEmpty(): void

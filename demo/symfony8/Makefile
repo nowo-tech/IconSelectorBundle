@@ -32,7 +32,7 @@ up:
 	@echo "Waiting for app to respond..."
 	@PORT=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2); PORT=$${PORT:-8011}; \
 	for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do \
-		curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$PORT/" 2>/dev/null | grep -qE '^[23]' && echo "App ready at http://127.0.0.1:$$PORT/" && exit 0; \
+		curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$PORT/" 2>/dev/null | grep -qE '^[23]' && echo "Demo started at: http://localhost:$$PORT"; exit 0; \
 		echo "  waiting... $$i/15"; sleep 2; \
 	done; \
 	echo "App did not respond in time. Check: docker-compose logs php"; exit 1

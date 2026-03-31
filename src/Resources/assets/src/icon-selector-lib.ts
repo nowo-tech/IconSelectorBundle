@@ -371,6 +371,7 @@ export class IconSelectorIconifyWidget {
   /** Number of icons to show; increases on scroll (lazy load). */
   private visibleCount: number = 80;
   private static readonly PAGE_SIZE = 80;
+  private readonly onReady?: () => void;
 
   /**
    * Creates the Iconify widget: loads config and collections, then renders trigger and panel.
@@ -387,13 +388,18 @@ export class IconSelectorIconifyWidget {
     picker: HTMLElement,
     configUrl: string,
     searchPlaceholder?: string,
+    onReady?: () => void,
   ) {
     this.container = container;
     this.input = input;
     this.picker = picker;
     this.configUrl = configUrl;
+    this.onReady = onReady;
     this.searchPlaceholder = searchPlaceholder ?? container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ?? 'Search icons...';
-    this.load().then(() => this.render());
+    this.load().then(async () => {
+      await this.render();
+      this.onReady?.();
+    });
   }
 
   /** Loads config and all collections from Iconify; populates this.entries. */
@@ -647,7 +653,7 @@ export class IconSelectorIconifyWidget {
   }
 
   /** Builds the full widget DOM: trigger and dropdown panel with search, tabs, category filter and grid. */
-  private render(): void {
+  private async render(): Promise<void> {
     if (!this.config || this.entries.length === 0) {
       this.picker.textContent = 'No icons loaded.';
       return;
@@ -662,10 +668,11 @@ export class IconSelectorIconifyWidget {
       foundInEntries: !!currentValue && this.entries.some((e) => e.id === currentValue),
       sampleIds: this.entries.slice(0, 3).map((e) => e.id),
     });
+    let initialValuePromise: Promise<void> = Promise.resolve();
     if (currentValue) {
       const entry = this.entries.find((e) => e.id === currentValue);
       if (entry) {
-        this.ensureSvgForEntries([entry], 1).then(() => {
+        initialValuePromise = this.ensureSvgForEntries([entry], 1).then(() => {
           if (this.triggerEl) this.updateTriggerContent(this.triggerEl, currentValue);
           getLogger().debug('IconSelectorIconifyWidget (grid): trigger updated with initial value', currentValue);
         });
@@ -786,6 +793,8 @@ export class IconSelectorIconifyWidget {
         this.panelEl.style.display = 'none';
       }
     });
+
+    await initialValuePromise;
   }
 }
 
@@ -815,6 +824,7 @@ export class IconSelectorWidget {
   private searchInputEl: HTMLInputElement | null = null;
   /** Number of icons to show in grid; increases on scroll (lazy load). */
   private visibleCount: number = 0;
+  private readonly onReady?: () => void;
 
   private readonly searchPlaceholder: string;
 
@@ -835,6 +845,7 @@ export class IconSelectorWidget {
     url: string,
     mode: string,
     searchPlaceholder?: string,
+    onReady?: () => void,
   ) {
     this.container = container;
     this.input = input;
@@ -842,11 +853,15 @@ export class IconSelectorWidget {
     this.url = url;
     this.svgUrl = url.replace(/\/$/, '') + '/svg';
     this.mode = mode;
+    this.onReady = onReady;
     this.searchPlaceholder =
       searchPlaceholder ??
       container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ??
       'Search icons...';
-    this.loadIcons().then(() => this.render());
+    this.loadIcons().then(async () => {
+      await this.render();
+      this.onReady?.();
+    });
   }
 
   /** Fetches icon list from the API and updates this.icons (or leaves it empty on error). */
@@ -995,7 +1010,7 @@ export class IconSelectorWidget {
   }
 
   /** Builds the picker DOM: trigger + overlay panel (search + scrollable grid); or attaches to server-rendered items. */
-  private render(): void {
+  private async render(): Promise<void> {
     const hasServerRendered = this.picker.querySelectorAll('.icon-selector-item').length > 0;
 
     if (hasServerRendered) {
@@ -1065,15 +1080,18 @@ export class IconSelectorWidget {
       }
     });
 
+    let initialValuePromise: Promise<void> = Promise.resolve();
     if (value) {
       getLogger().debug('IconSelectorWidget (grid): loading SVG for initial value', value);
-      this.loadSvgBatch([value]).then(() => {
+      initialValuePromise = this.loadSvgBatch([value]).then(() => {
         if (this.triggerEl) this.updateTriggerContent(this.triggerEl, value);
         getLogger().debug('IconSelectorWidget (grid): trigger updated with initial value', value, 'svgInMap:', !!this.svgMap[value]);
       }).catch((err) => {
         getLogger().warn('IconSelectorWidget (grid): failed to load SVG for initial value', value, err);
       });
     }
+
+    await initialValuePromise;
   }
 
   /** Binds click and input handlers to server-rendered icon buttons and search field. */
@@ -1367,55 +1385,36 @@ export function initTomSelect(
   url: string,
   optionsWithSvg: IconOption[] | null,
   configUrl?: string,
-): void {
+): Promise<void> {
   const value = el instanceof HTMLSelectElement ? el.value : el.value;
   const opts = optionsWithSvg ?? [];
-  const options = opts.length ? opts : [];
+  const preloadedOptions = opts.length ? opts : [];
 
   getLogger().info('initTomSelect:', {
-    hasPreloadedOptions: options.length > 0,
+    hasPreloadedOptions: preloadedOptions.length > 0,
     configUrl: configUrl ?? null,
     elTag: el.tagName,
     elValueRaw: (el as HTMLSelectElement | HTMLInputElement).value,
     valuePassed: value || '(empty)',
   });
 
-  if (options.length > 0) {
-    getLogger().info('using preloaded options (no on-demand, no scroll load-more)');
-    new TomSelect(el, {
-      valueField: 'value',
-      labelField: 'text',
-      searchField: ['text', 'value'],
-      options,
-      items: value ? [value] : [],
-      maxOptions: null,
-      render: {
-        option: tomSelectRenderOption,
-        item: tomSelectRenderItem,
-      },
-    });
-    return;
-  }
-
   // When configUrl is set, try on-demand mode (Iconify search) first
   if (configUrl) {
-    fetchIconifyConfig(configUrl).then((config) => {
+    return fetchIconifyConfig(configUrl).then((config) => {
       if (config?.sets?.length) {
         getLogger().info('using on-demand mode (Iconify), sets:', config.sets.length);
-        initTomSelectOnDemand(el, configUrl, value);
-        return;
+        return initTomSelectOnDemand(el, configUrl, value, preloadedOptions);
       }
       getLogger().info('config has no sets, using full-list mode');
-      initTomSelectFullList(el, url, configUrl, value);
+      return initTomSelectFullList(el, url, configUrl, value, preloadedOptions);
     }).catch((err) => {
       getLogger().warn('config fetch failed, using full-list mode', err);
-      initTomSelectFullList(el, url, configUrl, value);
+      return initTomSelectFullList(el, url, configUrl, value, preloadedOptions);
     });
-    return;
   }
 
   getLogger().info('no configUrl, using full-list mode');
-  initTomSelectFullList(el, url, undefined, value);
+  return initTomSelectFullList(el, url, undefined, value, preloadedOptions);
 }
 
 /** Interval ms for polling scroll position when dropdown is open (fallback when scroll events don't fire). */
@@ -1445,7 +1444,8 @@ function initTomSelectOnDemand(
   el: HTMLSelectElement | HTMLInputElement,
   configUrl: string,
   currentValue: string,
-): void {
+  initialOptions: IconOption[],
+): Promise<void> {
   getLogger().info('initTomSelectOnDemand: creating Tom Select', {
     currentValue: currentValue || '(empty)',
     hasValue: !!currentValue,
@@ -1455,7 +1455,7 @@ function initTomSelectOnDemand(
     valueField: 'value',
     labelField: 'text',
     searchField: ['text', 'value'],
-    options: [],
+    options: initialOptions,
     items: currentValue ? [currentValue] : [],
     maxOptions: null,
     /** Allow load() to be called with empty query so dropdown opens with first batch of "all" icons. */
@@ -1615,9 +1615,10 @@ function initTomSelectOnDemand(
   });
 
   // Ensure the selected value is available as option with SVG so the trigger displays it
+  let initialValuePromise: Promise<void> = Promise.resolve();
   if (currentValue && currentValue.includes(':')) {
     getLogger().debug('Tom Select: fetching SVG for initial value', currentValue);
-    fetchIconifySvgsForIds(configUrl, [currentValue])
+    initialValuePromise = fetchIconifySvgsForIds(configUrl, [currentValue])
       .then((svgMap) => {
         try {
           const svg = svgMap[currentValue] ?? '';
@@ -1660,6 +1661,7 @@ function initTomSelectOnDemand(
       ts.refreshOptions(false);
     }
   }, configUrl, currentValue, ts as unknown as Record<string, TomSelectLoadMoreState | undefined>);
+  return initialValuePromise;
 }
 
 /**
@@ -1677,18 +1679,23 @@ function initTomSelectFullList(
   url: string,
   configUrl: string | undefined,
   currentValue: string,
-): void {
-  fetch(url)
+  initialOptions: IconOption[],
+): Promise<void> {
+  return fetch(url)
     .then((res) => res.json())
     .then((data: IconsApiResponse) => {
       const icons = Array.isArray(data.icons)
         ? data.icons
         : (data.icons_by_set && Object.values(data.icons_by_set).flat()) ?? [];
-      const apiOptions: IconOption[] = icons.map((id) => ({
-        value: id,
-        text: id.split(/[:/]/).pop() ?? id,
-        svg: '',
-      }));
+      const preloadedByValue = new Map(initialOptions.map((o) => [o.value, o]));
+      const apiOptions: IconOption[] = icons.map((id) => {
+        const preloaded = preloadedByValue.get(id);
+        return {
+          value: id,
+          text: preloaded?.text ?? (id.split(/[:/]/).pop() ?? id),
+          svg: preloaded?.svg ?? '',
+        };
+      });
       getLogger().debug('Tom Select (full-list): initial value', {
         currentValue: currentValue || '(empty)',
         iconsCount: icons.length,
@@ -1707,9 +1714,10 @@ function initTomSelectFullList(
         },
       }) as unknown as TomSelectInstance;
       const svgUrl = url.replace(/\/$/, '') + '/svg';
+      let initialValuePromise: Promise<void> = Promise.resolve();
       if (currentValue && icons.includes(currentValue)) {
         getLogger().debug('Tom Select (full-list): loading SVG for initial value', currentValue);
-        loadTomSelectSingleSvg(currentValue, ts, svgUrl, configUrl).then(() => {
+        initialValuePromise = loadTomSelectSingleSvg(currentValue, ts, svgUrl, configUrl).then(() => {
           ts.refreshOptions(false);
           getLogger().debug('Tom Select (full-list): SVG loaded for initial value', currentValue);
         }).catch((err) => {
@@ -1719,8 +1727,12 @@ function initTomSelectFullList(
         getLogger().warn('Tom Select (full-list): initial value not in API icons list', currentValue);
       }
       setupTomSelectSvgsLazy(icons, ts, svgUrl, configUrl, currentValue);
+      return initialValuePromise;
     })
-    .catch((e) => getLogger().warn('IconSelector (tom_select): could not load icons', e));
+    .then(() => undefined)
+    .catch((e) => {
+      getLogger().warn('IconSelector (tom_select): could not load icons', e);
+    });
 }
 
 /**
@@ -1879,6 +1891,51 @@ let observeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 const OBSERVE_DEBOUNCE_MS = 100;
 
 /**
+ * Creates a "not-ready" guard for the form that contains the icon selector.
+ * While pending, submit is prevented and submit buttons are disabled.
+ * When markReady() is called, normal submit flow is restored.
+ */
+function createFormReadyGuard(container: HTMLElement): { markReady: () => void } {
+  container.setAttribute('data-icon-selector-ready', '0');
+  const form = container.closest('form');
+  if (!form) {
+    return {
+      markReady: () => {
+        container.setAttribute('data-icon-selector-ready', '1');
+      },
+    };
+  }
+
+  const submitSelector = 'button[type="submit"], input[type="submit"]';
+  const submitButtons = Array.from(form.querySelectorAll<HTMLElement>(submitSelector));
+
+  const onSubmit = (event: Event): void => {
+    if (container.getAttribute('data-icon-selector-ready') === '1') return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  form.addEventListener('submit', onSubmit, true);
+  for (const btn of submitButtons) {
+    if ((btn as HTMLButtonElement | HTMLInputElement).disabled) continue;
+    btn.setAttribute('data-icon-selector-disabled-by-bundle', '1');
+    (btn as HTMLButtonElement | HTMLInputElement).disabled = true;
+  }
+
+  return {
+    markReady: () => {
+      container.setAttribute('data-icon-selector-ready', '1');
+      form.removeEventListener('submit', onSubmit, true);
+      for (const btn of submitButtons) {
+        if (btn.getAttribute('data-icon-selector-disabled-by-bundle') !== '1') continue;
+        (btn as HTMLButtonElement | HTMLInputElement).disabled = false;
+        btn.removeAttribute('data-icon-selector-disabled-by-bundle');
+      }
+    },
+  };
+}
+
+/**
  * Starts a MutationObserver on document.body so that when new HTML is injected (e.g. from an API response),
  * any new icon-selector containers are initialized automatically. Safe to call multiple times; observer
  * is only started once.
@@ -1918,6 +1975,12 @@ export function initIconSelectorContainer(container: HTMLElement): boolean {
   if (!container.matches?.(ICON_SELECTOR_CONTAINER_SELECTOR)) return false;
   if (container.getAttribute(ATTR_INIT) === '1') return false;
 
+  const readyGuard = createFormReadyGuard(container);
+  const markEnhanced = (): void => {
+    container.setAttribute('data-icon-selector-enhanced', '1');
+    readyGuard.markReady();
+  };
+
   const debugAttr = container.getAttribute(ATTR_DEBUG);
   if (debugAttr !== null) getLogger().setDebug(debugAttr === '1');
 
@@ -1932,7 +1995,10 @@ export function initIconSelectorContainer(container: HTMLElement): boolean {
     container.setAttribute(ATTR_INIT, '1');
     const optionsWithSvg = getOptionsFromScript(select.id);
     getLogger().info('runInit: tom_select mode, configUrl=', configUrl, 'preloadedOptions=', optionsWithSvg?.length ?? 0);
-    initTomSelect(select, url, optionsWithSvg, configUrl);
+    initTomSelect(select, url, optionsWithSvg, configUrl)
+      .finally(() => {
+        markEnhanced();
+      });
     return true;
   }
 
@@ -1942,18 +2008,21 @@ export function initIconSelectorContainer(container: HTMLElement): boolean {
   const picker = container.querySelector<HTMLElement>(
     '[data-icon-selector-target="picker"], .icon-selector-picker',
   );
-  if (!input || !picker) return false;
+  if (!input || !picker) {
+    readyGuard.markReady();
+    return false;
+  }
   container.setAttribute(ATTR_INIT, '1');
 
   const searchPlaceholder = container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ?? undefined;
   fetchIconifyConfig(configUrl).then((config) => {
     if (config?.sets?.length) {
-      new IconSelectorIconifyWidget(container, input, picker, configUrl, searchPlaceholder);
+      new IconSelectorIconifyWidget(container, input, picker, configUrl, searchPlaceholder, markEnhanced);
     } else {
-      new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder);
+      new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder, markEnhanced);
     }
   }).catch(() => {
-    new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder);
+    new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder, markEnhanced);
   });
   return true;
 }
