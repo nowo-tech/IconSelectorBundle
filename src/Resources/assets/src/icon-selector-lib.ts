@@ -818,7 +818,7 @@ export class IconSelectorWidget {
   /** Icon id => SVG markup (from batch API). */
   private svgMap: Record<string, string> = {};
   private grid: HTMLDivElement | null = null;
-  private triggerEl: HTMLElement | null = null;
+  private triggerEl: HTMLButtonElement | null = null;
   private panelEl: HTMLElement | null = null;
   private gridContainer: HTMLElement | null = null;
   private searchInputEl: HTMLInputElement | null = null;
