@@ -23,19 +23,40 @@
     'class': (attr.class|default('') ~ ' icon-selector-widget')|trim
 }) %}
 <style>
-    .icon-selector-widget[data-icon-selector-enhanced="0"] .icon-selector-loading-indicator {
-        display: inline-flex;
+    {# Pending state: show a field-shaped shell from first paint (avoids blank/unstyled flash before JS). #}
+    .icon-selector-field-shell {
+        position: relative;
+        width: 100%;
+    }
+    .icon-selector-widget[data-icon-selector-enhanced="0"] .icon-selector-skeleton {
+        box-sizing: border-box;
+        display: flex;
         align-items: center;
         gap: .5rem;
-        margin-top: .5rem;
-        font-size: .875rem;
-        color: #6c757d;
+        width: 100%;
+        min-height: 38px;
+        padding: .375rem .75rem;
+        border: 1px solid var(--bs-border-color, #ced4da);
+        border-radius: var(--bs-border-radius, .375rem);
+        background-color: var(--bs-body-bg, #fff);
+        color: var(--bs-secondary-color, #6c757d);
+        font-size: 1rem;
+        line-height: 1.5;
     }
-    .icon-selector-widget[data-icon-selector-enhanced="1"] .icon-selector-loading-indicator {
-        display: none;
+    .icon-selector-widget[data-icon-selector-enhanced="1"] .icon-selector-skeleton {
+        display: none !important;
     }
+    {# tom_select: hide native <select> visually but keep it in the DOM for Tom Select (screen-reader friendly). #}
     .icon-selector-widget[data-icon-selector-enhanced="0"][data-icon-selector-mode-value="tom_select"] .icon-selector-select {
-        visibility: hidden;
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
     }
     .icon-selector-widget[data-icon-selector-enhanced="0"][data-icon-selector-mode-value="tom_select"] .ts-wrapper,
     .icon-selector-widget[data-icon-selector-enhanced="0"][data-icon-selector-mode-value="tom_select"] .ts-dropdown {
@@ -45,6 +66,7 @@
         display: none !important;
     }
     .icon-selector-loading-spinner {
+        flex-shrink: 0;
         width: 1rem;
         height: 1rem;
         border: 2px solid #dee2e6;
@@ -58,40 +80,44 @@
 </style>
 <div {{ block('widget_container_attributes') }}>
     {% if mode == 'tom_select' %}
-        <select name="{{ full_name }}"
-                id="{{ id }}"
-                {{ block('widget_attributes') }}
-                data-icon-selector-target="select"
-                class="form-select icon-selector-select">
-            <option value="">{{ placeholder_text }}</option>
-            {% for choice in form.vars.choices %}
-                <option value="{{ choice.value }}" {% if choice.value == value %}selected="selected"{% endif %}>{{ choice_domain ? choice.label|trans({}, choice_domain) : choice.label }}</option>
-            {% endfor %}
-        </select>
-        {% if form.vars.tom_select_preloaded_options is defined and form.vars.tom_select_preloaded_options is not empty %}
-            <script type="application/json" id="icon-selector-options-{{ id }}">{{ form.vars.tom_select_preloaded_options|json_encode|raw }}</script>
-        {% endif %}
-        <div class="icon-selector-loading-indicator" aria-live="polite">
-            <span class="icon-selector-loading-spinner" aria-hidden="true"></span>
-            <span>{{ 'search_placeholder'|trans({}, trans_domain) }}</span>
+        <div class="icon-selector-field-shell">
+            <select name="{{ full_name }}"
+                    id="{{ id }}"
+                    {{ block('widget_attributes') }}
+                    data-icon-selector-target="select"
+                    class="form-select icon-selector-select">
+                <option value="">{{ placeholder_text }}</option>
+                {% for choice in form.vars.choices %}
+                    <option value="{{ choice.value }}" {% if choice.value == value %}selected="selected"{% endif %}>{{ choice_domain ? choice.label|trans({}, choice_domain) : choice.label }}</option>
+                {% endfor %}
+            </select>
+            {% if form.vars.tom_select_preloaded_options is defined and form.vars.tom_select_preloaded_options is not empty %}
+                <script type="application/json" id="icon-selector-options-{{ id }}">{{ form.vars.tom_select_preloaded_options|json_encode|raw }}</script>
+            {% endif %}
+            <div class="icon-selector-skeleton" aria-live="polite" aria-busy="true">
+                <span class="icon-selector-loading-spinner" aria-hidden="true"></span>
+                <span>{{ 'search_placeholder'|trans({}, trans_domain) }}</span>
+            </div>
         </div>
     {% else %}
-        <input type="hidden"
-               name="{{ full_name }}"
-               id="{{ id }}"
-               {% if value is not empty %}value="{{ value }}"{% endif %}
-               {{ block('widget_attributes') }}
-               data-icon-selector-target="input"
-               class="icon-selector-input" />
-        <div data-icon-selector-target="picker" class="icon-selector-picker mt-2" aria-hidden="true">
-            {% if mode == 'search' %}
-                <input type="text" class="form-control mb-2 icon-selector-search" placeholder="{{ search_placeholder_text }}" data-icon-selector-target="search" autocomplete="off" />
-            {% endif %}
-            <div class="icon-selector-grid d-flex flex-wrap gap-2"></div>
-        </div>
-        <div class="icon-selector-loading-indicator" aria-live="polite">
-            <span class="icon-selector-loading-spinner" aria-hidden="true"></span>
-            <span>{{ 'search_placeholder'|trans({}, trans_domain) }}</span>
+        <div class="icon-selector-field-shell">
+            <input type="hidden"
+                   name="{{ full_name }}"
+                   id="{{ id }}"
+                   {% if value is not empty %}value="{{ value }}"{% endif %}
+                   {{ block('widget_attributes') }}
+                   data-icon-selector-target="input"
+                   class="icon-selector-input" />
+            <div data-icon-selector-target="picker" class="icon-selector-picker mt-2" aria-hidden="true">
+                {% if mode == 'search' %}
+                    <input type="text" class="form-control mb-2 icon-selector-search" placeholder="{{ search_placeholder_text }}" data-icon-selector-target="search" autocomplete="off" />
+                {% endif %}
+                <div class="icon-selector-grid d-flex flex-wrap gap-2"></div>
+            </div>
+            <div class="icon-selector-skeleton" aria-live="polite" aria-busy="true">
+                <span class="icon-selector-loading-spinner" aria-hidden="true"></span>
+                <span>{{ 'search_placeholder'|trans({}, trans_domain) }}</span>
+            </div>
         </div>
     {% endif %}
 </div>
