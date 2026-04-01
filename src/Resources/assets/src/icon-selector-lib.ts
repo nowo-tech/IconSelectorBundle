@@ -955,6 +955,7 @@ export class IconSelectorWidget {
     }
   }
 
+  /** Toggles the dropdown panel open/closed state for the legacy grid/search widget. */
   private togglePanel(): void {
     if (!this.panelEl) return;
     const isOpen = this.panelEl.style.display !== 'none';
@@ -991,6 +992,10 @@ export class IconSelectorWidget {
     getLogger().debug('IconSelectorWidget (grid): loaded more icons', newIds.length, 'visibleCount=', this.visibleCount);
   }
 
+  /**
+   * Attaches a scroll listener that loads and appends the next icon batch near the bottom.
+   * Listener is temporarily removed while loading to avoid overlapping requests.
+   */
   private attachGridScrollListener(): void {
     const el = this.gridContainer;
     if (!el) return;
@@ -1420,7 +1425,12 @@ export function initTomSelect(
 /** Interval ms for polling scroll position when dropdown is open (fallback when scroll events don't fire). */
 const LOAD_MORE_POLL_INTERVAL_MS = 150;
 
-/** Find the scrollable element in the dropdown: the one with overflow auto/scroll, or dropdown_content. */
+/**
+ * Finds the effective scroll container used by Tom Select dropdown content.
+ *
+ * @param content - Root dropdown content element.
+ * @returns The first descendant that behaves as a scroll container.
+ */
 function findScrollableInDropdown(content: HTMLElement): HTMLElement {
   const oy = (getComputedStyle(content).overflowY || getComputedStyle(content).overflow).toLowerCase();
   if (oy === 'auto' || oy === 'scroll' || oy === 'overlay') return content;
@@ -1844,12 +1854,6 @@ function setupTomSelectSvgsLazy(
   });
 }
 
-/**
- * Derives the config endpoint URL from the icons API URL.
- *
- * @param iconsUrl - Icons API URL (e.g. /api/icon-selector/icons).
- * @returns Config URL (e.g. /api/icon-selector/config).
- */
 /**
  * Derives the bundle config endpoint URL from the icons API URL.
  * e.g. /api/icon-selector/icons -> /api/icon-selector/config

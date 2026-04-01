@@ -18,6 +18,12 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  */
 final class NowoIconSelectorBundle extends Bundle
 {
+    /**
+     * Registers compiler passes used by the bundle.
+     *
+     * Adds TwigPathsPass so bundle templates are registered in Twig's native loader
+     * while still allowing application overrides under templates/bundles to win.
+     */
     public function build(ContainerBuilder $container): void
     {
         $container->addCompilerPass(new TwigPathsPass());

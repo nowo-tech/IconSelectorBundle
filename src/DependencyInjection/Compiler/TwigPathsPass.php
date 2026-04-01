@@ -17,6 +17,11 @@ final class TwigPathsPass implements CompilerPassInterface
 {
     private const TWIG_NAMESPACE = 'NowoIconSelectorBundle';
 
+    /**
+     * Adds the bundle views path to Twig's native filesystem loader, if available.
+     *
+     * @param ContainerBuilder $container Service container being compiled
+     */
     public function process(ContainerBuilder $container): void
     {
         $loaderId = $this->getNativeLoaderServiceId($container);
@@ -30,6 +35,13 @@ final class TwigPathsPass implements CompilerPassInterface
             ->addMethodCall('addPath', [$viewsPath, self::TWIG_NAMESPACE]);
     }
 
+    /**
+     * Resolves the Twig native loader service id across Symfony/Twig variants.
+     *
+     * @param ContainerBuilder $container Service container being compiled
+     *
+     * @return string|null Native loader service id, or null when not available
+     */
     private function getNativeLoaderServiceId(ContainerBuilder $container): ?string
     {
         if ($container->hasAlias('twig.loader.native')) {
