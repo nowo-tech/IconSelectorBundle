@@ -2,6 +2,14 @@
 
 This document describes how to upgrade between versions of Icon Selector Bundle.
 
+## 1.0.7 (2026-04-01)
+
+No breaking changes.
+
+- **Asset consumers**: No action required; the published `icon-selector.js` is rebuilt. If you compile TypeScript from this package’s sources, the legacy grid widget trigger typing fix removes a TS2339 error only.
+- **Repository contributors**: Optional Cursor rules and `.cursorignore` were added for local AI/editor workflows; they are not shipped in the Composer dist archive.
+- **Dev lock file**: `composer.lock` was refreshed for bundle development/CI (patch-level dev dependency updates). End applications pin their own dependencies independently.
+
 ## 1.0.6 (2026-03-31)
 
 No breaking changes.

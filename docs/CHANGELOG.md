@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-04-01
+
+### Added
+
+- **Contributor tooling (repository only)**: `.cursorignore` and `.cursor/rules/*.mdc` with guidelines for PHP, Twig, frontend assets, tests, and documentation. These paths are excluded from the Composer package archive and do not affect runtime apps.
+
+### Changed
+
+- **PHPDoc**: Expanded class and method documentation on `NowoIconSelectorBundle` and `TwigPathsPass`.
+
+### Fixed
+
+- **TypeScript**: `IconSelectorWidget` now types `triggerEl` as `HTMLButtonElement` so `triggerEl.type = 'button'` type-checks (fixes TS2339 with strict DOM typings). Rebuilt `src/Resources/public/icon-selector.js`.
+
+### Updated
+
+- **Dev dependencies**: Refreshed `composer.lock` during release QA (Symfony 7.4.x and PHPStan patch bumps in require-dev).
+
 ## [1.0.6] - 2026-03-31
 
 ### Added
