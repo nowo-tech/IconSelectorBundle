@@ -12,6 +12,13 @@ composer update nowo-tech/icon-selector-bundle symfony/ux-icons --with-all-depen
 
 That aligns this bundle with packages such as **nowo-tech/performance-bundle** that already allow `^2.0 || ^3.0`.
 
+## 1.0.9 (2026-04-14)
+
+No breaking changes.
+
+- **Application installs**: No action required unless you track this repository’s demos; only demo `composer.lock` files and frontend dev lockfiles (`pnpm-lock.yaml`) changed.
+- **Contributors**: `@types/node` was bumped for asset development; run `pnpm install` after pulling.
+
 ## 1.0.8 (2026-04-14)
 
 No breaking changes.

@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-04-14
+
+### Updated
+
+- **Demos**: Refreshed `demo/symfony7/composer.lock` and `demo/symfony8/composer.lock` (Symfony 8 lock also updated for the bundled `nowo-tech/icon-selector-bundle` path/dev reference).
+- **Frontend dev tooling**: Bumped `@types/node` to **20.19.39**; refreshed `pnpm-lock.yaml`.
+- **Published script**: Regenerated `src/Resources/public/icon-selector.js` from the current build pipeline.
+
+### Changed
+
+- **Demo Symfony 8**: `config/reference.php` aligned with PHP-CS-Fixer expectations (`declare(strict_types=1);` where applicable for generated config reference).
+
 ## [1.0.8] - 2026-04-14
 
 ### Changed
