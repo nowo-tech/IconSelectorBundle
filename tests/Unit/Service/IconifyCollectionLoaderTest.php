@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nowo\IconSelectorBundle\Tests\Service;
+namespace Nowo\IconSelectorBundle\Tests\Unit\Service;
 
 use Nowo\IconSelectorBundle\Service\IconifyCollectionLoader;
 use PHPUnit\Framework\TestCase;

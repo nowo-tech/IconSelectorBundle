@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nowo\IconSelectorBundle\Tests\Form;
+namespace Nowo\IconSelectorBundle\Tests\Unit\Form;
 
 use Nowo\IconSelectorBundle\Form\IconSelectorType;
 use Nowo\IconSelectorBundle\Service\IconListProvider;

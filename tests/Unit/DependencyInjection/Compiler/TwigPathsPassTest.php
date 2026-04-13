@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nowo\IconSelectorBundle\Tests\DependencyInjection\Compiler;
+namespace Nowo\IconSelectorBundle\Tests\Unit\DependencyInjection\Compiler;
 
 use Nowo\IconSelectorBundle\DependencyInjection\Compiler\TwigPathsPass;
 use PHPUnit\Framework\TestCase;
@@ -26,7 +26,7 @@ final class TwigPathsPassTest extends TestCase
         self::assertNotEmpty($calls);
         self::assertSame('addPath', $calls[0][0]);
         self::assertSame(
-            [dirname(__DIR__, 3) . '/src/Resources/views', 'NowoIconSelectorBundle'],
+            [dirname(__DIR__, 4) . '/src/Resources/views', 'NowoIconSelectorBundle'],
             $calls[0][1],
         );
     }

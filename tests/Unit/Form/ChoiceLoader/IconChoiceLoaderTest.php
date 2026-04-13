@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nowo\IconSelectorBundle\Tests\Form\ChoiceLoader;
+namespace Nowo\IconSelectorBundle\Tests\Unit\Form\ChoiceLoader;
 
 use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use PHPUnit\Framework\TestCase;

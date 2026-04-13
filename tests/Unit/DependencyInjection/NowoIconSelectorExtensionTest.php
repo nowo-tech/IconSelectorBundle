@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nowo\IconSelectorBundle\Tests\DependencyInjection;
+namespace Nowo\IconSelectorBundle\Tests\Unit\DependencyInjection;
 
 use Nowo\IconSelectorBundle\DependencyInjection\Configuration;
 use Nowo\IconSelectorBundle\DependencyInjection\NowoIconSelectorExtension;

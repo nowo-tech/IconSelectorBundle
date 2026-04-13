@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nowo\IconSelectorBundle\Tests\Twig;
+namespace Nowo\IconSelectorBundle\Tests\Unit\Twig;
 
 use Nowo\IconSelectorBundle\Twig\NowoIconSelectorTwigExtension;
 use PHPUnit\Framework\TestCase;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nowo\IconSelectorBundle\Tests\Controller\Api;
+namespace Nowo\IconSelectorBundle\Tests\Unit\Controller\Api;
 
 use Nowo\IconSelectorBundle\Controller\Api\IconSvgController;
 use Nowo\IconSelectorBundle\Service\IconListProvider;

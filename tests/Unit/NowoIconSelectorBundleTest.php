@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Nowo\IconSelectorBundle\Tests;
+namespace Nowo\IconSelectorBundle\Tests\Unit;
 
 use Nowo\IconSelectorBundle\NowoIconSelectorBundle;
 use PHPUnit\Framework\TestCase;
