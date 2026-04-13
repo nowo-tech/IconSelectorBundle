@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "623dc98bfee138506c9701bfbf802565",
+    "content-hash": "4d03d158605881386ee2d3ce5a5dbc07",
     "packages": [
         {
             "name": "nowo-tech/icon-selector-bundle",
@@ -12,7 +12,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/icon-selector-bundle",
-                "reference": "8f6d06f2f19e08b0b40077291e8d64da0c4cebd6"
+                "reference": "b87b68bfd74cd735c1e4423d343ed97a4df41596"
             },
             "require": {
                 "php": ">=8.1 <8.6",
