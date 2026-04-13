@@ -42,7 +42,7 @@
         "symfony/http-kernel": "^6.0 || ^7.0 || ^8.0",
         "symfony/routing": "^6.0 || ^7.0 || ^8.0",
         "symfony/twig-bundle": "^6.0 || ^7.0 || ^8.0",
-        "symfony/ux-icons": "^1.0 || ^2.0"
+        "symfony/ux-icons": "^1.0 || ^2.0 || ^3.0"
     },
     "suggest": {
         "symfony/http-client": "Required when use_iconify_collection is true (to fetch full icon lists from api.iconify.design)"

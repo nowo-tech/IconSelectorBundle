@@ -4,7 +4,7 @@
 
 - PHP >= 8.2, < 8.6
 - Symfony ^7.0 || ^8.0
-- **symfony/ux-icons** ^1.0 || ^2.0 (required; installed automatically with the bundle; used to render icons via `ux_icon()` in Twig)
+- **symfony/ux-icons** ^1.0 || ^2.0 || ^3.0 (required; installed automatically with the bundle; used to render icons via `ux_icon()` in Twig)
 
 ## Composer
 
@@ -50,7 +50,7 @@ If you work on the bundle, run `make assets` (or `pnpm install && pnpm run build
 
 ## Symfony UX Icons
 
-The bundle requires **symfony/ux-icons** (^1.0 || ^2.0). It is installed as a dependency when you run `composer require nowo-tech/icon-selector-bundle`. Use `ux_icon()` in Twig to render the selected icon:
+The bundle requires **symfony/ux-icons** (^1.0 || ^2.0 || ^3.0). It is installed as a dependency when you run `composer require nowo-tech/icon-selector-bundle`. Use `ux_icon()` in Twig to render the selected icon:
 
 ```twig
 {{ ux_icon(entity.icon) }}

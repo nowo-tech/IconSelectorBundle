@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-04-14
+
+### Changed
+
+- **Dependencies**: `symfony/ux-icons` is now allowed at **^3.0** in addition to ^1.0 and ^2.0, so Composer can resolve stacks that pin UX Icons 3 (for example with Symfony 8) together with other bundles that already require `^2.0 || ^3.0`.
+
 ## [1.0.7] - 2026-04-01
 
 ### Added

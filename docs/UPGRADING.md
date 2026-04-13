@@ -2,6 +2,22 @@
 
 This document describes how to upgrade between versions of Icon Selector Bundle.
 
+## Composer and symfony/ux-icons 3.x
+
+If your root `composer.json` requires **symfony/ux-icons** 3.x (for example `3.0.0` exactly) and Composer reports a conflict with **nowo-tech/icon-selector-bundle**, upgrade the bundle to **1.0.8 or newer** (the constraint includes `^3.0`). Then run:
+
+```bash
+composer update nowo-tech/icon-selector-bundle symfony/ux-icons --with-all-dependencies
+```
+
+That aligns this bundle with packages such as **nowo-tech/performance-bundle** that already allow `^2.0 || ^3.0`.
+
+## 1.0.8 (2026-04-14)
+
+No breaking changes.
+
+- **symfony/ux-icons**: Supported range is now `^1.0 || ^2.0 || ^3.0`. See [Composer and symfony/ux-icons 3.x](#composer-and-symfonyux-icons-3x) if you previously hit a resolution conflict.
+
 ## 1.0.7 (2026-04-01)
 
 No breaking changes.
@@ -62,7 +78,7 @@ First stable release. No upgrade steps required when installing for the first ti
 
 - **PHP**: 8.2 or higher (below 8.6).
 - **Symfony**: 7.0 or 8.0.
-- **symfony/ux-icons**: ^1.0 || ^2.0 (required).
+- **symfony/ux-icons**: ^1.0 || ^2.0 || ^3.0 (required).
 - Optional **symfony/http-client** when `use_iconify_collection: true`.
 
 ## Unreleased / 1.x
