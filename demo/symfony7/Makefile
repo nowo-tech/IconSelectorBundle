@@ -13,8 +13,8 @@ help:
 	@echo "  make install        Install dependencies (composer install in container)"
 	@echo "  make shell          Open shell in PHP container"
 	@echo "  make logs           Show container logs"
-	@echo "  make test           Run tests"
-	@echo "  make test-coverage  Run tests with coverage"
+	@echo "  make test           Run demo smoke checks (lint:yaml + about)"
+	@echo "  make test-coverage  Alias of test (demos have no PHPUnit/coverage suite)"
 	@echo "  make cache-clear    Clear Symfony cache"
 	@echo "  make link-bundle    Use bundle from /var/icon-selector-bundle (see demo/README.md)"
 	@echo "  make update-bundle  Update nowo-tech/icon-selector-bundle from path repo and clear cache"
@@ -63,10 +63,13 @@ logs:
 	docker-compose logs -f
 
 test: ensure-up
-	docker-compose exec -e APP_ENV=test php composer test
+	@echo "Running demo smoke checks (no PHPUnit suite in this demo)..."
+	docker-compose exec -T php php bin/console lint:yaml config --parse-tags --env=dev
+	docker-compose exec -T php php bin/console about --env=dev --no-ansi >/dev/null
+	@echo "Demo smoke checks passed."
 
-test-coverage: ensure-up
-	docker-compose exec php composer test-coverage
+test-coverage: test
+	@echo "Demo has no coverage target (smoke checks only)."
 
 cache-clear: ensure-up
 	docker-compose exec php php bin/console cache:clear
@@ -79,3 +82,8 @@ update-bundle: ensure-up
 	docker-compose exec php composer update nowo-tech/icon-selector-bundle --no-interaction
 	docker-compose exec php php bin/console cache:clear --env=dev
 	@echo "Bundle updated. Reload the page in the browser."
+
+
+# REQ-MAKE-008: update-deps (REQ-MAKE-008)
+BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
+include $(BUNDLE_ROOT)/../.scripts/Makefile.demo-update-deps.mk

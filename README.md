@@ -1,6 +1,6 @@
 # Icon Selector Bundle
 
-[![CI](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/icon-selector-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/icon-selector-bundle.svg)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7%20%7C%208-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/icon-selector-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/IconSelectorBundle) [![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen)](#tests-and-coverage)
+[![CI](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/icon-selector-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/icon-selector-bundle.svg)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-6.0%2B%20%7C%207.4%2B%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com)
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/icon-selector-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/IconSelectorBundle) so more developers can find it.
 
@@ -118,6 +118,7 @@ $builder->add('icon', IconSelectorType::class, [
 - [Release](docs/RELEASE.md)
 - [Security](docs/SECURITY.md)
 - [Engram](docs/ENGRAM.md)
+- [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
 
 ### Additional documentation
 

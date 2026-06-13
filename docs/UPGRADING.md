@@ -12,6 +12,13 @@ composer update nowo-tech/icon-selector-bundle symfony/ux-icons --with-all-depen
 
 That aligns this bundle with packages such as **nowo-tech/performance-bundle** that already allow `^2.0 || ^3.0`.
 
+## 1.0.10 (2026-06-13)
+
+No breaking changes.
+
+- **Application installs**: No action required. Changes affect repository tooling (CI matrix, `make release-check`, demos, dev Docker).
+- **Contributors**: Run `make release-check` before tagging; demo verification now uses HTTP smoke (`make -C demo release-verify`) and accepts 2xx/3xx responses.
+
 ## 1.0.9 (2026-04-14)
 
 No breaking changes.

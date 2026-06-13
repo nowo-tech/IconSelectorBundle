@@ -113,7 +113,7 @@ composer-sync: ensure-up
 release-check: ensure-up composer-sync cs-fix cs-check rector-dry phpstan test-coverage test-ts release-check-demos
 
 release-check-demos:
-	@$(MAKE) -C demo release-check 2>/dev/null || true
+	@$(MAKE) -C demo release-check
 
 clean:
 	rm -rf vendor node_modules .phpunit.cache coverage .php-cs-fixer.cache
@@ -123,3 +123,8 @@ update: ensure-up
 
 validate: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer validate --strict
+
+
+# REQ-MAKE-008: update-deps (REQ-MAKE-008)
+BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+include $(BUNDLE_ROOT)/../.scripts/Makefile.update-deps.mk

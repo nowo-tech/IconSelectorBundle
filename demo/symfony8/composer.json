@@ -14,7 +14,7 @@
         "symfony/framework-bundle": "^8.0",
         "symfony/http-client": "^8.0",
         "symfony/runtime": "^8.0",
-        "symfony/translation": "8.0.*",
+        "symfony/translation": "8.1.*",
         "symfony/twig-bundle": "^8.0",
         "symfony/ux-icons": "^2.0 || ^3.0",
         "symfony/yaml": "^8.0"
@@ -47,7 +47,7 @@
     "extra": {
         "symfony": {
             "allow-contrib": false,
-            "require": "8.0.*"
+            "require": "8.1.*"
         }
     },
     "repositories": [

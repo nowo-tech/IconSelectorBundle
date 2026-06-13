@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-06-13
+
+### Added
+
+- **Documentation**: [`docs/SPEC-DRIVEN-DEVELOPMENT.md`](docs/SPEC-DRIVEN-DEVELOPMENT.md) — spec-driven development overview, user stories, and `REQ-*` traceability for maintainers.
+
+### Fixed
+
+- **release-check (demos)**: Demo `release-check` no longer invokes undefined `composer test-coverage` (demos have no PHPUnit suite); it runs **`release-verify`** HTTP smoke only.
+- **Demo healthcheck**: `release-verify` and `verify-*` accept HTTP **2xx/3xx** (not only 200), matching `make up` behaviour when the homepage redirects (e.g. 302). Healthchecks retry curl for up to ~30s after each demo starts.
+
+### Changed
+
+- **Demo smoke tests**: `make test` / `make test-coverage` in Symfony 7/8 demos run `lint:yaml` + `about` instead of Composer test scripts.
+- **Docker dev**: Bundle `docker-compose.yml` sets `GIT_CONFIG` `safe.directory=/app` so Composer in the container avoids dubious-ownership warnings and detects the package version from git.
+- **Makefile**: `release-check-demos` now fails on demo errors (removed silent `|| true`); added shared `update-deps` include (`REQ-MAKE-008`).
+- **CI**: Matrix expanded to Symfony **7.4** and **8.1** (with PHP exclusions for unsupported pairs).
+- **Demos**: Refreshed demo lock files, docker-compose env, Symfony config (`csrf`, `property_info` on Symfony 7), and generated `reference.php` files.
+
+### Updated
+
+- **Dev dependencies**: Refreshed root `composer.lock`.
+
 ## [1.0.9] - 2026-04-14
 
 ### Updated
