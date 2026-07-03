@@ -55,7 +55,7 @@ Default: `/api/icon-selector/icons`
 
 ### `form_theme`
 
-Base form layout so the icon selector theme matches your application (same pattern as [SelectAllChoiceBundle](https://github.com/nowo-tech/select-all-choice-bundle)). The bundle **automatically prepends** its form theme to `twig.form_themes`; you do not add it manually. Set `form_theme` to the same template name you use in `twig.form_themes`.
+Base form layout so the icon selector theme matches your application (same pattern as [SelectAllChoiceBundle](https://github.com/nowo-tech/SelectAllChoiceBundle)). The bundle **automatically prepends** its form theme to `twig.form_themes`; you do not add it manually. Set `form_theme` to the same template name you use in `twig.form_themes`.
 
 Default: `form_div_layout.html.twig`
 

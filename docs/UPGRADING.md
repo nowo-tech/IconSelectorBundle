@@ -12,6 +12,13 @@ composer update nowo-tech/icon-selector-bundle symfony/ux-icons --with-all-depen
 
 That aligns this bundle with packages such as **nowo-tech/performance-bundle** that already allow `^2.0 || ^3.0`.
 
+## 1.0.11 (2026-07-03)
+
+No breaking changes.
+
+- **Application installs**: No action required. Changes affect repository metadata, CI, demos, and contributor tooling only.
+- **Contributors**: Demo `make update-deps` works again after defining `COMPOSE := docker-compose` and `SERVICE_PHP := php` in demo Makefiles. Run `make -C demo update-deps-all` to refresh demo lock files. Optional CodeRabbit workflow requires the GitHub App and/or `CODERABBIT_API_KEY` secret.
+
 ## 1.0.10 (2026-06-13)
 
 No breaking changes.

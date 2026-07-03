@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-07-03
+
+### Added
+
+- **CodeRabbit**: [`.coderabbit.yaml`](.coderabbit.yaml) and [`.github/workflows/coderabbit.yml`](.github/workflows/coderabbit.yml) for automated PR reviews (optional `CODERABBIT_API_KEY` repository secret for CLI reviews; GitHub App also supported).
+
+### Fixed
+
+- **Demo Makefiles**: `make update-deps` in Symfony 7/8 demos now defines `COMPOSE` and `SERVICE_PHP` before including the shared update-deps fragment (fixes `/bin/sh: run: not found` when running `make update-deps` or `make -C demo update-deps-all`).
+
+### Changed
+
+- **Package metadata**: `composer.json` homepage and support URLs now point to [`nowo-tech/IconSelectorBundle`](https://github.com/nowo-tech/IconSelectorBundle) (correct GitHub repository name).
+
+### Updated
+
+- **CI**: Bumped `actions/github-script` to **v9**, `codecov/codecov-action` to **v6**, and `softprops/action-gh-release` to **v3**.
+- **Dev dependencies**: Refreshed root `composer.lock` and demo lock files (Symfony **7.4.14**, php-cs-fixer **3.95.11**, rector **2.5.2**, PHPStan patch releases, and related Symfony contracts).
+
+### Documentation
+
+- **CONFIGURATION.md**: Fixed link to [SelectAllChoiceBundle](https://github.com/nowo-tech/SelectAllChoiceBundle) repository.
+
 ## [1.0.10] - 2026-06-13
 
 ### Added
