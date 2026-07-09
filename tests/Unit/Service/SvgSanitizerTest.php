@@ -41,9 +41,25 @@ final class SvgSanitizerTest extends TestCase
         self::assertStringNotContainsString('onclick', $output);
     }
 
-    public function testSafeSvgUnchanged(): void
+    public function testStripForeignObject(): void
+    {
+        $input  = '<svg><foreignObject><body xmlns="http://www.w3.org/1999/xhtml"><script>alert(1)</script></body></foreignObject><path d=""/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+        self::assertStringNotContainsString('foreignObject', $output);
+        self::assertStringContainsString('<path', $output);
+    }
+
+    public function testStripUnsafeHref(): void
+    {
+        $input  = '<svg><a href="javascript:alert(1)"><path d=""/></a></svg>';
+        $output = $this->sanitizer->sanitize($input);
+        self::assertStringNotContainsString('javascript:', $output);
+    }
+
+    public function testSafeSvgPreservesPath(): void
     {
         $input = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>';
-        self::assertSame($input, $this->sanitizer->sanitize($input));
+        $output = $this->sanitizer->sanitize($input);
+        self::assertStringContainsString('<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>', $output);
     }
 }

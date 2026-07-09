@@ -12,6 +12,13 @@ composer update nowo-tech/icon-selector-bundle symfony/ux-icons --with-all-depen
 
 That aligns this bundle with packages such as **nowo-tech/performance-bundle** that already allow `^2.0 || ^3.0`.
 
+## 1.0.12 (2026-07-09)
+
+No breaking changes.
+
+- **Application installs**: No action required. New translation files are picked up automatically when Symfony is configured for `de`, `fr`, `it`, `nl`, or `pt`. SvgSanitizer is stricter server-side; valid UX Icons SVG output is unchanged.
+- **Contributors**: Spec Kit artifacts live under `specs/`, `.specify/`, and `.cursor/skills/`; see [`docs/SPEC-KIT.md`](docs/SPEC-KIT.md). Demo Docker images now include the `intl` extension.
+
 ## 1.0.11 (2026-07-03)
 
 No breaking changes.

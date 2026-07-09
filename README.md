@@ -94,7 +94,7 @@ Full options: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 The bundle uses Symfony’s [Translation component](https://symfony.com/doc/current/translation.html). All user-facing strings (placeholder, search input placeholder, and choice labels in the dropdown) are translated via the domain **`NowoIconSelectorBundle`**.
 
-- **Included translations**: `Resources/translations/NowoIconSelectorBundle.en.yaml` and `NowoIconSelectorBundle.es.yaml` (placeholder, search_placeholder, and common icon names).
+- **Included translations**: `Resources/translations/NowoIconSelectorBundle.en.yaml`, `.es.yaml`, `.de.yaml`, `.fr.yaml`, `.it.yaml`, `.nl.yaml`, and `.pt.yaml` (placeholder, search_placeholder, and common icon names).
 - **Override or add locales**: copy the YAML files into your app’s `translations/` and customize, or add new locale files with the same domain.
 - **Per-field options**: you can set `translation_domain` (e.g. `'messages'` or `false` to disable) and `search_placeholder` (string or translation key) when adding the field.
 
@@ -119,6 +119,7 @@ $builder->add('icon', IconSelectorType::class, [
 - [Security](docs/SECURITY.md)
 - [Engram](docs/ENGRAM.md)
 - [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
+- [GitHub Spec Kit](docs/SPEC-KIT.md)
 
 ### Additional documentation
 

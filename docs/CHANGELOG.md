@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-07-09
+
+### Added
+
+- **Translations**: Bundled locale files for **German** (`de`), **French** (`fr`), **Italian** (`it`), **Dutch** (`nl`), and **Portuguese** (`pt`) in addition to existing English and Spanish.
+- **GitHub Spec Kit**: [`docs/SPEC-KIT.md`](docs/SPEC-KIT.md), baseline spec [`specs/001-baseline/`](specs/001-baseline/), `.specify/` scaffolding, and Cursor Agent skills (`.cursor/skills/speckit-*`) for spec-driven feature work.
+
+### Fixed
+
+- **SvgSanitizer**: Replaced regex-only stripping with **DOM allowlist** sanitization (permitted SVG elements/attributes, strips `foreignObject`, unsafe `href` values, and event handlers). Regex fallback remains when XML parsing fails.
+
+### Changed
+
+- **Spec-driven development**: [`docs/SPEC-DRIVEN-DEVELOPMENT.md`](docs/SPEC-DRIVEN-DEVELOPMENT.md) documents three layers (Spec Kit baseline, product behavior, `REQ-*` traceability) and product-focused user stories.
+- **Demo Dockerfiles**: Install PHP **`intl`** extension alongside `zip` (Symfony translation/locale support in demo containers).
+
+### Updated
+
+- **Dev dependencies**: Refreshed root and demo `composer.lock` files (Twig **3.28.0**, php-cs-fixer **3.95.12**, and related patch releases).
+
+### Documentation
+
+- **README**: Lists new translation locales and links to [`SPEC-KIT.md`](docs/SPEC-KIT.md).
+- **SECURITY.md**: Updated SvgSanitizer description to match DOM allowlist behaviour.
+
 ## [1.0.11] - 2026-07-03
 
 ### Added
