@@ -15,6 +15,10 @@ use function libxml_use_internal_errors;
 use function strtolower;
 use function trim;
 
+use const LIBXML_COMPACT;
+use const LIBXML_NONET;
+use const LIBXML_PARSEHUGE;
+
 /**
  * Sanitizes SVG markup to reduce XSS risk when SVG is injected into the DOM (e.g. via innerHTML).
  *
@@ -103,7 +107,7 @@ final readonly class SvgSanitizer
         libxml_clear_errors();
 
         $document = new DOMDocument();
-        $loaded = $document->loadXML(
+        $loaded   = $document->loadXML(
             $svg,
             LIBXML_NONET | LIBXML_COMPACT | LIBXML_PARSEHUGE,
         );
