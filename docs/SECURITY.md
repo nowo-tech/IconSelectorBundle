@@ -73,7 +73,7 @@ The following describes the security measures implemented in the bundle and rema
 - **Input:** Icon IDs come from the request (GET query `ids` or POST JSON `ids`). They are trimmed and filtered.
 - **Implemented:**
   - **Whitelist:** Only icon IDs that appear in the configured icon sets (`IconListProvider::getIcons()`) are passed to the renderer. Requests for unknown or disallowed IDs are ignored (omitted from the response).
-  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which removes `<script>...</script>` tags and event-handler attributes (e.g. `onload`, `onerror`, `onclick`). This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
+  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which parses the markup with a DOM allowlist (permitted SVG elements and attributes only), strips event handlers and unsafe references (e.g. `javascript:` URLs), removes disallowed tags such as `<foreignObject>`, and falls back to regex stripping when parsing fails. This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
   - **DoS mitigation:** Requests are limited to `MAX_IDS = 500` icon IDs per call.
 - **Output:** JSON mapping icon ID → sanitized SVG markup. Unknown or invalid IDs do not appear in the response.
 - **Recommendations for integrators:**
@@ -108,7 +108,7 @@ The following describes the security measures implemented in the bundle and rema
 |-------------------|--------|--------|
 | Auth / authz      | Not in bundle | Restrict API routes (firewall/role) if needed. |
 | Icon ID input     | Implemented | Whitelist against configured icons (IconListProvider). |
-| SVG output → DOM  | Implemented | SvgSanitizer strips script tags and event attributes. |
+| SVG output → DOM  | Implemented | SvgSanitizer uses a DOM allowlist (with regex fallback) for script tags, event attributes, and unsafe elements. |
 | assetPath         | Implemented | Path traversal and invalid chars rejected; safe default used. |
 | Iconify API       | No SSRF | Keep config (e.g. icon_sets) non-user-controlled. |
 | DoS               | MAX_IDS=500 | Consider rate limiting on public endpoints. |
