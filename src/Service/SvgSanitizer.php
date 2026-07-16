@@ -139,21 +139,38 @@ final readonly class SvgSanitizer
         }
 
         if ($element->hasAttributes()) {
+            /** @var list<\DOMAttr> $toRemove */
             $toRemove = [];
             foreach ($element->attributes as $attribute) {
-                $name = strtolower($attribute->name);
-                if (str_starts_with($name, 'on') || !in_array($name, self::ALLOWED_ATTRIBUTES, true)) {
-                    $toRemove[] = $attribute->name;
+                $localName     = strtolower($attribute->localName);
+                $qualifiedName = strtolower($attribute->nodeName);
+
+                // href / xlink:href: keep only same-document fragment references (#id).
+                if ($localName === 'href') {
+                    if (!$this->isSafeFragmentReference($attribute->value)) {
+                        $toRemove[] = $attribute;
+                    }
+
                     continue;
                 }
 
-                if (in_array($name, ['href', 'xlink:href'], true) && !$this->isSafeFragmentReference($attribute->value)) {
-                    $toRemove[] = $attribute->name;
+                // Preserve xmlns and xmlns:* declarations used by SVG/xlink.
+                if ($qualifiedName === 'xmlns' || str_starts_with($qualifiedName, 'xmlns:')) {
+                    continue;
+                }
+
+                if (str_starts_with($localName, 'on') || !in_array($localName, self::ALLOWED_ATTRIBUTES, true)) {
+                    $toRemove[] = $attribute;
                 }
             }
 
-            foreach ($toRemove as $name) {
-                $element->removeAttribute($name);
+            foreach ($toRemove as $attribute) {
+                $namespaceUri = $attribute->namespaceURI;
+                if (is_string($namespaceUri) && $namespaceUri !== '') {
+                    $element->removeAttributeNS($namespaceUri, $attribute->localName);
+                } else {
+                    $element->removeAttribute($attribute->name);
+                }
             }
         }
 
