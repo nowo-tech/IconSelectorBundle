@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Service;
 
+use DOMAttr;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
@@ -139,7 +140,7 @@ final readonly class SvgSanitizer
         }
 
         if ($element->hasAttributes()) {
-            /** @var list<\DOMAttr> $toRemove */
+            /** @var list<DOMAttr> $toRemove */
             $toRemove = [];
             foreach ($element->attributes as $attribute) {
                 $localName     = strtolower($attribute->localName);
