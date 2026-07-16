@@ -29,7 +29,7 @@ final class NowoIconSelectorBundleTest extends TestCase
         (new NowoIconSelectorBundle())->build($container);
 
         $config = $container->getCompilerPassConfig();
-        $lists = array_merge(
+        $lists  = array_merge(
             $config->getBeforeOptimizationPasses(),
             $config->getOptimizationPasses(),
             $config->getBeforeRemovingPasses(),

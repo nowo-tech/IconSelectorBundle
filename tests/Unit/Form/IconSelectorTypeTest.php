@@ -8,6 +8,8 @@ use Nowo\IconSelectorBundle\Form\IconSelectorType;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
+use RuntimeException;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -359,11 +361,11 @@ final class IconSelectorTypeTest extends TestCase
             $choices['heroicons-outline:icon' . $i] = 'icon' . $i;
         }
 
-        $type = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
-        $view = new FormView();
-        $view->vars['attr'] = [];
+        $type                = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
+        $view                = new FormView();
+        $view->vars['attr']  = [];
         $view->vars['value'] = '';
-        $form = $this->createStub(FormInterface::class);
+        $form                = $this->createStub(FormInterface::class);
 
         $type->buildView($view, $form, [
             'mode'                      => 'tom_select',
@@ -384,13 +386,13 @@ final class IconSelectorTypeTest extends TestCase
     public function testBuildViewTomSelectIgnoresRendererFailures(): void
     {
         $renderer = $this->createMock(IconRendererInterface::class);
-        $renderer->method('renderIcon')->willThrowException(new \RuntimeException('render failed'));
+        $renderer->method('renderIcon')->willThrowException(new RuntimeException('render failed'));
 
-        $type = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
-        $view = new FormView();
-        $view->vars['attr'] = [];
+        $type                = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
+        $view                = new FormView();
+        $view->vars['attr']  = [];
         $view->vars['value'] = 'heroicons-outline:home';
-        $form = $this->createStub(FormInterface::class);
+        $form                = $this->createStub(FormInterface::class);
 
         $type->buildView($view, $form, [
             'mode'                      => 'tom_select',
@@ -413,8 +415,8 @@ final class IconSelectorTypeTest extends TestCase
         $renderer = $this->createMock(IconRendererInterface::class);
         $renderer->method('renderIcon')->willReturn('<svg></svg>');
 
-        $type = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
-        $method = new \ReflectionMethod(IconSelectorType::class, 'buildTomSelectPreloadedOptions');
+        $type    = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
+        $method  = new ReflectionMethod(IconSelectorType::class, 'buildTomSelectPreloadedOptions');
         $choices = ['' => 'empty', 'heroicons-outline:home' => 'home'];
 
         $result = $method->invoke($type, $choices, '');
