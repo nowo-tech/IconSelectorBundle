@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.13] - 2026-07-16
+
+### Removed
+
+- **Demo Symfony 7**: Dropped `demo/symfony7`. The FrankenPHP demo now lives only under `demo/symfony8` (host port **8011**). Runtime support for Symfony 7 applications is unchanged (`composer.json` still allows `^7.0`).
+
+### Added
+
+- **REQ-GIT-001**: Scripts and CI job to reject Cursor `Co-authored-by` trailers (`.scripts/check-no-cursor-coauthor.sh`, `.githooks/commit-msg`, CI `git-hygiene` job, [`docs/GITHUB_CI.md`](docs/GITHUB_CI.md)).
+- **Code of Conduct**: [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) (Contributor Covenant) linked from README and CONTRIBUTING.
+
+### Changed
+
+- **Demo Makefile / docs**: Aggregator and FrankenPHP docs target Symfony 8 only (`make -C demo/symfony8 up`).
+- **release-check**: Runs `check-no-cursor-coauthor` before the rest of the QA pipeline.
+
+### Tests
+
+- Expanded unit coverage for Tom Select preloaded options (`IconSelectorType`), `SvgSanitizer` regex fallback, Twig paths pass, and bundle extension wiring.
+
+### Updated
+
+- **Dev dependencies**: Refreshed root and demo lock files (php-cs-fixer **3.95.15**, rector **2.5.7**).
+
+### Documentation
+
+- **README**, **DEMO-FRANKENPHP**, **CONTRIBUTING**, **RELEASE**: Aligned with single-demo layout and REQ-GIT-001 (`make setup-hooks`, re-check before push).
+
 ## [1.0.12] - 2026-07-09
 
 ### Added

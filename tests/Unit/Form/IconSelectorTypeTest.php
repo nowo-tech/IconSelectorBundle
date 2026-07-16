@@ -348,4 +348,78 @@ final class IconSelectorTypeTest extends TestCase
         self::assertSame('house', $view->vars['choices'][1]->label);
         self::assertSame('bi:house', $view->vars['choices'][1]->value);
     }
+
+    public function testBuildViewTomSelectPreloadsFirstChoicesWhenNoSelection(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->method('renderIcon')->willReturn('<svg></svg>');
+
+        $choices = [];
+        for ($i = 1; $i <= 15; ++$i) {
+            $choices['heroicons-outline:icon' . $i] = 'icon' . $i;
+        }
+
+        $type = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
+        $view = new FormView();
+        $view->vars['attr'] = [];
+        $view->vars['value'] = '';
+        $form = $this->createStub(FormInterface::class);
+
+        $type->buildView($view, $form, [
+            'mode'                      => 'tom_select',
+            'choices'                   => $choices,
+            'placeholder'               => null,
+            'required'                  => true,
+            'icon_sets'                 => null,
+            'icons_api_path'            => null,
+            'icons'                     => null,
+            'translation_domain'        => 'NowoIconSelectorBundle',
+            'choice_translation_domain' => 'NowoIconSelectorBundle',
+            'search_placeholder'        => 'search_placeholder',
+        ]);
+
+        self::assertCount(12, $view->vars['tom_select_preloaded_options']);
+    }
+
+    public function testBuildViewTomSelectIgnoresRendererFailures(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->method('renderIcon')->willThrowException(new \RuntimeException('render failed'));
+
+        $type = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
+        $view = new FormView();
+        $view->vars['attr'] = [];
+        $view->vars['value'] = 'heroicons-outline:home';
+        $form = $this->createStub(FormInterface::class);
+
+        $type->buildView($view, $form, [
+            'mode'                      => 'tom_select',
+            'choices'                   => ['heroicons-outline:home' => 'home'],
+            'placeholder'               => null,
+            'required'                  => true,
+            'icon_sets'                 => null,
+            'icons_api_path'            => null,
+            'icons'                     => null,
+            'translation_domain'        => 'NowoIconSelectorBundle',
+            'choice_translation_domain' => 'NowoIconSelectorBundle',
+            'search_placeholder'        => 'search_placeholder',
+        ]);
+
+        self::assertSame('', $view->vars['tom_select_preloaded_options'][0]['svg']);
+    }
+
+    public function testBuildViewTomSelectSkipsEmptyChoiceIds(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->method('renderIcon')->willReturn('<svg></svg>');
+
+        $type = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
+        $method = new \ReflectionMethod(IconSelectorType::class, 'buildTomSelectPreloadedOptions');
+        $choices = ['' => 'empty', 'heroicons-outline:home' => 'home'];
+
+        $result = $method->invoke($type, $choices, '');
+
+        self::assertCount(1, $result);
+        self::assertSame('heroicons-outline:home', $result[0]['value']);
+    }
 }

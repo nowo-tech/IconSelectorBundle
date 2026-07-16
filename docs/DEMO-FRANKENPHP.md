@@ -25,7 +25,7 @@ The demos use:
 - **Two Caddyfiles**: `Caddyfile` (production, with worker) and `Caddyfile.dev` (development, no worker).
 - An **entrypoint** script that, when `APP_ENV=dev`, copies `Caddyfile.dev` over the default Caddyfile and then starts FrankenPHP.
 
-There are two demos: **demo/symfony7** and **demo/symfony8**. Each has its own Dockerfile, docker-compose.yml and Makefile. From the bundle root you run e.g. `make -C demo/symfony8 up` (see the demo’s README for the URL and port).
+There is one demo: **demo/symfony8**. It has its own Dockerfile, docker-compose.yml and Makefile. From the bundle root you run e.g. `make -C demo/symfony8 up` (see the demo’s README for the URL and port).
 
 The main difference between development and production is:
 
@@ -38,7 +38,7 @@ The main difference between development and production is:
 | Symfony cache on startup | Cleared in Makefile before `up` | Not cleared (or warmup only) |
 | `APP_ENV` / `APP_DEBUG` | `dev` / `1` | `prod` / `0` |
 
-**Ports:** Symfony 7 demo defaults to **8010**, Symfony 8 demo to **8011** (set in each demo’s `.env` as `PORT`).
+**Port:** the Symfony 8 demo defaults to **8011** (set in the demo’s `.env` as `PORT`).
 
 ---
 
@@ -81,7 +81,7 @@ Goal: every change to PHP, Twig or config is visible on the next browser refresh
 
 Do **not** use FrankenPHP worker mode. Use plain `php_server` so each HTTP request is handled by a new PHP process. Add cache-busting headers so the browser does not serve a cached response.
 
-In this bundle, the development Caddyfile is **docker/frankenphp/Caddyfile.dev** in each demo (`demo/symfony7/docker/frankenphp/Caddyfile.dev` and `demo/symfony8/docker/frankenphp/Caddyfile.dev`):
+In this bundle, the development Caddyfile is **docker/frankenphp/Caddyfile.dev** in the demo (`demo/symfony8/docker/frankenphp/Caddyfile.dev`):
 
 ```caddyfile
 {
@@ -107,7 +107,7 @@ The demos’ Docker entrypoint copies this file over `/etc/frankenphp/Caddyfile`
 
 The demos include **docker/php-dev.ini** so OPcache rechecks file modification time on every request; recompiled Twig templates in `var/cache` are then picked up immediately.
 
-- **demo/symfony7/docker/php-dev.ini** and **demo/symfony8/docker/php-dev.ini**:
+- **demo/symfony8/docker/php-dev.ini**:
 
 ```ini
 ; Recheck compiled PHP files every request so Twig-compiled templates in var/cache are always fresh
@@ -120,7 +120,7 @@ opcache.revalidate_freq=0
 
 The demos disable Twig’s compiled template cache in the dev environment so Twig recompiles from source on each request.
 
-- **demo/symfony7/config/packages/dev/twig.yaml** and **demo/symfony8/config/packages/dev/twig.yaml**:
+- **demo/symfony8/config/packages/dev/twig.yaml**:
 
 ```yaml
 # Disable Twig cache in dev so template changes are visible on refresh
@@ -139,7 +139,7 @@ Each demo’s **docker-compose.yml** sets `APP_ENV=dev` and `APP_DEBUG=1`, and m
 - `./docker/frankenphp/Caddyfile.dev:/etc/frankenphp/Caddyfile.dev`
 - `./docker/php-dev.ini:/usr/local/etc/php/conf.d/99-dev.ini:ro`
 
-The entrypoint, when `APP_ENV=dev`, runs `cp /etc/frankenphp/Caddyfile.dev /etc/frankenphp/Caddyfile` before starting FrankenPHP. Symfony 7 demo default port is **8010**, Symfony 8 demo **8011** (see each demo’s `.env` or `PORT`).
+The entrypoint, when `APP_ENV=dev`, runs `cp /etc/frankenphp/Caddyfile.dev /etc/frankenphp/Caddyfile` before starting FrankenPHP. The demo default port is **8011** (see the demo’s `.env` or `PORT`).
 
 ### 5. Entrypoint (development-friendly)
 
@@ -152,9 +152,6 @@ From the bundle root:
 ```bash
 make -C demo/symfony8 up
 # → App ready at http://127.0.0.1:8011/
-
-make -C demo/symfony7 up
-# → App ready at http://127.0.0.1:8010/
 ```
 
 Or from inside the demo directory: `make up`. The Makefile runs `composer install` and `cache:clear` in one-off containers, then starts the stack and waits for the app to respond. After editing a Twig template or PHP file, refresh the browser; with worker mode off, Twig cache disabled and OPcache revalidating every request, changes should appear without restarting the container.
@@ -228,7 +225,6 @@ After changing the Caddyfile or env, restart the container:
 docker-compose restart
 # or from bundle root:
 make -C demo/symfony8 restart
-# or make -C demo/symfony7 restart
 ```
 
 ---
@@ -266,7 +262,7 @@ This gives you a reproducible development setup (changes visible on refresh) and
 
 ### Demo does not respond or “make up” times out
 
-- The Makefile runs `composer install` and `cache:clear` in one-off containers before starting the server, then waits for HTTP response on the configured port. Symfony 7 demo uses **8010**, Symfony 8 demo **8011** by default (see each demo's `.env`). Ensure the port is free and that the container starts (check `docker-compose logs php`).
+- The Makefile runs `composer install` and `cache:clear` in one-off containers before starting the server, then waits for HTTP response on the configured port. The demo uses **8011** by default (see the demo's `.env`). Ensure the port is free and that the container starts (check `docker-compose logs php`).
 - If the container exits, check that the entrypoint and Caddyfile are valid and that required env vars (e.g. `APP_SECRET`) are set.
 
 ### Production: slow first request or “cache cold”

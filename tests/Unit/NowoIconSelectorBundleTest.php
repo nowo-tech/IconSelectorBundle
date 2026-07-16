@@ -6,6 +6,7 @@ namespace Nowo\IconSelectorBundle\Tests\Unit;
 
 use Nowo\IconSelectorBundle\NowoIconSelectorBundle;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
  * Smoke test for the bundle class registration.
@@ -20,5 +21,30 @@ final class NowoIconSelectorBundleTest extends TestCase
         $bundle = new NowoIconSelectorBundle();
         /* @phpstan-ignore staticMethod.alreadyNarrowedType (ensures bundle type) */
         self::assertInstanceOf(NowoIconSelectorBundle::class, $bundle);
+    }
+
+    public function testBuildRegistersTwigPathsCompilerPass(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoIconSelectorBundle())->build($container);
+
+        $config = $container->getCompilerPassConfig();
+        $lists = array_merge(
+            $config->getBeforeOptimizationPasses(),
+            $config->getOptimizationPasses(),
+            $config->getBeforeRemovingPasses(),
+            $config->getAfterRemovingPasses(),
+            $config->getRemovingPasses(),
+        );
+
+        $found = false;
+        foreach ($lists as $pass) {
+            if ($pass instanceof \Nowo\IconSelectorBundle\DependencyInjection\Compiler\TwigPathsPass) {
+                $found = true;
+                break;
+            }
+        }
+
+        self::assertTrue($found);
     }
 }

@@ -62,4 +62,33 @@ final class SvgSanitizerTest extends TestCase
         $output = $this->sanitizer->sanitize($input);
         self::assertStringContainsString('<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>', $output);
     }
+
+    public function testInvalidSvgUsesRegexFallback(): void
+    {
+        $input = '<<svg><script>alert(1)</script><foreignObject>x</foreignObject><path d=""/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+        self::assertStringNotContainsString('script', strtolower($output));
+        self::assertStringNotContainsString('foreignobject', strtolower($output));
+    }
+
+    public function testUseElementWithExternalHrefIsStripped(): void
+    {
+        $input = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="https://evil.example/icon.svg#id"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+        self::assertStringNotContainsString('https://evil.example', $output);
+    }
+
+    public function testUseElementWithEmptyHrefIsStripped(): void
+    {
+        $input = '<svg xmlns="http://www.w3.org/2000/svg"><use href=""/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+        self::assertStringNotContainsString('href=', $output);
+    }
+
+    public function testUseElementKeepsSafeFragmentReference(): void
+    {
+        $input = '<svg xmlns="http://www.w3.org/2000/svg"><defs><path id="icon" d="M0 0"/></defs><use href="#icon"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+        self::assertStringContainsString('#icon', $output);
+    }
 }

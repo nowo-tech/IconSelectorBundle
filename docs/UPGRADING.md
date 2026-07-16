@@ -12,6 +12,14 @@ composer update nowo-tech/icon-selector-bundle symfony/ux-icons --with-all-depen
 
 That aligns this bundle with packages such as **nowo-tech/performance-bundle** that already allow `^2.0 || ^3.0`.
 
+## 1.0.13 (2026-07-16)
+
+No breaking changes for application installs.
+
+- **Application installs**: No action required. Symfony **7** and **8** remain supported in `composer.json`. Only the in-repo FrankenPHP demo for Symfony 7 was removed.
+- **Contributors / demos**: Use `demo/symfony8` only (`make -C demo/symfony8 up`, port **8011**). Remove any local workflow that assumed `demo/symfony7` or port **8010**.
+- **Contributors (git)**: Run `make setup-hooks` once per clone. Do not add Cursor `Co-authored-by` trailers; CI enforces this (see [`GITHUB_CI.md`](GITHUB_CI.md)). After the release commit, run `make check-no-cursor-coauthor` before push.
+
 ## 1.0.12 (2026-07-09)
 
 No breaking changes.

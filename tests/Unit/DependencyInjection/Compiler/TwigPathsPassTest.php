@@ -51,4 +51,16 @@ final class TwigPathsPassTest extends TestCase
         self::assertFalse($container->hasDefinition('twig.loader.native'));
         self::assertFalse($container->hasDefinition('twig.loader.native_filesystem'));
     }
+
+    public function testProcessUsesNativeFilesystemLoaderWhenOnlyThatDefinitionExists(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setDefinition('twig.loader.native_filesystem', new Definition());
+
+        (new TwigPathsPass())->process($container);
+
+        $calls = $container->getDefinition('twig.loader.native_filesystem')->getMethodCalls();
+        self::assertNotEmpty($calls);
+        self::assertSame('addPath', $calls[0][0]);
+    }
 }
