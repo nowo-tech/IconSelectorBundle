@@ -1,8 +1,10 @@
 # Icon Selector Bundle - Development
-.PHONY: help up down build shell install test test-coverage coverage-php-percent cs-check cs-fix qa clean assets assets-build assets-watch assets-test test-ts ensure-up rector rector-dry phpstan release-check release-check-demos composer-sync update validate validate-translations check-no-cursor-coauthor strip-cursor-coauthor-from-history
+.PHONY: help up down down-dev build shell install test test-coverage coverage-php-percent coverage-check cs-check cs-fix qa clean assets assets-build assets-watch assets-test test-ts ensure-up rector rector-dry phpstan release-check release-check-demos demo-smoke composer-sync update validate validate-translations check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history
 
 COMPOSE_FILE ?= docker-compose.yml
-COMPOSE     ?= docker-compose -f $(COMPOSE_FILE)
+# Prefer Compose V2 plugin (GitHub Actions / modern Docker Desktop); fall back to docker-compose V1 (REQ-MAKE-010).
+COMPOSE_BIN ?= $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+COMPOSE     ?= $(COMPOSE_BIN) -f $(COMPOSE_FILE)
 SERVICE_PHP ?= php
 
 help:
@@ -10,6 +12,7 @@ help:
 	@echo ""
 	@echo "  up              Start Docker container"
 	@echo "  down            Stop Docker container"
+	@echo "  down-dev        Stop root $(COMPOSE) (dev) and remove orphans"
 	@echo "  build           Rebuild Docker image (no cache)"
 	@echo "  shell           Open shell in container"
 	@echo "  install         Install Composer + pnpm dependencies"
@@ -20,14 +23,17 @@ help:
 	@echo "  assets-test     Alias of test-ts"
 	@echo "  test            Run PHPUnit tests"
 	@echo "  test-coverage   Run tests with code coverage"
+	@echo "  coverage-check  Fail if PHP Lines coverage < 99%%"
 	@echo "  cs-check / cs-fix  Code style"
 	@echo "  rector / rector-dry  Rector"
 	@echo "  phpstan         Static analysis"
 	@echo "  qa              cs-check + test"
-	@echo "  release-check   Pre-release checks"
+	@echo "  release-check   Pre-release: hygiene, open PRs, QA, coverage-check, demos"
+	@echo "  demo-smoke      Boot demos and assert HTTP 200"
 	@echo "  composer-sync   Validate and align composer.lock"
 	@echo "  clean           Remove vendor and cache"
 	@echo "  update / validate  Composer"
+	@echo "  check-open-prs  Fail if unresolved open GitHub PRs"
 	@echo ""
 	@echo "Demos: make -C demo/symfony8"
 
@@ -44,6 +50,9 @@ up:
 
 down:
 	$(COMPOSE) down
+
+down-dev:
+	$(COMPOSE) down --remove-orphans
 
 ensure-up:
 	@if ! $(COMPOSE) exec -T $(SERVICE_PHP) true 2>/dev/null; then \
@@ -85,6 +94,10 @@ test-coverage: ensure-up
 	$(COMPOSE) exec $(SERVICE_PHP) composer test-coverage | tee coverage-php.txt
 	sh .scripts/php-coverage-percent.sh coverage-php.txt
 
+coverage-check: ensure-up
+	$(COMPOSE) exec -T $(SERVICE_PHP) sh -lc 'composer test-coverage | tee coverage-php.txt'
+	@./.scripts/coverage-fail-under.sh coverage-php.txt 99
+
 cs-check: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer cs-check
 
@@ -110,10 +123,14 @@ composer-sync: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer validate --strict
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer update --no-install
 
-release-check: check-no-cursor-coauthor ensure-up composer-sync cs-fix cs-check rector-dry phpstan test-coverage test-ts release-check-demos
+release-check: check-no-cursor-coauthor check-open-prs ensure-up composer-sync cs-fix cs-check rector-dry phpstan coverage-check test-ts release-check-demos
 
 release-check-demos:
 	@$(MAKE) -C demo release-check
+
+# REQ-TEST-011: boot demos and assert HTTP 200
+demo-smoke:
+	@if [ -f demo/Makefile ]; then $(MAKE) -C demo release-verify; else echo "No demo/Makefile"; exit 1; fi
 
 clean:
 	rm -rf vendor node_modules .phpunit.cache coverage .php-cs-fixer.cache
@@ -134,10 +151,15 @@ setup-hooks:
 
 # REQ-MAKE-008: update-deps (REQ-MAKE-008)
 BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-include $(BUNDLE_ROOT)/../.scripts/Makefile.update-deps.mk
+# Optional: monorepo helper absent on standalone GitHub Actions checkout (REQ-MAKE-009).
+-include $(BUNDLE_ROOT)/../.scripts/Makefile.update-deps.mk
 check-no-cursor-coauthor:
 	@chmod +x .scripts/check-no-cursor-coauthor.sh
 	@./.scripts/check-no-cursor-coauthor.sh HEAD
+
+check-open-prs:
+	@chmod +x .scripts/check-open-prs.sh
+	@GH_REPO=nowo-tech/IconSelectorBundle ./.scripts/check-open-prs.sh
 
 strip-cursor-coauthor-from-history:
 	@chmod +x .scripts/strip-cursor-coauthor-from-history.sh

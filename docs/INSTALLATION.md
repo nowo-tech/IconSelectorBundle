@@ -1,5 +1,14 @@
 # Installation
 
+## Table of contents
+
+- [Requirements](#requirements)
+- [Composer](#composer)
+- [Manual setup](#manual-setup)
+- [Symfony UX Icons](#symfony-ux-icons)
+- [Troubleshooting](#troubleshooting)
+  - ["Typed property ChoiceType::$choiceListFactory must not be accessed before initialization"](#typed-property-choicetypechoicelistfactory-must-not-be-accessed-before-initialization)
+
 ## Requirements
 
 - PHP >= 8.2, < 8.6
@@ -38,12 +47,12 @@ nowo_icon_selector:
 php bin/console assets:install
 ```
 
-This copies the bundle's `Resources/public/` contents to `public/bundles/nowoiconselector/` (name derived from the bundle class, not the config alias).
+This copies the bundle's `Resources/public/` contents to `public/bundles/nowoiconselector/`. The bundle also registers a named Symfony asset package, so templates can reference files through the `nowo_icon_selector` package instead of hard-coding the public path.
 
 4. **Form theme**: The bundle automatically prepends its form theme to `twig.form_themes` according to the `form_theme` option in `config/packages/nowo_icon_selector.yaml` (default: `form_div_layout.html.twig`). If your app uses another form layout (e.g. Bootstrap 5), set `form_theme: 'bootstrap_5_layout.html.twig'` so the icon selector row and widget match. See [Configuration](CONFIGURATION.md#form_theme).
 
 5. **Load the widget** in one of two ways (see [Usage → Frontend](USAGE.md#frontend-two-ways-to-load-the-widget)):
-   - **Script (normal JS):** Include `icon-selector.js` in your layout (e.g. `{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}`). The script is in `Resources/public/` after `assets:install`.
+   - **Script (normal JS):** Include `icon-selector.js` in your layout (e.g. `{{ asset('icon-selector.js', 'nowo_icon_selector') }}` or `{{ asset(nowo_icon_selector_asset_path('icon-selector.js'), 'nowo_icon_selector') }}`). The script is in `Resources/public/` after `assets:install`.
    - **Stimulus controller:** If your app uses Stimulus, register the bundle's `icon-selector` controller; you do not need to load the script. The controller is in `Resources/assets/controllers/icon_selector_controller.ts`.
 
 If you work on the bundle, run `make assets` (or `pnpm install && pnpm run build`) to rebuild the script.

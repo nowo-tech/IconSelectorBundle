@@ -23,7 +23,13 @@ The bundle ships a default list of common icon identifiers per set. To show **al
 
 ### `use_iconify_collection`
 
-When `true`, the bundle fetches the full icon list from [api.iconify.design/collection](https://iconify.design/docs/api/collection.html) for each entry in `icon_sets`. The list is cached for 24 hours. Requires `symfony/http-client`. Each API request uses a 15-second timeout to avoid exceeding PHP's max execution time. The first page load after cache expiry can be slow (one request per set); consider increasing `max_execution_time` or warming the cache if needed.
+When `true`, the bundle fetches the full icon list from [api.iconify.design/collection](https://iconify.design/docs/api/collection.html) for each entry in `icon_sets`. The list is cached for 24 hours. Requires `symfony/http-client`. Each API request uses `iconify_http_timeout` (default **15** seconds). Keep that value below PHP `max_execution_time` and the FrankenPHP/Caddy write timeout. The first page load after cache expiry can be slow (one request per set); consider increasing `max_execution_time`, raising `iconify_http_timeout` carefully, or warming the cache if needed.
+
+### `iconify_http_timeout`
+
+**Type:** `float` (seconds) · **Default:** `15.0`
+
+HTTP timeout for Iconify collection requests when `use_iconify_collection` is `true`.
 
 Default: `false` (use the built-in short list)
 

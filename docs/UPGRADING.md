@@ -2,6 +2,26 @@
 
 This document describes how to upgrade between versions of Icon Selector Bundle.
 
+## Table of contents
+
+- [Composer and symfony/ux-icons 3.x](#composer-and-symfonyux-icons-3x)
+- [1.0.14 (2026-07-29)](#1014-2026-07-29)
+- [1.0.13 (2026-07-16)](#1013-2026-07-16)
+- [1.0.12 (2026-07-09)](#1012-2026-07-09)
+- [1.0.11 (2026-07-03)](#1011-2026-07-03)
+- [1.0.10 (2026-06-13)](#1010-2026-06-13)
+- [1.0.9 (2026-04-14)](#109-2026-04-14)
+- [1.0.8 (2026-04-14)](#108-2026-04-14)
+- [1.0.7 (2026-04-01)](#107-2026-04-01)
+- [1.0.6 (2026-03-31)](#106-2026-03-31)
+- [1.0.5 (2026-03-23)](#105-2026-03-23)
+- [1.0.4 (2026-03-12)](#104-2026-03-12)
+- [1.0.3 (2026-03-12)](#103-2026-03-12)
+- [1.0.2 (2026-03-12)](#102-2026-03-12)
+- [1.0.1 (2026-03-12)](#101-2026-03-12)
+- [1.0.0 (2026-03-11)](#100-2026-03-11)
+- [Unreleased / 1.x](#unreleased-1x)
+
 ## Composer and symfony/ux-icons 3.x
 
 If your root `composer.json` requires **symfony/ux-icons** 3.x (for example `3.0.0` exactly) and Composer reports a conflict with **nowo-tech/icon-selector-bundle**, upgrade the bundle to **1.0.8 or newer** (the constraint includes `^3.0`). Then run:
@@ -11,6 +31,26 @@ composer update nowo-tech/icon-selector-bundle symfony/ux-icons --with-all-depen
 ```
 
 That aligns this bundle with packages such as **nowo-tech/performance-bundle** that already allow `^2.0 || ^3.0`.
+
+## 1.0.14 (2026-07-29)
+
+Notable change for Twig asset loading (update templates if you use the helper).
+
+- **Twig assets**: `nowo_icon_selector_asset_path()` now returns only a relative filename (e.g. `icon-selector.js`), not `bundles/nowoiconselector/...`. Use the named package:
+
+```twig
+{# preferred #}
+{{ asset('icon-selector.js', 'nowo_icon_selector') }}
+
+{# or with the helper #}
+{{ asset(nowo_icon_selector_asset_path('icon-selector.js'), 'nowo_icon_selector') }}
+```
+
+  Clear Symfony cache after upgrading so the Framework asset package prepend is applied.
+
+- **Optional config**: `nowo_icon_selector.iconify_http_timeout` (default `15.0`) when `use_iconify_collection: true`.
+- **Frontend**: Rebuild or reinstall assets if you ship the published `icon-selector.js` / Stimulus controller from this package — dispose/cleanup fixes matter under Turbo and FrankenPHP worker mode.
+- **Contributors**: `make release-check` now includes `check-open-prs` and `coverage-check` (≥99% PHP lines).
 
 ## 1.0.13 (2026-07-16)
 

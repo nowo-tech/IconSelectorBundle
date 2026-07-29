@@ -8,7 +8,4 @@ parameters:
     bootstrapFiles:
         - vendor/autoload.php
     reportUnmatchedIgnoredErrors: false
-    ignoreErrors:
-        -
-            message: '#Call to function is_string\(\) with string will always evaluate to true#'
-            path: src/Controller/Api/IconSvgController.php
+    ignoreErrors: []

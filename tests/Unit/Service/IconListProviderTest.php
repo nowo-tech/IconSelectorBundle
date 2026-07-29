@@ -8,6 +8,8 @@ use Nowo\IconSelectorBundle\Service\IconifyCollectionLoader;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
  * Unit tests for IconListProvider (getIcons, getIconsBySet, getIconsForSets, isValidIcon).
@@ -74,9 +76,9 @@ final class IconListProviderTest extends TestCase
     /** When use_iconify_collection is true and loader is set, getIconsForSets returns icons from the loader. */
     public function testGetIconsForSetsUsesLoaderWhenUseIconifyCollectionTrue(): void
     {
-        $cache = $this->createMock(\Symfony\Contracts\Cache\CacheInterface::class);
+        $cache = $this->createMock(CacheInterface::class);
         $cache->method('get')->willReturn(['heroicons-outline:custom', 'heroicons-solid:other']);
-        $httpClient = $this->createMock(\Symfony\Contracts\HttpClient\HttpClientInterface::class);
+        $httpClient = $this->createMock(HttpClientInterface::class);
         $loader     = new IconifyCollectionLoader($httpClient, $cache);
         $provider   = new IconListProvider(['heroicons'], true, $loader);
         $icons      = $provider->getIconsForSets(['heroicons']);
@@ -88,9 +90,9 @@ final class IconListProviderTest extends TestCase
     /** When use_iconify_collection is true and loader throws, getIconsForSets falls back to default icons for that set. */
     public function testGetIconsForSetsFallsBackToDefaultWhenLoaderThrows(): void
     {
-        $cache = $this->createMock(\Symfony\Contracts\Cache\CacheInterface::class);
+        $cache = $this->createMock(CacheInterface::class);
         $cache->method('get')->willThrowException(new RuntimeException('API error'));
-        $httpClient = $this->createMock(\Symfony\Contracts\HttpClient\HttpClientInterface::class);
+        $httpClient = $this->createMock(HttpClientInterface::class);
         $loader     = new IconifyCollectionLoader($httpClient, $cache);
         $provider   = new IconListProvider(['heroicons'], true, $loader);
         $icons      = $provider->getIconsForSets(['heroicons']);

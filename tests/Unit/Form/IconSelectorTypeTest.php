@@ -10,6 +10,7 @@ use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use RuntimeException;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -114,7 +115,7 @@ final class IconSelectorTypeTest extends TestCase
     {
         $type = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '');
         self::assertSame('icon_selector', $type->getBlockPrefix());
-        self::assertSame(\Symfony\Component\Form\Extension\Core\Type\ChoiceType::class, $type->getParent());
+        self::assertSame(ChoiceType::class, $type->getParent());
     }
 
     public function testBuildViewUsesDefaultsFromConstructor(): void

@@ -23,69 +23,71 @@ help:
 up:
 	@if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || true; fi
 	@echo "Installing dependencies (one-off container)..."
-	@docker-compose run --rm -T --entrypoint composer -e COMPOSER_MEMORY_LIMIT=-1 php install --no-interaction --no-scripts
+	@$(COMPOSE) run --rm -T --entrypoint composer -e COMPOSER_MEMORY_LIMIT=-1 php install --no-interaction --no-scripts
 	@echo "Warming cache and installing assets..."
-	@docker-compose run --rm -T --entrypoint php php -d memory_limit=256M bin/console cache:clear
-	@docker-compose run --rm -T --entrypoint php php bin/console assets:install public
+	@$(COMPOSE) run --rm -T --entrypoint php php -d memory_limit=256M bin/console cache:clear
+	@$(COMPOSE) run --rm -T --entrypoint php php bin/console assets:install public
 	@echo "Starting server..."
-	docker-compose up -d
+	$(COMPOSE) up -d
 	@echo "Waiting for app to respond..."
 	@PORT=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2); PORT=$${PORT:-8011}; \
 	for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do \
 		curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$PORT/" 2>/dev/null | grep -qE '^[23]' && echo "Demo started at: http://localhost:$$PORT"; exit 0; \
 		echo "  waiting... $$i/15"; sleep 2; \
 	done; \
-	echo "App did not respond in time. Check: docker-compose logs php"; exit 1
+	echo "App did not respond in time. Check: $(COMPOSE) logs php"; exit 1
 
 down:
-	docker-compose down
+	$(COMPOSE) down
 
 restart: ensure-up
-	docker-compose restart
+	$(COMPOSE) restart
 
 build:
-	docker-compose build --no-cache
+	$(COMPOSE) build --no-cache
 
 ensure-up:
-	@if ! docker-compose exec -T php true 2>/dev/null; then \
+	@if ! $(COMPOSE) exec -T php true 2>/dev/null; then \
 		echo "Starting container..."; \
-		docker-compose up -d; \
+		$(COMPOSE) up -d; \
 		sleep 3; \
 	fi
 
 install: ensure-up
-	docker-compose exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction
+	$(COMPOSE) exec -T -e COMPOSER_MEMORY_LIMIT=-1 php composer install --no-interaction
 
 shell: ensure-up
-	docker-compose exec php sh
+	$(COMPOSE) exec php sh
 
 logs:
-	docker-compose logs -f
+	$(COMPOSE) logs -f
 
 test: ensure-up
 	@echo "Running demo smoke checks (no PHPUnit suite in this demo)..."
-	docker-compose exec -T php php bin/console lint:yaml config --parse-tags --env=dev
-	docker-compose exec -T php php bin/console about --env=dev --no-ansi >/dev/null
+	$(COMPOSE) exec -T php php bin/console lint:yaml config --parse-tags --env=dev
+	$(COMPOSE) exec -T php php bin/console about --env=dev --no-ansi >/dev/null
 	@echo "Demo smoke checks passed."
 
 test-coverage: test
 	@echo "Demo has no coverage target (smoke checks only)."
 
 cache-clear: ensure-up
-	docker-compose exec php php bin/console cache:clear
+	$(COMPOSE) exec php php bin/console cache:clear
 
 link-bundle: ensure-up
-	docker-compose exec php sh -c "rm -rf vendor/nowo-tech/icon-selector-bundle && ln -s /var/icon-selector-bundle vendor/nowo-tech/icon-selector-bundle && php bin/console cache:clear"
+	$(COMPOSE) exec php sh -c "rm -rf vendor/nowo-tech/icon-selector-bundle && ln -s /var/icon-selector-bundle vendor/nowo-tech/icon-selector-bundle && php bin/console cache:clear"
 	@echo "Bundle linked to mounted source. Reload the page in the browser."
 
 update-bundle: ensure-up
-	docker-compose exec php composer update nowo-tech/icon-selector-bundle --no-interaction
-	docker-compose exec php php bin/console cache:clear --env=dev
+	$(COMPOSE) exec php composer update nowo-tech/icon-selector-bundle --no-interaction
+	$(COMPOSE) exec php php bin/console cache:clear --env=dev
 	@echo "Bundle updated. Reload the page in the browser."
 
 
 # REQ-MAKE-008: update-deps (REQ-MAKE-008)
-COMPOSE := docker-compose
+# Prefer Compose V2 plugin (GitHub Actions / modern Docker Desktop); fall back to docker-compose V1 (REQ-MAKE-010).
+COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 SERVICE_PHP := php
 BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
-include $(BUNDLE_ROOT)/../.scripts/Makefile.demo-update-deps.mk
+# Optional: monorepo helper absent on standalone GitHub Actions checkout (REQ-MAKE-009).
+-include $(BUNDLE_ROOT)/../.scripts/Makefile.demo-update-deps.mk

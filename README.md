@@ -1,8 +1,12 @@
 # Icon Selector Bundle
 
-[![CI](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/icon-selector-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/icon-selector-bundle.svg)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-6.0%2B%20%7C%207.4%2B%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com)
+[![CI](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/icon-selector-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/icon-selector-bundle.svg)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-6.0%2B%20%7C%207.4%2B%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/IconSelectorBundle.svg?style=social&label=Star)](https://github.com/nowo-tech/IconSelectorBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.5%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/icon-selector-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/IconSelectorBundle) so more developers can find it.
+
+![FrankenPHP Friendly Worker Mode](docs/images/frankenphp-friendly.png)
+
+This bundle is **FrankenPHP worker mode friendly**.
 
 **Icon Selector Bundle** — Symfony form type for selecting an icon with two modes: **direct selector** (grid) and **search** (filter by text). The value is stored as a string (e.g. `heroicons-outline:home`, `bi:house`). Configurable icon sets (Symfony UX Icons). For Symfony 7 and 8 · PHP 8.2+.
 
@@ -61,7 +65,7 @@ return [
 
 1. Add the field to your form with `IconSelectorType::class` and option `mode`: `'direct'`, `'search'`, or `'tom_select'`.
 2. **Load the widget** in one of two ways (see [Usage → Frontend](docs/USAGE.md#frontend-two-ways-to-load-the-widget) for details):
-  - **Option A (normal JS):** Include the bundle script in your layout: `{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}`. Run `php bin/console assets:install` once. The script initializes all icon selectors on load and any injected later (MutationObserver).
+  - **Option A (normal JS):** Include the bundle script in your layout: `{{ asset('icon-selector.js', 'nowo_icon_selector') }}` or `{{ asset(nowo_icon_selector_asset_path('icon-selector.js'), 'nowo_icon_selector') }}`. Run `php bin/console assets:install` once. The script initializes all icon selectors on load and any injected later (MutationObserver).
   - **Option B (Stimulus controller):** If your app uses Stimulus, register the bundle's `icon-selector` controller. No script tag needed; your JS bundle includes the lib. For `tom_select` mode, load Tom Select CSS in your app.
 3. The submitted value is a string (e.g. `heroicons-outline:home`). Render it with `{{ ux_icon(entity.icon) }}` (Symfony UX Icons is a required dependency).
 
@@ -168,7 +172,7 @@ Run tests and QA with Docker: `make up && make install && make test` (or `make t
 ## Tests and coverage
 
 - Tests: PHPUnit (PHP), Vitest (TS/JS)
-- PHP: 99.25%
+- PHP: 99.5%
 - TS/JS: 100%
 
 ## License

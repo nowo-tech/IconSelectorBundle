@@ -94,6 +94,32 @@ final class NowoIconSelectorExtensionTest extends TestCase
         self::assertArrayHasKey('form_themes', $config);
     }
 
+    public function testPrependAddsNamedAssetPackageWhenFrameworkExtensionPresent(): void
+    {
+        $frameworkExtension = new class extends Extension {
+            public function load(array $configs, ContainerBuilder $container): void
+            {
+            }
+
+            public function getAlias(): string
+            {
+                return 'framework';
+            }
+        };
+        $container = new ContainerBuilder();
+        $container->registerExtension($frameworkExtension);
+        $container->loadFromExtension('framework', []);
+        $container->registerExtension(new NowoIconSelectorExtension());
+
+        $extension = new NowoIconSelectorExtension();
+        $extension->prepend($container);
+
+        $frameworkConfig = $container->getExtensionConfig('framework');
+        self::assertNotEmpty($frameworkConfig);
+        $config = $frameworkConfig[0] ?? [];
+        self::assertSame('/bundles/nowoiconselector', $config['assets']['packages'][Configuration::ALIAS]['base_path'] ?? null);
+    }
+
     /** Asserts prepend() uses default form theme when configured theme is not in the map. */
     public function testPrependUsesDefaultThemeWhenFormThemeUnknown(): void
     {
@@ -123,12 +149,13 @@ final class NowoIconSelectorExtensionTest extends TestCase
         self::assertContains('@NowoIconSelectorBundle/Form/icon_selector_theme.html.twig', $config['form_themes']);
     }
 
-    /** Asserts prepend() does not fail when Twig extension is not registered. */
-    public function testPrependSkipsWhenTwigNotLoaded(): void
+    /** Asserts prepend() does not fail when bundle-related extensions are not registered. */
+    public function testPrependSkipsWhenKnownExtensionsNotLoaded(): void
     {
         $container = new ContainerBuilder();
         $extension = new NowoIconSelectorExtension();
         $extension->prepend($container);
         self::assertFalse($container->hasExtension('twig'));
+        self::assertFalse($container->hasExtension('framework'));
     }
 }

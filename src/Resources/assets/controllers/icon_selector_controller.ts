@@ -12,15 +12,30 @@
  */
 
 import { Controller } from '@hotwired/stimulus';
-import { getLogger, initIconSelectorContainer } from '../src/icon-selector-lib';
+import { disposeIconSelectorContainer, getLogger, type IconSelectorDisposer, initIconSelectorContainer } from '../src/icon-selector-lib';
 
 export default class IconSelectorController extends Controller {
+  private cleanup: IconSelectorDisposer | null = null;
+
   connect(): void {
     if (this.element instanceof HTMLElement) {
-      const ok = initIconSelectorContainer(this.element);
-      if (ok) {
+      const cleanup = initIconSelectorContainer(this.element);
+      if (cleanup) {
+        this.cleanup = cleanup;
         getLogger().debug('icon-selector (controller): input initialized', this.element);
       }
     }
+  }
+
+  disconnect(): void {
+    if (!(this.element instanceof HTMLElement)) return;
+
+    if (this.cleanup) {
+      this.cleanup();
+      this.cleanup = null;
+      return;
+    }
+
+    disposeIconSelectorContainer(this.element);
   }
 }

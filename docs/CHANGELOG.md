@@ -4,7 +4,57 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Table of contents
+
+- [Unreleased](#unreleased)
+- [1.0.14 (2026-07-29)](#1014-2026-07-29)
+- [1.0.13 (2026-07-16)](#1013-2026-07-16)
+- [1.0.12 (2026-07-09)](#1012-2026-07-09)
+- [1.0.11 (2026-07-03)](#1011-2026-07-03)
+- [1.0.10 (2026-06-13)](#1010-2026-06-13)
+- [1.0.9 (2026-04-14)](#109-2026-04-14)
+- [1.0.8 (2026-04-14)](#108-2026-04-14)
+- [1.0.7 (2026-04-01)](#107-2026-04-01)
+- [1.0.6 (2026-03-31)](#106-2026-03-31)
+- [1.0.5 (2026-03-23)](#105-2026-03-23)
+- [1.0.4 (2026-03-12)](#104-2026-03-12)
+- [1.0.3 (2026-03-12)](#103-2026-03-12)
+- [1.0.2 (2026-03-12)](#102-2026-03-12)
+- [1.0.1 (2026-03-12)](#101-2026-03-12)
+- [1.0.0 (2026-03-11)](#100-2026-03-11)
+
 ## [Unreleased]
+
+## [1.0.14] - 2026-07-29
+
+### Added
+
+- **Named asset package** `nowo_icon_selector` (`base_path` `/bundles/nowoiconselector`) registered via Framework prepend; prefer `asset('icon-selector.js', 'nowo_icon_selector')`.
+- **Config** `iconify_http_timeout` (float, default `15.0`) for Iconify collection HTTP timeouts.
+- **Frontend disposers**: widgets / Tom Select / Stimulus container init return cleanup (`destroy` / disposer) so FrankenPHP worker / Turbo re-entry does not leak listeners or polls.
+- **Tooling**: `make coverage-check` (≥99% PHP lines), `make check-open-prs`, `make demo-smoke`, Compose V2-aware `COMPOSE_BIN`, optional open-PR gate in `release-check`.
+- **Dev**: `nowo-tech/phpstan-frankenphp` for FrankenPHP-aware static analysis.
+
+### Fixed
+
+- **SvgSanitizer**: Correctly strips unsafe `xlink:href` / external `href` on `<use>` and keeps safe `#fragment` references (namespaced attribute removal via `removeAttributeNS`).
+- **IconifyCollectionLoader**: Catches HTTP failures, logs warnings, and returns an empty list instead of letting exceptions break the request.
+- **IconSvgController**: Trims and filters empty string IDs from JSON POST body.
+
+### Changed
+
+- **`nowo_icon_selector_asset_path()`**: Returns a **relative filename** only (path traversal still rejected). Pair it with the named asset package (see UPGRADING).
+- **Demo Symfony 8**: Entrypoint selects classic vs worker via `FRANKENPHP_MODE` (default `worker`).
+- **CI / PHPUnit**: `SYMFONY_DEPRECATIONS_HELPER=max[direct]=0`.
+
+### Updated
+
+- **Dev dependencies**: `nowo-tech/phpstan-frankenphp` **1.0.1**; refreshed lock files (php-cs-fixer **3.95.17** among others).
+
+### Documentation
+
+- README FrankenPHP-friendly badge/image; INSTALLATION / USAGE / SECURITY / CONFIGURATION updated for assets package and `iconify_http_timeout`.
+- TOC sections added to changelog, upgrading, and several docs.
 
 ## [1.0.13] - 2026-07-16
 

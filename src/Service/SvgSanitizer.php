@@ -143,7 +143,7 @@ final readonly class SvgSanitizer
             /** @var list<DOMAttr> $toRemove */
             $toRemove = [];
             foreach ($element->attributes as $attribute) {
-                $localName     = strtolower($attribute->localName);
+                $localName     = strtolower((string) $attribute->localName);
                 $qualifiedName = strtolower($attribute->nodeName);
 
                 // href / xlink:href: keep only same-document fragment references (#id).
@@ -168,7 +168,7 @@ final readonly class SvgSanitizer
             foreach ($toRemove as $attribute) {
                 $namespaceUri = $attribute->namespaceURI;
                 if (is_string($namespaceUri) && $namespaceUri !== '') {
-                    $element->removeAttributeNS($namespaceUri, $attribute->localName);
+                    $element->removeAttributeNS($namespaceUri, (string) $attribute->localName);
                 } else {
                     $element->removeAttribute($attribute->name);
                 }
@@ -198,8 +198,7 @@ final readonly class SvgSanitizer
     {
         $svg = (string) preg_replace('/<script\b[^>]*>.*?<\/script\s*>/is', '', $svg);
         $svg = (string) preg_replace('/\s+on[a-z]+\s*=\s*["\'][^"\']*["\']/i', '', $svg);
-        $svg = (string) preg_replace('/<(foreignobject|iframe|object|embed)\b[^>]*>.*?<\/\1\s*>/is', '', $svg);
 
-        return $svg;
+        return (string) preg_replace('/<(foreignobject|iframe|object|embed)\b[^>]*>.*?<\/\1\s*>/is', '', $svg);
     }
 }

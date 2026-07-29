@@ -1,16 +1,24 @@
-# Icon selector widget – plan (100% front, Iconify direct)
+# Icon selector widget plan (100% frontend, direct Iconify)
 
-## Objetivo
+## Table of contents
 
-- Un único control: **input/select con autocompletado** que permita buscar, filtrar por librería y (opcional) por categoría.
-- El valor enviado es siempre **`prefijo:icono`** (ej. `heroicons-outline:home`, `bi:house`) en un **input oculto**.
-- **100% en el front**: todas las peticiones a Iconify desde el navegador (lista, categorías, SVGs).
-- Al seleccionar: se muestra **caja + SVG + nombre** y se guarda `prefijo:icono` en el input oculto.
+- [Goal](#goal)
+- [Backend (minimum)](#backend-minimum)
+- [Frontend (new widget)](#frontend-new-widget)
+- [Summary of changes](#summary-of-changes)
+- [Final value](#final-value)
 
-## Backend (mínimo)
+## Goal
 
-- **Un solo endpoint de “config”**: devuelve qué prefijos y “sets” (librerías) usar, sin listar iconos ni devolver SVGs.
-- Respuesta ejemplo:
+- A single control: **input/select with autocomplete** that supports search, filtering by library, and (optionally) by category.
+- The submitted value is always **`prefix:icon`** (e.g. `heroicons-outline:home`, `bi:house`) in a **hidden input**.
+- **100% frontend**: all Iconify requests from the browser (list, categories, SVGs).
+- On selection: show **box + SVG + name** and store `prefix:icon` in the hidden input.
+
+## Backend (minimum)
+
+- **One “config” endpoint**: returns which prefixes and “sets” (libraries) to use, without listing icons or returning SVGs.
+- Example response:
   ```json
   {
     "iconify_base": "https://api.iconify.design",
@@ -20,42 +28,42 @@
     ]
   }
   ```
-- El bundle ya tiene `icon_sets` en config y el mapeo set → prefijos (ej. en `IconifyCollectionLoader`). Exponer eso como “config” para el widget.
-- Se puede **simplificar o eliminar** (para este flujo): endpoint que devuelve lista de iconos, endpoint batch de SVGs, y uso de Iconify en PHP para el selector.
+- The bundle already has `icon_sets` in config and the set → prefix mapping (e.g. in `IconifyCollectionLoader`). Expose that as “config” for the widget.
+- For this flow, you can **simplify or remove**: the endpoint that returns the icon list, the batch SVG endpoint, and PHP-side Iconify usage for the selector.
 
-## Frontend (nuevo widget)
+## Frontend (new widget)
 
-1. **Carga inicial**
-   - GET al endpoint de config del bundle → obtiene `iconify_base` y `sets` (cada set: key, label, prefixes).
-   - Por cada prefijo en `sets`, GET `{iconify_base}/collection?prefix=X` → lista de nombres + `categories` (si existe).
-   - Unificar en una lista de ítems: `{ id: "prefix:name", prefix, name, setKey, category? }`.
+1. **Initial load**
+   - GET the bundle config endpoint → obtain `iconify_base` and `sets` (each set: key, label, prefixes).
+   - For each prefix in `sets`, GET `{iconify_base}/collection?prefix=X` → list of names + `categories` (when present).
+   - Merge into a single item list: `{ id: "prefix:name", prefix, name, setKey, category? }`.
 
-2. **UI del control**
-   - **Disparador**: input de búsqueda (o botón) que abre un panel. Si hay valor seleccionado, mostrar **SVG + nombre** en el disparador.
+2. **Control UI**
+   - **Trigger**: search input (or button) that opens a panel. When a value is selected, show **SVG + name** on the trigger.
    - **Panel**:
-     - **Buscador**: input para filtrar por nombre (client-side sobre la lista ya cargada).
-     - **Filtro por librería**: tabs o dropdown “Todas | Heroicons | Bootstrap Icons” usando `sets[].label`.
-     - **Categorías**: si la API de Iconify devolvió `categories`, los iconos se agrupan por categoría en el panel (sección con título por categoría).
-     - **Lista/Grid de iconos**: cada ítem = celda con **SVG + nombre**. SVGs desde Iconify: `GET {iconify_base}/{prefix}.json?icons=name1,name2,...` (en lotes por prefijo para no exceder longitud de URL). Carga bajo demanda o por páginas si hace falta.
+     - **Search**: input to filter by name (client-side over the loaded list).
+     - **Library filter**: tabs or dropdown “All | Heroicons | Bootstrap Icons” using `sets[].label`.
+     - **Categories**: when the Iconify API returned `categories`, group icons by category in the panel (section with a title per category).
+     - **Icon list/grid**: each item = cell with **SVG + name**. SVGs from Iconify: `GET {iconify_base}/{prefix}.json?icons=name1,name2,...` (batched per prefix to avoid URL length limits). Load on demand or paginate when needed.
 
-3. **Selección**
-   - Al hacer clic en un icono: cerrar panel, rellenar el **input oculto** con `prefix:name`, actualizar el disparador para mostrar ese icono (SVG + nombre).
-   - El formulario envía el valor `prefix:name` como hasta ahora.
+3. **Selection**
+   - On icon click: close panel, fill the **hidden input** with `prefix:name`, update the trigger to show that icon (SVG + name).
+   - The form submits the `prefix:name` value as before.
 
-4. **Peticiones 100% a Iconify**
-   - Lista + categorías: `GET api.iconify.design/collection?prefix=X` (una por prefijo).
-   - Datos de iconos (SVG): `GET api.iconify.design/{prefix}.json?icons=...` (una o varias por prefijo, en batch).
+4. **100% Iconify requests**
+   - List + categories: `GET api.iconify.design/collection?prefix=X` (one per prefix).
+   - Icon data (SVG): `GET api.iconify.design/{prefix}.json?icons=...` (one or more per prefix, batched).
 
-## Resumen de cambios
+## Summary of changes
 
-| Área | Acción |
+| Area | Action |
 |------|--------|
-| Backend | Nuevo endpoint GET “config” (sets + prefijos + iconify_base). Opcional: dejar de usar Iconify en PHP para el selector; simplificar o quitar endpoint de lista y batch SVG para este modo. |
-| Form / Twig | Un solo bloque de widget: input oculto + disparador (buscador/selector) + contenedor del panel. Pasar URL de config (y placeholders si aplica). |
-| Front (TS) | Nuevo flujo: cargar config → cargar collections desde Iconify → búsqueda + filtro por librería + (opcional) categorías → grid con SVGs desde Iconify → al elegir, escribir `prefijo:icono` en el input oculto y mostrar SVG + nombre. |
-| Compatibilidad | Se puede mantener el modo antiguo (lista + SVG desde nuestro backend) detrás de una opción, o migrar todo al nuevo flujo según preferencia. |
+| Backend | New GET “config” endpoint (sets + prefixes + iconify_base). Optional: stop using Iconify in PHP for the selector; simplify or remove the list and batch SVG endpoints for this mode. |
+| Form / Twig | Single widget block: hidden input + trigger (search/selector) + panel container. Pass config URL (and placeholders when applicable). |
+| Front (TS) | New flow: load config → load collections from Iconify → search + library filter + (optional) categories → grid with SVGs from Iconify → on choose, write `prefix:icon` to the hidden input and show SVG + name. |
+| Compatibility | Keep the legacy mode (list + SVG from our backend) behind an option, or migrate everything to the new flow as preferred. |
 
-## Valor final
+## Final value
 
-- Siempre **un único string** en un **input oculto**: `prefijo:icono` (ej. `bi:house`, `heroicons-outline:home`).
-- Opción de mostrar en UI: **selector con icono + nombre** (disparador que muestra el icono elegido y su nombre).
+- Always a **single string** in a **hidden input**: `prefix:icon` (e.g. `bi:house`, `heroicons-outline:home`).
+- Optional UI: **selector with icon + name** (trigger shows the chosen icon and its name).

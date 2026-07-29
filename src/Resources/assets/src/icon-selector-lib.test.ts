@@ -4,6 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  disposeIconSelectorContainer,
   getOptionsFromScript,
   IconSelectorWidget,
   runInit,
@@ -262,13 +263,37 @@ describe('runInit', () => {
     container.appendChild(input);
     container.appendChild(picker);
 
-    const ok = initIconSelectorContainer(container);
-    expect(ok).toBe(true);
+    const cleanup = initIconSelectorContainer(container);
+    expect(typeof cleanup).toBe('function');
     expect(container.getAttribute('data-icon-selector-init')).toBe('1');
 
     document.body.appendChild(container);
     runInitAndObserve();
     expect(container.getAttribute('data-icon-selector-init')).toBe('1');
+  });
+
+  it('disposeIconSelectorContainer removes init markers for reconnect', () => {
+    const container = document.createElement('div');
+    container.setAttribute('data-controller', 'icon-selector');
+    container.setAttribute(ATTR_URL, '/api/icons');
+    container.setAttribute(ATTR_MODE, 'direct');
+    const input = document.createElement('input');
+    input.setAttribute('data-icon-selector-target', 'input');
+    input.className = 'icon-selector-input';
+    const picker = document.createElement('div');
+    picker.setAttribute('data-icon-selector-target', 'picker');
+    picker.className = 'icon-selector-picker';
+    container.appendChild(input);
+    container.appendChild(picker);
+
+    const cleanup = initIconSelectorContainer(container);
+    expect(typeof cleanup).toBe('function');
+
+    disposeIconSelectorContainer(container);
+
+    expect(container.hasAttribute('data-icon-selector-init')).toBe(false);
+    expect(container.hasAttribute('data-icon-selector-ready')).toBe(false);
+    expect(container.hasAttribute('data-icon-selector-enhanced')).toBe(false);
   });
 
   it('initIconSelectorContainer returns false for element without data-controller icon-selector', () => {

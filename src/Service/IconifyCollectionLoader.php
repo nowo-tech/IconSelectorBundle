@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Service;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Throwable;
 
 use function is_array;
 use function is_string;
@@ -23,9 +26,8 @@ use function is_string;
  */
 final readonly class IconifyCollectionLoader
 {
-    private const API_ENDPOINT    = 'https://api.iconify.design';
-    private const CACHE_TTL       = 86400; // 24 hours
-    private const REQUEST_TIMEOUT = 15.0; // seconds per API call to avoid max execution time
+    private const API_ENDPOINT = 'https://api.iconify.design';
+    private const CACHE_TTL    = 86400; // 24 hours
 
     /**
      * Map bundle set name => list of Iconify API prefixes (e.g. heroicons-outline, bi).
@@ -39,14 +41,20 @@ final readonly class IconifyCollectionLoader
      * @param HttpClientInterface $httpClient HTTP client for Iconify API requests
      * @param CacheInterface $cache Cache for storing collection responses (24h TTL)
      * @param array<string, list<string>> $setMapping Optional map of set name to Iconify API prefixes; defaults to heroicons and bootstrap-icons
+     * @param float $requestTimeout HTTP timeout in seconds per Iconify API call (from nowo_icon_selector.iconify_http_timeout)
      */
     public function __construct(
         private HttpClientInterface $httpClient,
         private CacheInterface $cache,
         array $setMapping = [],
+        private float $requestTimeout = 15.0,
+        ?LoggerInterface $logger = null,
     ) {
         $this->setMapping = $setMapping !== [] ? $setMapping : $this->defaultSetMapping();
+        $this->logger     = $logger ?? new NullLogger();
     }
+
+    private LoggerInterface $logger;
 
     /**
      * Returns the default set name to prefixes mapping (heroicons and bootstrap-icons).
@@ -96,40 +104,68 @@ final readonly class IconifyCollectionLoader
         $cacheKey = 'nowo_icon_selector.iconify.' . preg_replace('/[^a-z0-9_-]/i', '_', $prefix);
 
         return $this->cache->get($cacheKey, function () use ($prefix): array {
-            $response = $this->httpClient->request('GET', self::API_ENDPOINT . '/collection', [
-                'query'   => ['prefix' => $prefix],
-                'timeout' => self::REQUEST_TIMEOUT,
-            ]);
+            $context = [
+                'bundle'  => 'nowo/icon-selector-bundle',
+                'action'  => 'iconify_collection_fetch',
+                'prefix'  => $prefix,
+                'timeout' => max(0.1, $this->requestTimeout),
+            ];
 
-            if ($response->getStatusCode() !== 200) {
-                return [];
-            }
+            $this->logger->debug('Starting Iconify collection fetch.', $context);
 
-            $data  = $response->toArray();
-            $names = [];
+            try {
+                $response = $this->httpClient->request('GET', self::API_ENDPOINT . '/collection', [
+                    'query'   => ['prefix' => $prefix],
+                    'timeout' => $context['timeout'],
+                ]);
 
-            if (isset($data['uncategorized']) && is_array($data['uncategorized'])) {
-                foreach ($data['uncategorized'] as $name) {
-                    if (is_string($name)) {
-                        $names[] = $prefix . ':' . $name;
-                    }
+                $statusCode = $response->getStatusCode();
+                if ($statusCode !== 200) {
+                    $this->logger->warning('Iconify collection fetch returned a non-success status.', $context + [
+                        'status_code' => $statusCode,
+                    ]);
+
+                    return [];
                 }
-            }
 
-            if (isset($data['categories']) && is_array($data['categories'])) {
-                foreach ($data['categories'] as $categoryIcons) {
-                    if (!is_array($categoryIcons)) {
-                        continue;
-                    }
-                    foreach ($categoryIcons as $name) {
+                $data  = $response->toArray();
+                $names = [];
+
+                if (isset($data['uncategorized']) && is_array($data['uncategorized'])) {
+                    foreach ($data['uncategorized'] as $name) {
                         if (is_string($name)) {
                             $names[] = $prefix . ':' . $name;
                         }
                     }
                 }
-            }
 
-            return array_values(array_unique($names));
+                if (isset($data['categories']) && is_array($data['categories'])) {
+                    foreach ($data['categories'] as $categoryIcons) {
+                        if (!is_array($categoryIcons)) {
+                            continue;
+                        }
+                        foreach ($categoryIcons as $name) {
+                            if (is_string($name)) {
+                                $names[] = $prefix . ':' . $name;
+                            }
+                        }
+                    }
+                }
+
+                $uniqueNames = array_values(array_unique($names));
+                $this->logger->debug('Iconify collection fetch completed.', $context + [
+                    'icon_count' => count($uniqueNames),
+                ]);
+
+                return $uniqueNames;
+            } catch (Throwable $exception) {
+                $this->logger->warning('Iconify collection fetch failed.', $context + [
+                    'exception_class' => $exception::class,
+                    'message'         => $exception->getMessage(),
+                ]);
+
+                return [];
+            }
         }, self::CACHE_TTL);
     }
 }

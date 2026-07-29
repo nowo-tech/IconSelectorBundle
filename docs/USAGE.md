@@ -68,10 +68,10 @@ For classic Symfony apps or when you want to drop in one script.
 2. Include the script in your layout or the page where the form is rendered:
 
 ```twig
-<script src="{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}"></script>
+<script src="{{ asset('icon-selector.js', 'nowo_icon_selector') }}"></script>
 ```
 
-Or manually: `{{ asset('bundles/nowoiconselector/icon-selector.js') }}`.
+Or with the helper: `{{ asset(nowo_icon_selector_asset_path('icon-selector.js'), 'nowo_icon_selector') }}`.
 
 The script (single file; Tom Select styles are inlined) runs on load, finds all `data-controller*="icon-selector"` elements and initializes them. It also starts a **MutationObserver**, so icon selectors injected later (e.g. from an API or Turbo frame) are initialized automatically.
 

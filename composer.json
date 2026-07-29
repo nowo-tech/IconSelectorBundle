@@ -48,17 +48,18 @@
         "symfony/http-client": "Required when use_iconify_collection is true (to fetch full icon lists from api.iconify.design)"
     },
     "require-dev": {
-        "symfony/http-client": "^6.0 || ^7.0 || ^8.0",
         "friendsofphp/php-cs-fixer": "^3.0",
+        "nowo-tech/phpstan-frankenphp": "^1.0",
         "phpstan/extension-installer": "^1.0",
-        "symfony/yaml": "^6.0 || ^7.0 || ^8.0",
         "phpstan/phpstan": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
         "phpstan/phpstan-symfony": "^2.0",
         "phpunit/phpunit": "^11.0",
         "rector/rector": "^2.0",
         "symfony/browser-kit": "^6.0 || ^7.0 || ^8.0",
-        "symfony/dom-crawler": "^6.0 || ^7.0 || ^8.0"
+        "symfony/dom-crawler": "^6.0 || ^7.0 || ^8.0",
+        "symfony/http-client": "^6.0 || ^7.0 || ^8.0",
+        "symfony/yaml": "^6.0 || ^7.0 || ^8.0"
     },
     "autoload": {
         "psr-4": {

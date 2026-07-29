@@ -49,6 +49,7 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
 
         $container->setParameter(Configuration::ALIAS . '.icon_sets', $config['icon_sets'] ?? ['heroicons', 'bootstrap-icons']);
         $container->setParameter(Configuration::ALIAS . '.use_iconify_collection', $config['use_iconify_collection'] ?? false);
+        $container->setParameter(Configuration::ALIAS . '.iconify_http_timeout', $config['iconify_http_timeout'] ?? 15.0);
         $container->setParameter(Configuration::ALIAS . '.icons_api_path', $config['icons_api_path'] ?? '/api/icon-selector/icons');
         $container->setParameter(Configuration::ALIAS . '.form_theme', $config['form_theme'] ?? 'form_div_layout.html.twig');
         $container->setParameter(Configuration::ALIAS . '.debug', $config['debug'] ?? false);
@@ -67,18 +68,28 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
      */
     public function prepend(ContainerBuilder $container): void
     {
-        if (!$container->hasExtension('twig')) {
-            return;
-        }
-
         $configs   = $container->getExtensionConfig(Configuration::ALIAS);
         $config    = $this->processConfiguration(new Configuration(), $configs);
         $formTheme = $config['form_theme'] ?? 'form_div_layout.html.twig';
         $themePath = self::FORM_THEME_MAP[$formTheme] ?? self::FORM_THEME_MAP['form_div_layout.html.twig'];
 
-        $container->prependExtensionConfig('twig', [
-            'form_themes' => [$themePath],
-        ]);
+        if ($container->hasExtension('twig')) {
+            $container->prependExtensionConfig('twig', [
+                'form_themes' => [$themePath],
+            ]);
+        }
+
+        if ($container->hasExtension('framework')) {
+            $container->prependExtensionConfig('framework', [
+                'assets' => [
+                    'packages' => [
+                        Configuration::ALIAS => [
+                            'base_path' => '/bundles/nowoiconselector',
+                        ],
+                    ],
+                ],
+            ]);
+        }
     }
 
     /**

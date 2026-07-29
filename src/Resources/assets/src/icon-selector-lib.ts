@@ -73,6 +73,9 @@ export interface SvgBatchResponse {
   [iconId: string]: string;
 }
 
+/** Cleanup function returned by per-container initialization. */
+export type IconSelectorDisposer = () => void;
+
 /**
  * Fetches SVG markup for multiple icon IDs in one request (bundle API uses ux_icon server-side).
  *
@@ -372,6 +375,8 @@ export class IconSelectorIconifyWidget {
   private visibleCount: number = 80;
   private static readonly PAGE_SIZE = 80;
   private readonly onReady?: () => void;
+  private destroyed = false;
+  private documentClickHandler: ((event: Event) => void) | null = null;
 
   /**
    * Creates the Iconify widget: loads config and collections, then renders trigger and panel.
@@ -397,9 +402,24 @@ export class IconSelectorIconifyWidget {
     this.onReady = onReady;
     this.searchPlaceholder = searchPlaceholder ?? container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ?? 'Search icons...';
     this.load().then(async () => {
+      if (this.destroyed) return;
       await this.render();
+      if (this.destroyed) return;
       this.onReady?.();
     });
+  }
+
+  /** Removes global listeners and generated DOM so the container can be initialized again later. */
+  destroy(): void {
+    this.destroyed = true;
+    if (this.documentClickHandler) {
+      document.removeEventListener('click', this.documentClickHandler);
+      this.documentClickHandler = null;
+    }
+    this.picker.innerHTML = '';
+    this.triggerEl = null;
+    this.panelEl = null;
+    this.searchInput = null;
   }
 
   /** Loads config and all collections from Iconify; populates this.entries. */
@@ -654,6 +674,7 @@ export class IconSelectorIconifyWidget {
 
   /** Builds the full widget DOM: trigger and dropdown panel with search, tabs, category filter and grid. */
   private async render(): Promise<void> {
+    if (this.destroyed) return;
     if (!this.config || this.entries.length === 0) {
       this.picker.textContent = 'No icons loaded.';
       return;
@@ -788,11 +809,12 @@ export class IconSelectorIconifyWidget {
     this.panelEl = panel;
     this.picker.appendChild(panel);
 
-    document.addEventListener('click', (ev) => {
+    this.documentClickHandler = (ev: Event): void => {
       if (this.panelEl && this.triggerEl && !this.picker.contains(ev.target as Node)) {
         this.panelEl.style.display = 'none';
       }
-    });
+    };
+    document.addEventListener('click', this.documentClickHandler);
 
     await initialValuePromise;
   }
@@ -827,6 +849,10 @@ export class IconSelectorWidget {
   private readonly onReady?: () => void;
 
   private readonly searchPlaceholder: string;
+  private destroyed = false;
+  private serverRenderedMode = false;
+  private documentClickHandler: ((event: Event) => void) | null = null;
+  private serverRenderedCleanup: IconSelectorDisposer[] = [];
 
   /**
    * Creates the widget, fetches icon list from the API, then renders trigger + empty panel (no SVG batch yet).
@@ -859,9 +885,30 @@ export class IconSelectorWidget {
       container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ??
       'Search icons...';
     this.loadIcons().then(async () => {
+      if (this.destroyed) return;
       await this.render();
+      if (this.destroyed) return;
       this.onReady?.();
     });
+  }
+
+  /** Removes listeners and generated DOM so the container can be initialized again later. */
+  destroy(): void {
+    this.destroyed = true;
+    if (this.documentClickHandler) {
+      document.removeEventListener('click', this.documentClickHandler);
+      this.documentClickHandler = null;
+    }
+    this.serverRenderedCleanup.forEach((cleanup) => cleanup());
+    this.serverRenderedCleanup = [];
+    if (!this.serverRenderedMode) {
+      this.picker.innerHTML = '';
+    }
+    this.grid = null;
+    this.triggerEl = null;
+    this.panelEl = null;
+    this.gridContainer = null;
+    this.searchInputEl = null;
   }
 
   /** Fetches icon list from the API and updates this.icons (or leaves it empty on error). */
@@ -1016,7 +1063,10 @@ export class IconSelectorWidget {
 
   /** Builds the picker DOM: trigger + overlay panel (search + scrollable grid); or attaches to server-rendered items. */
   private async render(): Promise<void> {
+    this.serverRenderedCleanup.forEach((cleanup) => cleanup());
+    this.serverRenderedCleanup = [];
     const hasServerRendered = this.picker.querySelectorAll('.icon-selector-item').length > 0;
+    this.serverRenderedMode = hasServerRendered;
 
     if (hasServerRendered) {
       this.attachHandlersToPicker();
@@ -1079,11 +1129,12 @@ export class IconSelectorWidget {
     this.panelEl.appendChild(this.gridContainer);
     this.picker.appendChild(this.panelEl);
 
-    document.addEventListener('click', (ev) => {
+    this.documentClickHandler = (ev: Event): void => {
       if (this.panelEl && this.triggerEl && !this.picker.contains(ev.target as Node)) {
         this.panelEl.style.display = 'none';
       }
-    });
+    };
+    document.addEventListener('click', this.documentClickHandler);
 
     let initialValuePromise: Promise<void> = Promise.resolve();
     if (value) {
@@ -1106,14 +1157,18 @@ export class IconSelectorWidget {
       const iconId = btn.dataset.iconId;
       if (iconId) {
         btn.classList.toggle('active', iconId === currentValue);
-        btn.addEventListener('click', () => this.select(iconId));
+        const onClick = (): void => this.select(iconId);
+        btn.addEventListener('click', onClick);
+        this.serverRenderedCleanup.push(() => btn.removeEventListener('click', onClick));
       }
     });
     const searchEl = this.picker.querySelector<HTMLInputElement>(
       '.icon-selector-search, [data-icon-selector-target="search"]',
     );
     if (searchEl && this.mode === 'search') {
-      searchEl.addEventListener('input', () => this.filterServerRendered(searchEl.value));
+      const onInput = (): void => this.filterServerRendered(searchEl.value);
+      searchEl.addEventListener('input', onInput);
+      this.serverRenderedCleanup.push(() => searchEl.removeEventListener('input', onInput));
     }
   }
 
@@ -1193,6 +1248,7 @@ interface TomSelectInstance {
   /** Set selected value; second arg = silent (no change event). Used to refresh item display after adding option. */
   setValue(value: string, silent?: boolean): void;
   on(event: string, callback: (dropdown?: HTMLElement) => void): void;
+  destroy(): void;
   /** Dropdown content element (scroll container for infinite-scroll listener). */
   dropdown_content?: HTMLElement;
 }
@@ -1390,7 +1446,7 @@ export function initTomSelect(
   url: string,
   optionsWithSvg: IconOption[] | null,
   configUrl?: string,
-): Promise<void> {
+): Promise<IconSelectorDisposer> {
   const value = el instanceof HTMLSelectElement ? el.value : el.value;
   const opts = optionsWithSvg ?? [];
   const preloadedOptions = opts.length ? opts : [];
@@ -1455,7 +1511,7 @@ function initTomSelectOnDemand(
   configUrl: string,
   currentValue: string,
   initialOptions: IconOption[],
-): Promise<void> {
+): Promise<IconSelectorDisposer> {
   getLogger().info('initTomSelectOnDemand: creating Tom Select', {
     currentValue: currentValue || '(empty)',
     hasValue: !!currentValue,
@@ -1485,6 +1541,7 @@ function initTomSelectOnDemand(
     ((window as unknown as { __iconSelectorDebugScroll?: boolean }).__iconSelectorDebugScroll ?? true);
 
   let pollTickCount = 0;
+  let activePollId: number | null = null;
 
   ts.on('dropdown_open', () => {
     try {
@@ -1613,11 +1670,16 @@ function initTomSelectOnDemand(
     };
 
       /** Poll scroll position while dropdown is open; scroll events are unreliable in Tom Select's DOM. */
-      const pollId = window.setInterval(tryLoadMore, LOAD_MORE_POLL_INTERVAL_MS);
-      getLogger().info('polling started, interval id:', pollId);
+      if (activePollId !== null) {
+        window.clearInterval(activePollId);
+      }
+      activePollId = window.setInterval(tryLoadMore, LOAD_MORE_POLL_INTERVAL_MS);
+      getLogger().info('polling started, interval id:', activePollId);
       ts.on('dropdown_close', () => {
-        getLogger().info('dropdown_close, clearing interval', pollId);
-        window.clearInterval(pollId);
+        if (activePollId === null) return;
+        getLogger().info('dropdown_close, clearing interval', activePollId);
+        window.clearInterval(activePollId);
+        activePollId = null;
       });
     } catch (e) {
       getLogger().error('dropdown_open error', e);
@@ -1671,7 +1733,13 @@ function initTomSelectOnDemand(
       ts.refreshOptions(false);
     }
   }, configUrl, currentValue, ts as unknown as Record<string, TomSelectLoadMoreState | undefined>);
-  return initialValuePromise;
+  return initialValuePromise.then(() => () => {
+    if (activePollId !== null) {
+      window.clearInterval(activePollId);
+      activePollId = null;
+    }
+    ts.destroy();
+  });
 }
 
 /**
@@ -1690,7 +1758,7 @@ function initTomSelectFullList(
   configUrl: string | undefined,
   currentValue: string,
   initialOptions: IconOption[],
-): Promise<void> {
+): Promise<IconSelectorDisposer> {
   return fetch(url)
     .then((res) => res.json())
     .then((data: IconsApiResponse) => {
@@ -1737,11 +1805,13 @@ function initTomSelectFullList(
         getLogger().warn('Tom Select (full-list): initial value not in API icons list', currentValue);
       }
       setupTomSelectSvgsLazy(icons, ts, svgUrl, configUrl, currentValue);
-      return initialValuePromise;
+      return initialValuePromise.then(() => () => {
+        ts.destroy();
+      });
     })
-    .then(() => undefined)
     .catch((e) => {
       getLogger().warn('IconSelector (tom_select): could not load icons', e);
+      return () => {};
     });
 }
 
@@ -1870,6 +1940,7 @@ const ICON_SELECTOR_CONTAINER_SELECTOR = '[data-controller*="icon-selector"]';
 
 /** Attribute set on containers after they have been initialized (avoids double-init). */
 const ATTR_INIT = 'data-icon-selector-init';
+const CONTAINER_DISPOSER_KEY = '__nowoIconSelectorDisposer';
 
 /**
  * Returns true if any node in the list is or contains an icon-selector container that is not yet initialized.
@@ -1899,13 +1970,16 @@ const OBSERVE_DEBOUNCE_MS = 100;
  * While pending, submit is prevented and submit buttons are disabled.
  * When markReady() is called, normal submit flow is restored.
  */
-function createFormReadyGuard(container: HTMLElement): { markReady: () => void } {
+function createFormReadyGuard(container: HTMLElement): { markReady: () => void; cleanup: IconSelectorDisposer } {
   container.setAttribute('data-icon-selector-ready', '0');
   const form = container.closest('form');
   if (!form) {
     return {
       markReady: () => {
         container.setAttribute('data-icon-selector-ready', '1');
+      },
+      cleanup: () => {
+        container.removeAttribute('data-icon-selector-ready');
       },
     };
   }
@@ -1930,6 +2004,15 @@ function createFormReadyGuard(container: HTMLElement): { markReady: () => void }
     markReady: () => {
       container.setAttribute('data-icon-selector-ready', '1');
       form.removeEventListener('submit', onSubmit, true);
+      for (const btn of submitButtons) {
+        if (btn.getAttribute('data-icon-selector-disabled-by-bundle') !== '1') continue;
+        (btn as HTMLButtonElement | HTMLInputElement).disabled = false;
+        btn.removeAttribute('data-icon-selector-disabled-by-bundle');
+      }
+    },
+    cleanup: () => {
+      form.removeEventListener('submit', onSubmit, true);
+      container.removeAttribute('data-icon-selector-ready');
       for (const btn of submitButtons) {
         if (btn.getAttribute('data-icon-selector-disabled-by-bundle') !== '1') continue;
         (btn as HTMLButtonElement | HTMLInputElement).disabled = false;
@@ -1973,14 +2056,27 @@ function startObserving(): void {
  * when the element is connected to the DOM, it initializes automatically.
  *
  * @param container - Root element that has data-controller containing "icon-selector" and the expected targets/inputs.
- * @returns true if the container was initialized, false if skipped (already init, or invalid).
+ * @returns Cleanup function if the container was initialized, false if skipped (already init, or invalid).
  */
-export function initIconSelectorContainer(container: HTMLElement): boolean {
+export function initIconSelectorContainer(container: HTMLElement): IconSelectorDisposer | false {
   if (!container.matches?.(ICON_SELECTOR_CONTAINER_SELECTOR)) return false;
   if (container.getAttribute(ATTR_INIT) === '1') return false;
 
   const readyGuard = createFormReadyGuard(container);
+  let disposed = false;
+  let activeDisposer: IconSelectorDisposer = () => {};
+  const dispose = (): void => {
+    if (disposed) return;
+    disposed = true;
+    activeDisposer();
+    readyGuard.cleanup();
+    container.removeAttribute(ATTR_INIT);
+    container.removeAttribute('data-icon-selector-enhanced');
+    delete (container as HTMLElement & { [CONTAINER_DISPOSER_KEY]?: IconSelectorDisposer })[CONTAINER_DISPOSER_KEY];
+  };
+  (container as HTMLElement & { [CONTAINER_DISPOSER_KEY]?: IconSelectorDisposer })[CONTAINER_DISPOSER_KEY] = dispose;
   const markEnhanced = (): void => {
+    if (disposed) return;
     container.setAttribute('data-icon-selector-enhanced', '1');
     readyGuard.markReady();
   };
@@ -2000,10 +2096,17 @@ export function initIconSelectorContainer(container: HTMLElement): boolean {
     const optionsWithSvg = getOptionsFromScript(select.id);
     getLogger().info('runInit: tom_select mode, configUrl=', configUrl, 'preloadedOptions=', optionsWithSvg?.length ?? 0);
     initTomSelect(select, url, optionsWithSvg, configUrl)
+      .then((cleanup) => {
+        if (disposed) {
+          cleanup();
+          return;
+        }
+        activeDisposer = cleanup;
+      })
       .finally(() => {
         markEnhanced();
       });
-    return true;
+    return dispose;
   }
 
   const input = container.querySelector<HTMLInputElement>(
@@ -2013,22 +2116,33 @@ export function initIconSelectorContainer(container: HTMLElement): boolean {
     '[data-icon-selector-target="picker"], .icon-selector-picker',
   );
   if (!input || !picker) {
-    readyGuard.markReady();
+    readyGuard.cleanup();
+    delete (container as HTMLElement & { [CONTAINER_DISPOSER_KEY]?: IconSelectorDisposer })[CONTAINER_DISPOSER_KEY];
     return false;
   }
   container.setAttribute(ATTR_INIT, '1');
 
   const searchPlaceholder = container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ?? undefined;
   fetchIconifyConfig(configUrl).then((config) => {
+    if (disposed) return;
     if (config?.sets?.length) {
-      new IconSelectorIconifyWidget(container, input, picker, configUrl, searchPlaceholder, markEnhanced);
+      const widget = new IconSelectorIconifyWidget(container, input, picker, configUrl, searchPlaceholder, markEnhanced);
+      activeDisposer = () => widget.destroy();
     } else {
-      new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder, markEnhanced);
+      const widget = new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder, markEnhanced);
+      activeDisposer = () => widget.destroy();
     }
   }).catch(() => {
-    new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder, markEnhanced);
+    if (disposed) return;
+    const widget = new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder, markEnhanced);
+    activeDisposer = () => widget.destroy();
   });
-  return true;
+  return dispose;
+}
+
+/** Disposes a previously initialized icon-selector container, if any. */
+export function disposeIconSelectorContainer(container: HTMLElement): void {
+  (container as HTMLElement & { [CONTAINER_DISPOSER_KEY]?: IconSelectorDisposer })[CONTAINER_DISPOSER_KEY]?.();
 }
 
 /**

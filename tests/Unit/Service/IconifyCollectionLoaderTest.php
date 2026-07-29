@@ -6,6 +6,8 @@ namespace Nowo\IconSelectorBundle\Tests\Unit\Service;
 
 use Nowo\IconSelectorBundle\Service\IconifyCollectionLoader;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
@@ -113,5 +115,74 @@ final class IconifyCollectionLoaderTest extends TestCase
         self::assertContains('bi:only', $icons);
         self::assertContains('bi:real', $icons);
         self::assertCount(2, $icons);
+    }
+
+    public function testGetIconsForPrefixLogsDebugOnStartAndSuccess(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturnCallback(static fn (string $key, callable $callback): array => $callback());
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn(200);
+        $response->method('toArray')->willReturn([
+            'uncategorized' => ['home'],
+        ]);
+        $http = $this->createMock(HttpClientInterface::class);
+        $http->method('request')->willReturn($response);
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $callIndex = 0;
+        $logger->expects(self::exactly(2))
+            ->method('debug')
+            ->willReturnCallback(function (string $message, array $context = []) use (&$callIndex): void {
+                ++$callIndex;
+                $this->assertArrayHasKey('bundle', $context);
+                $this->assertSame('nowo/icon-selector-bundle', $context['bundle']);
+                $this->assertSame('iconify_collection_fetch', $context['action']);
+                $this->assertSame('bi', $context['prefix']);
+                $this->assertArrayHasKey('timeout', $context);
+
+                if ($callIndex === 2) {
+                    $this->assertSame(1, $context['icon_count'] ?? null);
+                    $this->assertSame('Iconify collection fetch completed.', $message);
+                    return;
+                }
+
+                $this->assertSame('Starting Iconify collection fetch.', $message);
+            });
+        $logger->expects(self::never())->method('warning');
+
+        $loader = new IconifyCollectionLoader($http, $cache, [], 15.0, $logger);
+        $icons  = $loader->getIconsForPrefix('bi');
+
+        self::assertSame(['bi:home'], $icons);
+    }
+
+    public function testGetIconsForPrefixLogsWarningOnFailure(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturnCallback(static fn (string $key, callable $callback): array => $callback());
+        $http = $this->createMock(HttpClientInterface::class);
+        $http->method('request')->willThrowException(new RuntimeException('network down'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())
+            ->method('debug')
+            ->with('Starting Iconify collection fetch.', self::arrayHasKey('prefix'));
+        $logger->expects(self::once())
+            ->method('warning')
+            ->with(
+                'Iconify collection fetch failed.',
+                self::callback(static function (array $context): bool {
+                    return ($context['bundle'] ?? null) === 'nowo/icon-selector-bundle'
+                        && ($context['action'] ?? null) === 'iconify_collection_fetch'
+                        && ($context['prefix'] ?? null) === 'bi'
+                        && ($context['exception_class'] ?? null) === RuntimeException::class
+                        && ($context['message'] ?? null) === 'network down';
+                }),
+            );
+
+        $loader = new IconifyCollectionLoader($http, $cache, [], 15.0, $logger);
+
+        self::assertSame([], $loader->getIconsForPrefix('bi'));
     }
 }

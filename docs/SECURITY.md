@@ -82,9 +82,9 @@ The following describes the security measures implemented in the bundle and rema
 
 ### 2. Twig function `nowo_icon_selector_asset_path(filename)`
 
-- **Behaviour:** Builds the asset path `bundles/nowoiconselector/` + filename. Used in templates with fixed names (e.g. `nowo_icon_selector_asset_path('icon-selector.js')`).
+- **Behaviour:** Returns a safe relative filename for the named Symfony asset package `nowo_icon_selector`. Use it as `asset(nowo_icon_selector_asset_path('icon-selector.js'), 'nowo_icon_selector')` or directly `asset('icon-selector.js', 'nowo_icon_selector')`.
 - **Implemented:**
-  - **Path traversal protection:** The filename must not contain `..`. If it does, or if it is empty or contains invalid characters, the function returns a safe default path (`bundles/nowoiconselector/icon-selector.js`) so that no user-controlled path is used.
+  - **Path traversal protection:** The filename must not contain `..`. If it does, or if it is empty or contains invalid characters, the function returns a safe default filename (`icon-selector.js`) so that no user-controlled path is used.
   - **Safe character set:** Only filenames matching `[a-zA-Z0-9._/-]+` are accepted; any other input falls back to the default path.
 - **Recommendation:** Use this function only with literal or controlled values (e.g. `'icon-selector.js'`, `'css/theme.css'`). Do not pass unfiltered user or request input.
 
@@ -138,6 +138,7 @@ Before tagging a release, confirm:
 | **Cryptography** | If used: keys from secure config; never hardcoded. |
 | **Permissions / exposure** | Routes and admin features documented; roles configured for production. |
 | **Limits / DoS** | Timeouts, size limits, rate limits where applicable. |
+| **REQ-SEC-004 (AI audit)** | Pass (conditional) — Medium residual when only trusted UX Icons / configured sets are used; DOM allowlist `SvgSanitizer` + allowlisted IDs; treat custom/user SVG as High. Recorded in the Nowo org security matrix (remediation 2026-07-29). |
 
 Record confirmation in the release PR or tag notes.
 

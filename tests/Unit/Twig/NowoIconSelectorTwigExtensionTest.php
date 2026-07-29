@@ -23,25 +23,25 @@ final class NowoIconSelectorTwigExtensionTest extends TestCase
         self::assertSame('nowo_icon_selector_asset_path', $fns[0]->getName());
     }
 
-    public function testAssetPathReturnsPathWithAssetDir(): void
+    public function testAssetPathReturnsRelativeFilename(): void
     {
         $ext = new NowoIconSelectorTwigExtension();
 
-        self::assertSame('bundles/nowoiconselector/icon-selector.js', $ext->assetPath('icon-selector.js'));
-        self::assertSame('bundles/nowoiconselector/icon-selector.js', $ext->assetPath('/icon-selector.js'));
+        self::assertSame('icon-selector.js', $ext->assetPath('icon-selector.js'));
+        self::assertSame('icon-selector.js', $ext->assetPath('/icon-selector.js'));
     }
 
-    public function testAssetDirConstant(): void
+    public function testAssetPathKeepsSafeRelativePath(): void
     {
         $ext = new NowoIconSelectorTwigExtension();
-        self::assertStringStartsWith('bundles/' . NowoIconSelectorTwigExtension::ASSET_DIR . '/', $ext->assetPath('file.js'));
+        self::assertSame('file.js', $ext->assetPath('file.js'));
     }
 
     /** Path traversal (..) is rejected and returns safe default path. */
     public function testAssetPathRejectsPathTraversal(): void
     {
         $ext     = new NowoIconSelectorTwigExtension();
-        $default = 'bundles/' . NowoIconSelectorTwigExtension::ASSET_DIR . '/icon-selector.js';
+        $default = 'icon-selector.js';
         self::assertSame($default, $ext->assetPath('../other/file.js'));
         self::assertSame($default, $ext->assetPath('sub/../../etc/passwd'));
     }
@@ -50,7 +50,7 @@ final class NowoIconSelectorTwigExtensionTest extends TestCase
     public function testAssetPathRejectsInvalidCharacters(): void
     {
         $ext     = new NowoIconSelectorTwigExtension();
-        $default = 'bundles/' . NowoIconSelectorTwigExtension::ASSET_DIR . '/icon-selector.js';
+        $default = 'icon-selector.js';
         self::assertSame($default, $ext->assetPath('file<script>.js'));
         self::assertSame($default, $ext->assetPath(''));
     }
@@ -59,6 +59,6 @@ final class NowoIconSelectorTwigExtensionTest extends TestCase
     public function testAssetPathAllowsSubpath(): void
     {
         $ext = new NowoIconSelectorTwigExtension();
-        self::assertSame('bundles/nowoiconselector/css/theme.css', $ext->assetPath('css/theme.css'));
+        self::assertSame('css/theme.css', $ext->assetPath('css/theme.css'));
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Tests\Unit;
 
+use Nowo\IconSelectorBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\IconSelectorBundle\NowoIconSelectorBundle;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -39,7 +40,7 @@ final class NowoIconSelectorBundleTest extends TestCase
 
         $found = false;
         foreach ($lists as $pass) {
-            if ($pass instanceof \Nowo\IconSelectorBundle\DependencyInjection\Compiler\TwigPathsPass) {
+            if ($pass instanceof TwigPathsPass) {
                 $found = true;
                 break;
             }

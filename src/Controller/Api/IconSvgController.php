@@ -99,7 +99,23 @@ final readonly class IconSvgController
                 $data = $request->toArray();
                 $ids  = $data['ids'] ?? [];
 
-                return is_array($ids) ? array_values(array_filter($ids, is_string(...))) : [];
+                if (!is_array($ids)) {
+                    return [];
+                }
+
+                $normalizedIds = [];
+                foreach ($ids as $id) {
+                    if (!is_string($id)) {
+                        continue;
+                    }
+
+                    $trimmedId = trim($id);
+                    if ($trimmedId !== '') {
+                        $normalizedIds[] = $trimmedId;
+                    }
+                }
+
+                return $normalizedIds;
             }
         }
 
