@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [1.0.15 (2026-07-29)](#1015-2026-07-29)
 - [1.0.14 (2026-07-29)](#1014-2026-07-29)
 - [1.0.13 (2026-07-16)](#1013-2026-07-16)
 - [1.0.12 (2026-07-09)](#1012-2026-07-09)
@@ -24,6 +25,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [1.0.0 (2026-03-11)](#100-2026-03-11)
 
 ## [Unreleased]
+
+## [1.0.15] - 2026-07-29
+
+### Added
+
+- **REQ-CS-005:** `phpstan.neon.dist` includes `nowo-tech/phpstan-frankenphp` `ruleset-classic` and `ruleset-worker` (dev dependency was already present in 1.0.14).
+
+### Fixed
+
+- **PHP CS Fixer:** Style alignment in `IconifyCollectionLoader` and its unit test.
+
+### Documentation
+
+- [UPGRADING.md](UPGRADING.md): 1.0.15 notes.
+- [RELEASE.md](RELEASE.md): release target **1.0.15**.
 
 ## [1.0.14] - 2026-07-29
 

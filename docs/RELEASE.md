@@ -2,10 +2,12 @@
 
 Use this checklist when cutting a new version. The workflow [.github/workflows/release.yml](../.github/workflows/release.yml) runs on push of a tag `v*` and creates the GitHub Release with body from the tag message and the matching changelog section.
 
+> Current release target: **1.0.15** (`v1.0.15`).
+
 ## Before tagging
 
 1. **CHANGELOG.md**
-   - Move [Unreleased] entries to a new version section: `## [X.Y.Z] - YYYY-MM-DD` (e.g. `## [1.0.0] - 2026-03-11`).
+   - Move [Unreleased] entries to a new version section: `## [X.Y.Z] - YYYY-MM-DD` (e.g. `## [1.0.15] - 2026-07-29`).
    - Keep an empty `## [Unreleased]` at the top for future changes.
 
 2. **UPGRADING.md**
@@ -20,7 +22,7 @@ Use this checklist when cutting a new version. The workflow [.github/workflows/r
 
 ## Tag and push
 
-Replace `X.Y.Z` with the version (e.g. `1.0.0`):
+Replace `X.Y.Z` with the version (e.g. `1.0.15`):
 
 ```bash
 git checkout main
@@ -29,7 +31,15 @@ git tag -a vX.Y.Z -m "Release vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-- Tag format must be **`vX.Y.Z`** (e.g. `v1.0.0`) so the workflow and Packagist recognize it.
+Example for this cycle:
+
+```bash
+git tag -a v1.0.15 -m "Release v1.0.15"
+git push origin main
+git push origin v1.0.15
+```
+
+- Tag format must be **`vX.Y.Z`** (e.g. `v1.0.15`) so the workflow and Packagist recognize it.
 - After the push, GitHub Actions creates the release and appends the changelog entry for that version to the release body.
 - Packagist will pick up the new tag automatically.
 - After creating the release commit and tag, run `make check-no-cursor-coauthor` again **before** `git push` (REQ-GIT-001). The release commit itself is not covered by an earlier `release-check` run.

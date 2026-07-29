@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 ## Table of contents
 
 - [Composer and symfony/ux-icons 3.x](#composer-and-symfonyux-icons-3x)
+- [1.0.15 (2026-07-29)](#1015-2026-07-29)
 - [1.0.14 (2026-07-29)](#1014-2026-07-29)
 - [1.0.13 (2026-07-16)](#1013-2026-07-16)
 - [1.0.12 (2026-07-09)](#1012-2026-07-09)
@@ -31,6 +32,13 @@ composer update nowo-tech/icon-selector-bundle symfony/ux-icons --with-all-depen
 ```
 
 That aligns this bundle with packages such as **nowo-tech/performance-bundle** that already allow `^2.0 || ^3.0`.
+
+## 1.0.15 (2026-07-29)
+
+No breaking changes for application installs.
+
+- **Application installs**: No action required. Continue requiring `nowo-tech/icon-selector-bundle: ^1.0`.
+- **Contributors**: PHPStan now loads FrankenPHP classic + worker rulesets from `phpstan.neon.dist` (`make phpstan` / `make release-check`). Ensure `composer install` so `vendor/nowo-tech/phpstan-frankenphp` is present.
 
 ## 1.0.14 (2026-07-29)
 
