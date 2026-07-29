@@ -10,6 +10,7 @@ use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Throwable;
 
+use function count;
 use function is_array;
 use function is_string;
 

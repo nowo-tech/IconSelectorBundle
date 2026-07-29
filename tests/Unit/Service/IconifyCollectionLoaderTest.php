@@ -129,7 +129,7 @@ final class IconifyCollectionLoaderTest extends TestCase
         $http = $this->createMock(HttpClientInterface::class);
         $http->method('request')->willReturn($response);
 
-        $logger = $this->createMock(LoggerInterface::class);
+        $logger    = $this->createMock(LoggerInterface::class);
         $callIndex = 0;
         $logger->expects(self::exactly(2))
             ->method('debug')
@@ -144,6 +144,7 @@ final class IconifyCollectionLoaderTest extends TestCase
                 if ($callIndex === 2) {
                     $this->assertSame(1, $context['icon_count'] ?? null);
                     $this->assertSame('Iconify collection fetch completed.', $message);
+
                     return;
                 }
 
