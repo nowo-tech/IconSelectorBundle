@@ -4,25 +4,27 @@
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/icon-selector-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/IconSelectorBundle) so more developers can find it.
 
+**Icon Selector Bundle** — Symfony form type for selecting an icon with two modes: **direct selector** (grid) and **search** (filter by text). The value is stored as a string (e.g. `heroicons-outline:home`, `bi:house`). Configurable icon sets (Symfony UX Icons). For Symfony 7 and 8 · PHP 8.2+.
+
 ![FrankenPHP Friendly Worker Mode](docs/images/frankenphp-friendly.png)
 
 This bundle is **FrankenPHP worker mode friendly**.
-
-**Icon Selector Bundle** — Symfony form type for selecting an icon with two modes: **direct selector** (grid) and **search** (filter by text). The value is stored as a string (e.g. `heroicons-outline:home`, `bi:house`). Configurable icon sets (Symfony UX Icons). For Symfony 7 and 8 · PHP 8.2+.
 
 ## Table of contents
 
 - [Quick search terms](#quick-search-terms)
 - [Features](#features)
 - [Installation](#installation)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Internationalization](#internationalization)
-- [Documentation](#documentation)
 - [Requirements](#requirements)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Internationalization](#internationalization)
 - [Demo](#demo)
 - [Development](#development)
-- [License & author](#license--author)
+- [Documentation](#documentation)
+- [Tests and coverage](#tests-and-coverage)
+- [License](#license)
+- [Author](#author)
 
 ## Quick search terms
 
@@ -61,6 +63,25 @@ return [
 ];
 ```
 
+## Requirements
+
+- PHP >= 8.2, < 8.6
+- Symfony ^7.0 || ^8.0
+- **symfony/ux-icons** ^1.0 || ^2.0 || ^3.0 (required; used to render icons via `ux_icon()` in Twig)
+- For building assets (developers): Node.js, pnpm, Vite — see [Development](#development)
+
+## Configuration
+
+Create `config/packages/nowo_icon_selector.yaml` (or rely on defaults). Options:
+
+- **icon_sets**: list of icon libraries (e.g. `heroicons`, `bootstrap-icons`). Only these are available in the selector.
+- **use_iconify_collection**: when `true`, the selector loads the **full** icon list from [api.iconify.design](https://iconify.design/docs/api/collection.html) for each library (requires `symfony/http-client`). When `false`, a small built-in list is used.
+- **icons_api_path**: URL path for the JSON icon list API (default: `/api/icon-selector/icons`). Must match the route the bundle exposes (see [CONFIGURATION.md](docs/CONFIGURATION.md#icons_api_path)).
+- **form_theme**: base form layout so the icon selector theme matches your app (e.g. `form_div_layout.html.twig`, `bootstrap_5_layout.html.twig`). Must match the same value you use in `twig.form_themes`.
+- **debug**: when `true`, the frontend logs detailed messages to the browser console; when `false` (default), only a short “script loaded” line.
+
+Full options: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+
 ## Usage
 
 1. Add the field to your form with `IconSelectorType::class` and option `mode`: `'direct'`, `'search'`, or `'tom_select'`.
@@ -82,18 +103,6 @@ $builder->add('icon', IconSelectorType::class, [
 
 Full details: [docs/USAGE.md](docs/USAGE.md).
 
-## Configuration
-
-Create `config/packages/nowo_icon_selector.yaml` (or rely on defaults). Options:
-
-- **icon_sets**: list of icon libraries (e.g. `heroicons`, `bootstrap-icons`). Only these are available in the selector.
-- **use_iconify_collection**: when `true`, the selector loads the **full** icon list from [api.iconify.design](https://iconify.design/docs/api/collection.html) for each library (requires `symfony/http-client`). When `false`, a small built-in list is used.
-- **icons_api_path**: URL path for the JSON icon list API (default: `/api/icon-selector/icons`). Must match the route the bundle exposes (see [CONFIGURATION.md](docs/CONFIGURATION.md#icons_api_path)).
-- **form_theme**: base form layout so the icon selector theme matches your app (e.g. `form_div_layout.html.twig`, `bootstrap_5_layout.html.twig`). Must match the same value you use in `twig.form_themes`.
-- **debug**: when `true`, the frontend logs detailed messages to the browser console; when `false` (default), only a short “script loaded” line.
-
-Full options: [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
-
 ## Internationalization
 
 The bundle uses Symfony’s [Translation component](https://symfony.com/doc/current/translation.html). All user-facing strings (placeholder, search input placeholder, and choice labels in the dropdown) are translated via the domain **`NowoIconSelectorBundle`**.
@@ -110,34 +119,6 @@ $builder->add('icon', IconSelectorType::class, [
   'search_placeholder'  => 'my.search.placeholder',
 ]);
 ```
-
-## Documentation
-
-- [GitHub Actions CI requirements](docs/GITHUB_CI.md)
-- [Installation](docs/INSTALLATION.md)
-- [Configuration](docs/CONFIGURATION.md)
-- [Usage](docs/USAGE.md)
-- [Contributing](docs/CONTRIBUTING.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Changelog](docs/CHANGELOG.md)
-- [Upgrading](docs/UPGRADING.md)
-- [Release](docs/RELEASE.md)
-- [Security](docs/SECURITY.md)
-- [Engram](docs/ENGRAM.md)
-- [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
-- [GitHub Spec Kit](docs/SPEC-KIT.md)
-
-### Additional documentation
-
-- [Overriding bundle templates](docs/USAGE.md#overriding-bundle-templates)
-- [Demo with FrankenPHP (development and production)](docs/DEMO-FRANKENPHP.md) — development vs production setup, Web Profiler, Twig Inspector; reusable for other bundles
-
-## Requirements
-
-- PHP >= 8.2, < 8.6
-- Symfony ^7.0 || ^8.0
-- **symfony/ux-icons** ^1.0 || ^2.0 || ^3.0 (required; used to render icons via `ux_icon()` in Twig)
-- For building assets (developers): Node.js, pnpm, Vite — see [Development](#development)
 
 ## Demo
 
@@ -168,6 +149,27 @@ Run tests and QA with Docker: `make up && make install && make test` (or `make t
 - **release-check**: cs-fix, cs-check, rector-dry, phpstan, test-coverage
 
 **Building assets (TypeScript + Vite):** `make assets` (runs `pnpm install` and `pnpm run build` in the container) or locally: `pnpm install && pnpm run build`. Watch mode: `make assets-watch` or `pnpm run watch`. **TypeScript unit tests (Vitest):** `make assets-test` or `pnpm run test`.
+
+## Documentation
+
+- [GitHub Actions CI requirements](docs/GITHUB_CI.md)
+- [Installation](docs/INSTALLATION.md)
+- [Configuration](docs/CONFIGURATION.md)
+- [Usage](docs/USAGE.md)
+- [Contributing](docs/CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Changelog](docs/CHANGELOG.md)
+- [Upgrading](docs/UPGRADING.md)
+- [Release](docs/RELEASE.md)
+- [Security](docs/SECURITY.md)
+- [Engram](docs/ENGRAM.md)
+- [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
+- [GitHub Spec Kit](docs/SPEC-KIT.md)
+
+### Additional documentation
+
+- [Overriding bundle templates](docs/USAGE.md#overriding-bundle-templates)
+- [Demo with FrankenPHP (development and production)](docs/DEMO-FRANKENPHP.md) — development vs production setup, Web Profiler, Twig Inspector; reusable for other bundles
 
 ## Tests and coverage
 
