@@ -74,3 +74,13 @@ The bundle uses `getParent() => ChoiceType::class` so that `buildForm`/`createCh
 1. **Clear the cache**: `php bin/console cache:clear` (and `--env=prod` in production). In the demo: `make cache-clear` from `demo/symfony8`.
 2. **Ensure you use the form type from the bundle**: `->add('icon', IconSelectorType::class, ...)` with `use Nowo\IconSelectorBundle\Form\IconSelectorType`.
 3. **Update the bundle**: if you install via path or a dev version, run `composer update nowo-tech/icon-selector-bundle` then clear cache again.
+
+## Twig Extra Bundle (REQ-TWIG-004)
+
+This package ships Twig templates. Host applications **must** install and enable Twig Extra:
+
+```bash
+composer require twig/extra-bundle twig/string-extra
+```
+
+Register `Twig\Extra\TwigExtraBundle\TwigExtraBundle` in `config/bundles.php` (Flex usually does this). Demos already include the same stack. The package `release-check` runs `make check-twig-extra` to guard this contract.

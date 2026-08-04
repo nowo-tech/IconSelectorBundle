@@ -42,7 +42,9 @@
         "symfony/http-kernel": "^6.0 || ^7.0 || ^8.0",
         "symfony/routing": "^6.0 || ^7.0 || ^8.0",
         "symfony/twig-bundle": "^6.0 || ^7.0 || ^8.0",
-        "symfony/ux-icons": "^1.0 || ^2.0 || ^3.0"
+        "symfony/ux-icons": "^1.0 || ^2.0 || ^3.0",
+        "twig/extra-bundle": "^3.12",
+        "twig/string-extra": "^3.12"
     },
     "suggest": {
         "symfony/http-client": "Required when use_iconify_collection is true (to fetch full icon lists from api.iconify.design)"
@@ -59,7 +61,8 @@
         "symfony/browser-kit": "^6.0 || ^7.0 || ^8.0",
         "symfony/dom-crawler": "^6.0 || ^7.0 || ^8.0",
         "symfony/http-client": "^6.0 || ^7.0 || ^8.0",
-        "symfony/yaml": "^6.0 || ^7.0 || ^8.0"
+        "symfony/yaml": "^6.0 || ^7.0 || ^8.0",
+        "vincentlanglet/twig-cs-fixer": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -81,7 +84,10 @@
     "minimum-stability": "stable",
     "prefer-stable": true,
     "archive": {
-        "exclude": ["/demo", "/.cursor"]
+        "exclude": [
+            "/demo",
+            "/.cursor"
+        ]
     },
     "scripts": {
         "test": "@php vendor/bin/phpunit --color=always",
@@ -91,6 +97,12 @@
         "rector": "@php vendor/bin/rector process",
         "rector-dry": "@php vendor/bin/rector process --dry-run --no-progress-bar",
         "phpstan": "@php vendor/bin/phpstan analyse --memory-limit=512M",
-        "qa": ["@cs-check", "@test"]
+        "qa": [
+            "@cs-check",
+            "@test"
+        ],
+        "twig:lint": "twig-cs-fixer lint --config=.twig-cs-fixer.php",
+        "twig:fix": "twig-cs-fixer fix --config=.twig-cs-fixer.php",
+        "twig:fix:check": "twig-cs-fixer lint --config=.twig-cs-fixer.php --fix"
     }
 }

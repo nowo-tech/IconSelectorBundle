@@ -173,13 +173,11 @@ final class IconifyCollectionLoaderTest extends TestCase
             ->method('warning')
             ->with(
                 'Iconify collection fetch failed.',
-                self::callback(static function (array $context): bool {
-                    return ($context['bundle'] ?? null) === 'nowo/icon-selector-bundle'
-                        && ($context['action'] ?? null) === 'iconify_collection_fetch'
-                        && ($context['prefix'] ?? null) === 'bi'
-                        && ($context['exception_class'] ?? null) === RuntimeException::class
-                        && ($context['message'] ?? null) === 'network down';
-                }),
+                self::callback(static fn (array $context): bool => ($context['bundle'] ?? null) === 'nowo/icon-selector-bundle'
+                    && ($context['action'] ?? null) === 'iconify_collection_fetch'
+                    && ($context['prefix'] ?? null) === 'bi'
+                    && ($context['exception_class'] ?? null) === RuntimeException::class
+                    && ($context['message'] ?? null) === 'network down'),
             );
 
         $loader = new IconifyCollectionLoader($http, $cache, [], 15.0, $logger);
