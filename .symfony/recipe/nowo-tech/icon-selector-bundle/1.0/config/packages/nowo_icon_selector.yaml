@@ -1,6 +1,9 @@
 # Icon Selector Bundle - default configuration
 # See docs/CONFIGURATION.md for options.
 #
+# Security: protect /api/icon-selector with the host firewall; do not register
+# user-supplied SVG directories in ux_icons (trusted icon packs only).
+#
 # icon_sets: bundle uses these names; with use_iconify_collection: true they map to Iconify API
 #   prefixes. Full list from GET https://api.iconify.design/collections (all available collections).
 #   For better performance, reduce to the sets you need (e.g. heroicons, bootstrap-icons, lucide).
