@@ -60,7 +60,9 @@ Include the following information in your report:
 
 ## Security considerations for integrators
 
-This bundle provides a form type and an API endpoint that returns the list of configured icon identifiers (no user data). It does not handle authentication or authorization. If you consider the icon list sensitive, ensure the icons API route is only accessible in appropriate environments (e.g. restrict by firewall or role). The API returns static configuration-derived data; ensure your application does not expose it to untrusted users if that would be a concern.
+This bundle provides a form type and an API endpoint that returns the list of configured icon identifiers (no user data). It does not handle authentication or authorization. **The host application must firewall `/api/icon-selector`** (role or network policy) if the icon catalog or SVG payloads should not be public. The API returns static configuration-derived data; do not expose it to untrusted users when that would be a concern.
+
+**Do not register user-supplied SVG directories in `ux_icons`** (or any icon renderer path controlled by end users). Only trusted, versioned icon packs belong in the icon pipeline; untrusted SVG on disk bypasses the intent of allowlisted IDs + `SvgSanitizer`.
 
 ---
 
@@ -77,7 +79,8 @@ The following describes the security measures implemented in the bundle and rema
   - **DoS mitigation:** Requests are limited to `MAX_IDS = 500` icon IDs per call.
 - **Output:** JSON mapping icon ID → sanitized SVG markup. Unknown or invalid IDs do not appear in the response.
 - **Recommendations for integrators:**
-  - Restrict the route (firewall or role) if the icon set is considered internal.
+  - **Required in production:** firewall `/api/icon-selector` (e.g. `access_control` or dedicated firewall) when the catalog is not intentionally public.
+  - Do not point `ux_icons` at directories writable or uploadable by users.
   - Consider rate limiting or throttling this endpoint if it is publicly accessible.
 
 ### 2. Twig function `nowo_icon_selector_asset_path(filename)`
@@ -106,7 +109,7 @@ The following describes the security measures implemented in the bundle and rema
 
 | Area              | Status | Notes |
 |-------------------|--------|--------|
-| Auth / authz      | Not in bundle | Restrict API routes (firewall/role) if needed. |
+| Auth / authz      | Not in bundle | Host must firewall `/api/icon-selector`; no user-supplied SVG dirs in `ux_icons`. |
 | Icon ID input     | Implemented | Whitelist against configured icons (IconListProvider). |
 | SVG output → DOM  | Implemented | SvgSanitizer uses a DOM allowlist (with regex fallback) for script tags, event attributes, and unsafe elements. |
 | assetPath         | Implemented | Path traversal and invalid chars rejected; safe default used. |
