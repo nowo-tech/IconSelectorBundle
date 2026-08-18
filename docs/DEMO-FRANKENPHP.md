@@ -47,6 +47,7 @@ The main difference between development and production is:
 The demo applications are configured for **local development and debugging**:
 
 - **Symfony Web Profiler** (`Symfony\Bundle\WebProfilerBundle\WebProfilerBundle`) — enabled in `dev` and `test` environments. Provides the debug toolbar and profiler at the bottom of each page.
+- **Nowo Twig Inspector** (`nowo-tech/twig-inspector-bundle`) and **Nowo Hot Reload** (`nowo-tech/hot-reload-bundle`) — required together on FrankenPHP demos (dev/test only; Caddyfile Mercure + `hot_reload`, plus `worker { watch }` in worker mode). Do not enable Hot Reload in production.
 - **Symfony Debug bundle** (`Symfony\Bundle\DebugBundle\DebugBundle`) — enabled in `dev` and `test`. Required for the profiler and improved error pages.
 - **Nowo Twig Inspector** (`Nowo\TwigInspectorBundle\NowoTwigInspectorBundle`) — enabled in `dev` and `test`. Allows inspecting which Twig template and block produced each part of the HTML (e.g. via comments in the output or a browser overlay).
 - **Symfony UX Icons** — used to render the selected icon in the form and in Twig.
