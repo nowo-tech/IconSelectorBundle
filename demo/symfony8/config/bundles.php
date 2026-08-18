@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Nowo\IconSelectorBundle\NowoIconSelectorBundle;
 use Nowo\HotReloadBundle\NowoHotReloadBundle;
+use Nowo\IconSelectorBundle\NowoIconSelectorBundle;
 use Nowo\TwigInspectorBundle\NowoTwigInspectorBundle;
 use Symfony\Bundle\DebugBundle\DebugBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -18,7 +18,7 @@ return [
     DebugBundle::class             => ['dev' => true],
     WebProfilerBundle::class       => ['dev' => true],
     NowoIconSelectorBundle::class  => ['all' => true],
-    NowoHotReloadBundle::class => ['dev' => true, 'test' => true],
+    NowoHotReloadBundle::class     => ['dev' => true, 'test' => true],
     NowoTwigInspectorBundle::class => ['dev' => true, 'test' => true],
     UXIconsBundle::class           => ['all' => true],
     TwigExtraBundle::class         => ['all' => true],
