@@ -4,6 +4,7 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 
 ## Table of contents
 
+- [To 1.1.1](#to-111)
 - [To 1.1.0](#to-110)
 - [Composer and symfony/ux-icons 3.x](#composer-and-symfonyux-icons-3x)
 - [1.0.15 (2026-07-29)](#1015-2026-07-29)
@@ -23,6 +24,15 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 - [1.0.1 (2026-03-12)](#101-2026-03-12)
 - [1.0.0 (2026-03-11)](#100-2026-03-11)
 - [Unreleased / 1.x](#unreleased-1x)
+
+## To 1.1.1
+
+No application upgrade steps. **Demos only:** Hot Reload Bundle `^1.4` (FrankenPHP Mercure/`hot_reload`, `dev`/`test`).
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+php bin/console cache:clear
+```
 
 ## To 1.1.0
 
