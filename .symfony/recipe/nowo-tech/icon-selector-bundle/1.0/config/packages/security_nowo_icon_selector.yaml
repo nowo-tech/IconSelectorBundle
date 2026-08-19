@@ -1,0 +1,4 @@
+# Protect icon search API — trusted icon packs only (REQ-SEC-004).
+security:
+    access_control:
+        - { path: ^/api/icon-selector, roles: ROLE_USER }
