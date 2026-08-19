@@ -26,6 +26,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-08-19
+
+### Security
+
+- **Flex recipe:** `security.access_control` for icon selector routes (REQ-SEC-004).
+
 ## [1.1.2] - 2026-08-19
 
 ### Security

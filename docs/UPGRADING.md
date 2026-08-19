@@ -26,6 +26,14 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 - [1.0.0 (2026-03-11)](#100-2026-03-11)
 - [Unreleased / 1.x](#unreleased-1x)
 
+## To 1.1.3
+
+Review Flex recipe `security_nowo_icon_selector.yaml` access rules after install/update.
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
+
 ## To 1.1.2
 
 No application upgrade steps.
