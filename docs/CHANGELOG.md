@@ -26,6 +26,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-08-19
+
+### Security
+
+- **Flex recipe:** ship `security_nowo_icon_selector.yaml` access rules (REQ-SEC-004). Prefer **`^1.1.4`** over `v1.1.3`.
+
 ## [1.1.3] - 2026-08-19
 
 ### Security
