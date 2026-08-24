@@ -4,6 +4,8 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 
 ## Table of contents
 
+
+- [From 1.1.4 to 1.1.5](#from-114-to-115)
 - [To 1.1.2](#to-112)
 - [To 1.1.1](#to-111)
 - [To 1.1.0](#to-110)
@@ -25,6 +27,22 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 - [1.0.1 (2026-03-12)](#101-2026-03-12)
 - [1.0.0 (2026-03-11)](#100-2026-03-11)
 - [Unreleased / 1.x](#unreleased-1x)
+
+## From 1.1.4 to 1.1.5
+
+Review the [CHANGELOG](CHANGELOG.md) entry. PHP **8.2+** may now be required.
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
+
+## From 1.1.4 to 1.1.5
+
+Review the [CHANGELOG](CHANGELOG.md) entry. PHP **8.2+** may now be required.
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
 
 ## To 1.1.4
 
