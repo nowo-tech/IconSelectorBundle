@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 ## Table of contents
 
 
+- [From 1.1.5 to 1.1.6](#from-115-to-116)
 - [From 1.1.4 to 1.1.5](#from-114-to-115)
 - [To 1.1.2](#to-112)
 - [To 1.1.1](#to-111)
@@ -27,6 +28,14 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 - [1.0.1 (2026-03-12)](#101-2026-03-12)
 - [1.0.0 (2026-03-11)](#100-2026-03-11)
 - [Unreleased / 1.x](#unreleased-1x)
+
+## From 1.1.5 to 1.1.6
+
+No configuration changes. Behaviour notes for FrankenPHP worker mode with **no kernel reset**:
+
+- The `choice_loader` / `choice_value` defaults of `IconSelectorType` are now `ChoiceList::loader()` / `ChoiceList::value()` wrappers. If you override `choice_loader` yourself, prefer wrapping your loader with `ChoiceList::loader($formType, $loader, $vary)` so it stays cacheable in long-running workers.
+- With `use_iconify_collection: true`, Iconify collections previously cached without expiry are refreshed after 24 h; failed or empty fetches are retried after 5 minutes and meanwhile the static icon list is shown. Clear `cache.app` once after upgrading if an empty list was cached.
+- Full audit: [`FRANKENPHP-WORKER-AUDIT.md`](FRANKENPHP-WORKER-AUDIT.md).
 
 ## From 1.1.4 to 1.1.5
 

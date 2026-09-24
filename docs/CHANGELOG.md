@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [1.1.6 (2026-09-24)](#116-2026-09-24)
+- [1.1.5 (2026-08-24)](#115-2026-08-24)
+- [1.1.4 (2026-08-19)](#114-2026-08-19)
+- [1.1.3 (2026-08-19)](#113-2026-08-19)
+- [1.1.2 (2026-08-19)](#112-2026-08-19)
+- [1.1.1 (2026-08-18)](#111-2026-08-18)
+- [1.1.0 (2026-08-04)](#110-2026-08-04)
 - [1.0.15 (2026-07-29)](#1015-2026-07-29)
 - [1.0.14 (2026-07-29)](#1014-2026-07-29)
 - [1.0.13 (2026-07-16)](#1013-2026-07-16)
@@ -26,6 +33,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-09-24
+
+### Fixed
+
+- **FrankenPHP worker mode (no `kernel.reset`):** `IconSelectorType` wraps its choice loader and value callback with `ChoiceList::loader()` / `ChoiceList::value()` (keyed by the effective icon sets and a hash of the choices), so Symfony's `form.choice_list_factory.cached` reuses one list and one view per distinct icon list instead of caching a new, never reused view on every render.
+- **Iconify fallback:** `IconifyCollectionLoader` now sets real cache lifetimes (24 h on success, `FAILURE_CACHE_TTL` = 5 min for failed, non-200 or empty responses) instead of passing `86400` as the stampede-protection `beta` argument (which left entries without expiry), and `IconListProvider` falls back to the static icon list when a collection comes back empty.
+
+### Documentation
+
+- **FrankenPHP worker audit:** [`docs/FRANKENPHP-WORKER-AUDIT.md`](docs/FRANKENPHP-WORKER-AUDIT.md) — full scenario B (no reset) review; W-01 and W-02 resolved.
+- Spec baseline: `FR-WORKER-001` / `FR-WORKER-002` for cacheable choice lists and Iconify failure TTL.
+
+### Notes
+
+- **No API or configuration changes** for integrators unless noted above.
+- Worker audit: safe under FrankenPHP worker with kernel **not** reset between requests (scenario B). See [`FRANKENPHP-WORKER-AUDIT.md`](FRANKENPHP-WORKER-AUDIT.md).
+
+[1.1.6]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.1.6
 
 ## [1.1.5] - 2026-08-24
 

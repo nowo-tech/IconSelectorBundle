@@ -100,4 +100,18 @@ final class IconListProviderTest extends TestCase
         self::assertContains('heroicons-outline:home', $icons);
         self::assertContains('heroicons-solid:user', $icons);
     }
+
+    /** An empty Iconify collection (e.g. after an outage) falls back to the static list instead of showing no icons. */
+    public function testGetIconsForSetsFallsBackToDefaultWhenLoaderReturnsEmpty(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([]);
+        $loader   = new IconifyCollectionLoader($this->createMock(HttpClientInterface::class), $cache);
+        $provider = new IconListProvider(['heroicons', 'bootstrap-icons'], true, $loader);
+
+        $icons = $provider->getIconsForSets(['heroicons', 'bootstrap-icons']);
+
+        self::assertContains('heroicons-outline:home', $icons);
+        self::assertContains('bi:house', $icons);
+    }
 }

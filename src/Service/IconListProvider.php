@@ -146,6 +146,7 @@ readonly class IconListProvider
      * Returns icon identifiers for the given set names only.
      * Use this to override which libraries a specific field uses (e.g. only heroicons).
      * When use_iconify_collection is true and the loader is available, returns the full list from the Iconify API; otherwise uses the static default list.
+     * The static list is also used for a set whose Iconify collection fails or comes back empty.
      *
      * @param list<string> $sets Icon set names (e.g. heroicons, bootstrap-icons)
      *
@@ -157,14 +158,15 @@ readonly class IconListProvider
         foreach ($sets as $set) {
             if ($this->useIconifyCollection && $this->collectionLoader instanceof IconifyCollectionLoader) {
                 try {
-                    foreach ($this->collectionLoader->getIconsForSet($set) as $id) {
-                        $icons[] = $id;
-                    }
+                    $setIcons = $this->collectionLoader->getIconsForSet($set);
                 } catch (Throwable) {
+                    $setIcons = [];
+                }
+                if ($setIcons === []) {
                     $setIcons = self::DEFAULT_ICONS[$set] ?? [];
-                    foreach ($setIcons as $id) {
-                        $icons[] = $id;
-                    }
+                }
+                foreach ($setIcons as $id) {
+                    $icons[] = $id;
                 }
             } else {
                 $setIcons = self::DEFAULT_ICONS[$set] ?? [];

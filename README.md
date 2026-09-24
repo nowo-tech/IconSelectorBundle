@@ -163,6 +163,7 @@ Run tests and QA with Docker: `make up && make install && make test` (or `make t
 - [Upgrading](docs/UPGRADING.md)
 - [Release](docs/RELEASE.md)
 - [Security](docs/SECURITY.md)
+- [FrankenPHP worker audit](docs/FRANKENPHP-WORKER-AUDIT.md)
 - [Engram](docs/ENGRAM.md)
 - [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
 - [GitHub Spec Kit](docs/SPEC-KIT.md)
@@ -171,6 +172,7 @@ Run tests and QA with Docker: `make up && make install && make test` (or `make t
 
 - [Overriding bundle templates](docs/USAGE.md#overriding-bundle-templates)
 - [Demo with FrankenPHP (development and production)](docs/DEMO-FRANKENPHP.md) — development vs production setup, Web Profiler, Twig Inspector; reusable for other bundles
+- [FrankenPHP worker audit (scenario B, no kernel reset)](docs/FRANKENPHP-WORKER-AUDIT.md)
 
 ## Tests and coverage
 

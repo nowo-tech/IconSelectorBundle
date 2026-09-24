@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
@@ -183,5 +184,70 @@ final class IconifyCollectionLoaderTest extends TestCase
         $loader = new IconifyCollectionLoader($http, $cache, [], 15.0, $logger);
 
         self::assertSame([], $loader->getIconsForPrefix('bi'));
+    }
+
+    public function testSuccessfulCollectionIsCachedForOneDay(): void
+    {
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn(200);
+        $response->method('toArray')->willReturn(['uncategorized' => ['home']]);
+        $http = $this->createMock(HttpClientInterface::class);
+        $http->method('request')->willReturn($response);
+
+        $item = $this->createMock(ItemInterface::class);
+        $ttls = [];
+        $item->method('expiresAfter')->willReturnCallback(static function (mixed $ttl) use (&$ttls, $item): ItemInterface {
+            $ttls[] = $ttl;
+
+            return $item;
+        });
+
+        $loader = new IconifyCollectionLoader($http, $this->cacheCallingBackWith($item));
+
+        self::assertSame(['bi:home'], $loader->getIconsForPrefix('bi'));
+        self::assertSame(86400, end($ttls));
+    }
+
+    public function testFailedFetchIsCachedOnlyBriefly(): void
+    {
+        $http = $this->createMock(HttpClientInterface::class);
+        $http->method('request')->willThrowException(new RuntimeException('network down'));
+
+        $item = $this->createMock(ItemInterface::class);
+        $item->expects(self::once())->method('expiresAfter')->with(IconifyCollectionLoader::FAILURE_CACHE_TTL)->willReturnSelf();
+
+        $loader = new IconifyCollectionLoader($http, $this->cacheCallingBackWith($item));
+
+        self::assertSame([], $loader->getIconsForPrefix('bi'));
+    }
+
+    public function testNonSuccessStatusAndEmptyCollectionAreCachedOnlyBriefly(): void
+    {
+        foreach ([[503, []], [200, ['uncategorized' => []]]] as [$status, $payload]) {
+            $response = $this->createMock(ResponseInterface::class);
+            $response->method('getStatusCode')->willReturn($status);
+            $response->method('toArray')->willReturn($payload);
+            $http = $this->createMock(HttpClientInterface::class);
+            $http->method('request')->willReturn($response);
+
+            $item = $this->createMock(ItemInterface::class);
+            $item->expects(self::once())->method('expiresAfter')->with(IconifyCollectionLoader::FAILURE_CACHE_TTL)->willReturnSelf();
+
+            $loader = new IconifyCollectionLoader($http, $this->cacheCallingBackWith($item));
+
+            self::assertSame([], $loader->getIconsForPrefix('bi'), 'status ' . $status);
+        }
+    }
+
+    private function cacheCallingBackWith(ItemInterface $item): CacheInterface
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturnCallback(static function (string $key, callable $callback, ?float $beta = null) use ($item): array {
+            self::assertNull($beta);
+
+            return $callback($item);
+        });
+
+        return $cache;
     }
 }

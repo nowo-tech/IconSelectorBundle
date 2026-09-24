@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/icon-selector-bundle`  
-**Last audited**: 2026-07-07
+**Last audited**: 2026-09-24
 
 ## Symfony config
 
@@ -33,16 +33,16 @@
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
-| `Form/IconSelectorType.php` | Icon selector field | FR-FORM-001 |
+| `Form/IconSelectorType.php` | Icon selector field | FR-FORM-001, FR-WORKER-001 |
 | `Form/ChoiceLoader/IconChoiceLoader.php` | Icon choices | FR-FORM-001 |
 
 ## Services
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
-| `Service/IconListProvider.php` | Available icons | FR-SVC-001 |
+| `Service/IconListProvider.php` | Available icons | FR-SVC-001, FR-WORKER-002 |
 | `Service/IconSelectorConfigProvider.php` | Frontend config | FR-SVC-001 |
-| `Service/IconifyCollectionLoader.php` | Iconify API loader | FR-SVC-002 |
+| `Service/IconifyCollectionLoader.php` | Iconify API loader | FR-SVC-002, FR-WORKER-002 |
 | `Service/SvgSanitizer.php` | SVG sanitization | FR-SVC-003 |
 
 ## Twig PHP

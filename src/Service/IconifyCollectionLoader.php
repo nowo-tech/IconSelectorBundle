@@ -7,6 +7,7 @@ namespace Nowo\IconSelectorBundle\Service;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Throwable;
 
@@ -29,6 +30,9 @@ final readonly class IconifyCollectionLoader
 {
     private const API_ENDPOINT = 'https://api.iconify.design';
     private const CACHE_TTL    = 86400; // 24 hours
+
+    /** Failed or empty fetches are cached briefly so callers fall back to the static list without retrying on every request. */
+    public const FAILURE_CACHE_TTL = 300;
 
     /**
      * Map bundle set name => list of Iconify API prefixes (e.g. heroicons-outline, bi).
@@ -94,7 +98,7 @@ final readonly class IconifyCollectionLoader
 
     /**
      * Returns all icon identifiers (prefix:name) for the given Iconify API prefix.
-     * Results are cached for 24 hours per prefix.
+     * Results are cached for 24 hours per prefix; failures and empty collections only for {@see FAILURE_CACHE_TTL} seconds.
      *
      * @param string $prefix Iconify API prefix (e.g. heroicons-outline, bi)
      *
@@ -104,7 +108,9 @@ final readonly class IconifyCollectionLoader
     {
         $cacheKey = 'nowo_icon_selector.iconify.' . preg_replace('/[^a-z0-9_-]/i', '_', $prefix);
 
-        return $this->cache->get($cacheKey, function () use ($prefix): array {
+        return $this->cache->get($cacheKey, function (?ItemInterface $item = null) use ($prefix): array {
+            $item?->expiresAfter(self::FAILURE_CACHE_TTL);
+
             $context = [
                 'bundle'  => 'nowo/icon-selector-bundle',
                 'action'  => 'iconify_collection_fetch',
@@ -154,6 +160,9 @@ final readonly class IconifyCollectionLoader
                 }
 
                 $uniqueNames = array_values(array_unique($names));
+                if ($uniqueNames !== []) {
+                    $item?->expiresAfter(self::CACHE_TTL);
+                }
                 $this->logger->debug('Iconify collection fetch completed.', $context + [
                     'icon_count' => count($uniqueNames),
                 ]);
@@ -167,6 +176,6 @@ final readonly class IconifyCollectionLoader
 
                 return [];
             }
-        }, self::CACHE_TTL);
+        });
     }
 }

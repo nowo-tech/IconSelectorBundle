@@ -275,3 +275,9 @@ This gives you a reproducible development setup (changes visible on refresh) and
 
 - The Caddyfile is read when FrankenPHP starts. Restart the container: `docker-compose restart` or `make -C demo/symfony8 restart`.
 - In dev, the entrypoint copies `Caddyfile.dev` over the default; ensure you edited `Caddyfile.dev` and that it is mounted (or baked into the image) so the copy is up to date.
+
+---
+
+## See also
+
+- [FrankenPHP worker audit (scenario B — kernel not reset)](FRANKENPHP-WORKER-AUDIT.md) — bundle services and form choice-list behaviour under long-lived workers.

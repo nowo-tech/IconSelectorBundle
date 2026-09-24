@@ -59,12 +59,14 @@ Symfony **form type** for icon selection with **direct grid**, **search**, and *
 ### Form
 
 - **FR-FORM-001**: `IconSelectorType`, `IconChoiceLoader` — modes, placeholders, translation domain.
+- **FR-WORKER-001**: `IconSelectorType` choice loader/value use `ChoiceList::loader()` / `ChoiceList::value()` with a bounded vary key so Symfony's cached choice list factory stays safe when the kernel is **not** reset between FrankenPHP worker requests.
 
 ### Services
 
 - **FR-SVC-001**: `IconListProvider`, `IconSelectorConfigProvider`.
 - **FR-SVC-002**: `IconifyCollectionLoader` — remote Iconify catalog when enabled.
 - **FR-SVC-003**: `SvgSanitizer` — safe SVG output.
+- **FR-WORKER-002**: Iconify fetches use real cache TTLs (24 h success, short failure TTL) and `IconListProvider` falls back to the static list on empty/failed collections so a worker outage does not pin empty results indefinitely.
 
 ### Twig & assets
 

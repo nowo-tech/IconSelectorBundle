@@ -8,6 +8,8 @@ use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\ChoiceList\ChoiceList;
+use Symfony\Component\Form\ChoiceList\Loader\ChoiceLoaderInterface;
 use Symfony\Component\Form\ChoiceList\View\ChoiceView;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormInterface;
@@ -19,8 +21,10 @@ use Throwable;
 
 use function array_slice;
 use function count;
+use function hash;
 use function is_array;
 use function is_string;
+use function serialize;
 
 /**
  * Form type for selecting an icon (grid, search, or tom_select mode).
@@ -261,16 +265,36 @@ final class IconSelectorType extends AbstractType
             'translation_domain'        => 'NowoIconSelectorBundle',
             'choice_translation_domain' => 'NowoIconSelectorBundle',
             'choices'                   => $this->resolveChoicesFromIconsAndSets(...),
-            'choice_loader'             => fn (Options $options): IconChoiceLoader => new IconChoiceLoader($options['choices'], $this->iconRenderer),
+            'choice_loader'             => $this->createChoiceLoader(...),
             'placeholder'               => 'placeholder',
             'search_placeholder'        => 'search_placeholder',
-            'choice_value'              => static fn ($choice) => $choice,
+            'choice_value'              => ChoiceList::value($this, static fn ($choice) => $choice),
         ]);
         $resolver->setAllowedTypes('icons', ['null', 'array']);
         $resolver->setAllowedTypes('icon_sets', ['null', 'array']);
         $resolver->setAllowedTypes('translation_domain', ['null', 'string', 'bool']);
         $resolver->setAllowedTypes('search_placeholder', ['null', 'string']);
         $resolver->setAllowedValues('mode', ['direct', 'search', 'tom_select']);
+    }
+
+    /**
+     * Wraps the loader with {@see ChoiceList::loader()} so Symfony's cached choice list factory reuses one list
+     * (and one view) per distinct choice set instead of caching a new, never reused view on every render.
+     *
+     * @param Options $options Form options (choices, icon_sets)
+     *
+     * @phpstan-ignore missingType.generics (Options interface is generic in Symfony)
+     */
+    private function createChoiceLoader(Options $options): ChoiceLoaderInterface
+    {
+        /** @var array<string, string> $choices */
+        $choices = $options['choices'];
+
+        return ChoiceList::loader(
+            $this,
+            new IconChoiceLoader($choices, $this->iconRenderer),
+            [$options['icon_sets'] ?? $this->iconSets, hash('xxh128', serialize($choices))],
+        );
     }
 
     /**

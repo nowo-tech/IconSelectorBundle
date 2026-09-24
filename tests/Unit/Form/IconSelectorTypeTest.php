@@ -9,8 +9,16 @@ use Nowo\IconSelectorBundle\Service\IconListProvider;
 use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use ReflectionProperty;
 use RuntimeException;
+use Symfony\Component\Form\ChoiceList\ChoiceListInterface;
+use Symfony\Component\Form\ChoiceList\Factory\CachingFactoryDecorator;
+use Symfony\Component\Form\ChoiceList\Factory\DefaultChoiceListFactory;
+use Symfony\Component\Form\ChoiceList\View\ChoiceView;
+use Symfony\Component\Form\Extension\Core\CoreExtension;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\FormFactoryBuilder;
+use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -424,5 +432,92 @@ final class IconSelectorTypeTest extends TestCase
 
         self::assertCount(1, $result);
         self::assertSame('heroicons-outline:home', $result[0]['value']);
+    }
+
+    /**
+     * Two consecutive "requests" render the field with the same shared factory and no reset():
+     * Symfony's cached choice list factory must reuse one list and one view instead of growing.
+     */
+    public function testRepeatedRendersReuseCachedChoiceListWithoutReset(): void
+    {
+        $decorator   = new CachingFactoryDecorator(new DefaultChoiceListFactory());
+        $formFactory = $this->createFormFactory(new IconListProvider(['heroicons', 'bootstrap-icons']), $decorator);
+
+        foreach ([1, 2, 3] as $request) {
+            $form = $formFactory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons']]);
+            $view = $form->createView();
+            self::assertContains('heroicons-outline:home', $this->listChoices($form), 'request ' . $request);
+            self::assertContains('heroicons-outline:home', array_map(static fn (ChoiceView $c): string => $c->value, $view->vars['choices']), 'request ' . $request);
+        }
+
+        self::assertCount(1, $this->cachedEntries($decorator, 'lists'));
+        self::assertCount(1, $this->cachedEntries($decorator, 'views'));
+    }
+
+    public function testDifferentIconSetsGetTheirOwnCachedChoiceList(): void
+    {
+        $decorator   = new CachingFactoryDecorator(new DefaultChoiceListFactory());
+        $formFactory = $this->createFormFactory(new IconListProvider(['heroicons', 'bootstrap-icons']), $decorator);
+
+        $heroForm = $formFactory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons']]);
+        $biForm   = $formFactory->create(IconSelectorType::class, null, ['icon_sets' => ['bootstrap-icons']]);
+        $heroForm->createView();
+        $biForm->createView();
+
+        $heroValues = $this->listChoices($heroForm);
+        $biValues   = $this->listChoices($biForm);
+
+        self::assertContains('heroicons-outline:home', $heroValues);
+        self::assertNotContains('bi:house', $heroValues);
+        self::assertContains('bi:house', $biValues);
+        self::assertNotContains('heroicons-outline:home', $biValues);
+        self::assertCount(2, $this->cachedEntries($decorator, 'lists'));
+    }
+
+    public function testCachedLoaderStillAcceptsSubmittedIconOutsideTheBaseList(): void
+    {
+        $formFactory = $this->createFormFactory(new IconListProvider(['heroicons']), new CachingFactoryDecorator(new DefaultChoiceListFactory()));
+
+        $first = $formFactory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons']]);
+        $first->submit('heroicons-outline:home');
+        self::assertTrue($first->isSynchronized());
+        self::assertSame('heroicons-outline:home', $first->getData());
+
+        $second = $formFactory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons']]);
+        $second->submit('lucide:rocket');
+        self::assertTrue($second->isSynchronized());
+        self::assertSame('lucide:rocket', $second->getData());
+    }
+
+    private function createFormFactory(IconListProvider $provider, CachingFactoryDecorator $decorator): FormFactoryInterface
+    {
+        return (new FormFactoryBuilder())
+            ->addExtension(new CoreExtension(null, $decorator))
+            ->addType($this->createType($provider, ['heroicons'], '/api/icons'))
+            ->getFormFactory();
+    }
+
+    /**
+     * @param FormInterface<mixed> $form
+     *
+     * @return list<mixed>
+     */
+    private function listChoices(FormInterface $form): array
+    {
+        $choiceList = $form->getConfig()->getAttribute('choice_list');
+        self::assertInstanceOf(ChoiceListInterface::class, $choiceList);
+
+        return array_values($choiceList->getChoices());
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private function cachedEntries(CachingFactoryDecorator $decorator, string $property): array
+    {
+        $entries = (new ReflectionProperty(CachingFactoryDecorator::class, $property))->getValue($decorator);
+        self::assertIsArray($entries);
+
+        return $entries;
     }
 }
