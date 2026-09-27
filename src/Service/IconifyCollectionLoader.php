@@ -108,6 +108,7 @@ final readonly class IconifyCollectionLoader
     {
         $cacheKey = 'nowo_icon_selector.iconify.' . preg_replace('/[^a-z0-9_-]/i', '_', $prefix);
 
+        // @igor-ignore - Cache callback; captured vars are per-call arguments only
         return $this->cache->get($cacheKey, function (?ItemInterface $item = null) use ($prefix): array {
             $item?->expiresAfter(self::FAILURE_CACHE_TTL);
 

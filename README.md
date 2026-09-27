@@ -145,7 +145,7 @@ Run tests and QA with Docker: `make up && make install && make test` (or `make t
 
 - **PHP-CS-Fixer**: `make cs-check` / `make cs-fix`
 - **Rector**: `make rector` / `make rector-dry`
-- **PHPStan**: `make phpstan`
+- **PHPStan**: `make phpstan`, `make igor`
 - **release-check**: cs-fix, cs-check, rector-dry, phpstan, test-coverage
 
 **Building assets (TypeScript + Vite):** `make assets` (runs `pnpm install` and `pnpm run build` in the container) or locally: `pnpm install && pnpm run build`. Watch mode: `make assets-watch` or `pnpm run watch`. **TypeScript unit tests (Vitest):** `make assets-test` or `pnpm run test`.
