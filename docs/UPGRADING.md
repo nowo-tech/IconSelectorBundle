@@ -3,6 +3,14 @@
 
 ## Unreleased
 
+## To 1.1.8
+
+From **1.1.7** — dependency refresh only. No breaking changes. No application upgrade steps.
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
+
 ## To 1.1.7
 
 From **1.1.6** — REQ-CS-008 Igor FrankenPHP worker audit (igor-php require-dev, igor.json, make igor).
@@ -19,6 +27,8 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 ## Table of contents
 
 
+- [To 1.1.8](#to-118)
+- [To 1.1.7](#to-117)
 - [From 1.1.5 to 1.1.6](#from-115-to-116)
 - [From 1.1.4 to 1.1.5](#from-114-to-115)
 - [To 1.1.2](#to-112)

@@ -33,6 +33,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.8] - 2026-10-09
+
+### Changed
+
+- Dev dependencies (Dependabot + lock refresh): PHPStan 2.3.1 (+ phpunit/symfony extensions 2.1), PHPUnit 11.5.57, Rector 2.7.0, `igor-php/igor-php` 0.10.1, `nowo-tech/phpstan-frankenphp` 1.2.3; Twig 3.30.0.
+- Demo (Symfony 8): Twig 3.30.0, `twig/extra-bundle` 3.29.0, HotReloadBundle 1.5.5, TwigInspectorBundle 1.1.7; regenerated `config/reference.php`.
+
+[1.1.8]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.1.8
+
 ## [1.1.7] - 2026-09-27
 
 ### Added
