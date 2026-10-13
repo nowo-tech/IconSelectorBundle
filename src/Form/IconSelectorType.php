@@ -125,17 +125,21 @@ final class IconSelectorType extends AbstractType
 
         $idsToPreload = [];
         if ($selectedId !== '') {
-            $idsToPreload[] = $selectedId;
+            // Only render ids that are real choices: the view value may be an arbitrary submitted string,
+            // and rendering it could trigger an on-demand Iconify fetch for any icon name.
+            if (isset($choices[$selectedId])) {
+                $idsToPreload[] = $selectedId;
+            }
         } else {
             $idsToPreload = array_slice(array_keys($choices), 0, 12);
         }
 
         $out = [];
         foreach ($idsToPreload as $id) {
-            if ($id === '') {
+            if ($id === '' || !isset($choices[$id])) {
                 continue;
             }
-            $label = $choices[$id] ?? (explode(':', $id)[1] ?? $id);
+            $label = $choices[$id];
             $svg   = '';
             try {
                 $raw = $this->iconRenderer->renderIcon($id, [

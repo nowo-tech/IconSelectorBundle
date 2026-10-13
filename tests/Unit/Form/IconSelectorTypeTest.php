@@ -305,6 +305,33 @@ final class IconSelectorTypeTest extends TestCase
         self::assertStringContainsString('<svg>', $view->vars['tom_select_preloaded_options'][0]['svg']);
     }
 
+    public function testBuildViewTomSelectNeverRendersSubmittedValueOutsideChoices(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->expects(self::never())->method('renderIcon');
+
+        $type                = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '', $renderer);
+        $view                = new FormView();
+        $view->vars['attr']  = [];
+        $view->vars['value'] = 'attacker-set:arbitrary-icon';
+        $form                = $this->createStub(FormInterface::class);
+
+        $type->buildView($view, $form, [
+            'mode'                      => 'tom_select',
+            'choices'                   => ['heroicons-outline:home' => 'home'],
+            'placeholder'               => null,
+            'required'                  => true,
+            'icon_sets'                 => null,
+            'icons_api_path'            => null,
+            'icons'                     => null,
+            'translation_domain'        => 'NowoIconSelectorBundle',
+            'choice_translation_domain' => 'NowoIconSelectorBundle',
+            'search_placeholder'        => 'search_placeholder',
+        ]);
+
+        self::assertSame([], $view->vars['tom_select_preloaded_options']);
+    }
+
     public function testBuildViewFillsChoicesFromIconsWhenChoicesEmpty(): void
     {
         $type               = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '');

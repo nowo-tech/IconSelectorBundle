@@ -1,6 +1,6 @@
 # Icon Selector Bundle
 
-[![CI](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/icon-selector-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/icon-selector-bundle.svg)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-6.0%2B%20%7C%207.4%2B%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/IconSelectorBundle.svg?style=social&label=Star)](https://github.com/nowo-tech/IconSelectorBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.5%25-brightgreen)](#tests-and-coverage)
+[![CI](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/IconSelectorBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/icon-selector-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/icon-selector-bundle.svg)](https://packagist.org/packages/nowo-tech/icon-selector-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-6.4%2B%20%7C%207.4%2B%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/IconSelectorBundle.svg?style=social&label=Star)](https://github.com/nowo-tech/IconSelectorBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.5%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/icon-selector-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/IconSelectorBundle) so more developers can find it.
 
@@ -66,8 +66,8 @@ return [
 ## Requirements
 
 - PHP >= 8.2, < 8.6
-- Symfony ^6.0 || ^7.0 || ^8.0
-- **symfony/ux-icons** ^1.0 || ^2.0 || ^3.0 (required; used to render icons via `ux_icon()` in Twig)
+- Symfony ^6.4 || ^7.0 || ^8.0
+- **symfony/ux-icons** ^2.17 || ^3.0 (required; 3.x needs PHP 8.4+ and Symfony 7.4+; used to render icons via `ux_icon()` in Twig)
 - For building assets (developers): Node.js, pnpm, Vite — see [Development](#development)
 
 ## Configuration

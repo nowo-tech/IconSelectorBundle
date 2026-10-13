@@ -75,7 +75,7 @@ The following describes the security measures implemented in the bundle and rema
 - **Input:** Icon IDs come from the request (GET query `ids` or POST JSON `ids`). They are trimmed and filtered.
 - **Implemented:**
   - **Whitelist:** Only icon IDs that appear in the configured icon sets (`IconListProvider::getIcons()`) are passed to the renderer. Requests for unknown or disallowed IDs are ignored (omitted from the response).
-  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which parses the markup with a DOM allowlist (permitted SVG elements and attributes only), strips event handlers and unsafe references (e.g. `javascript:` URLs), removes disallowed tags such as `<foreignObject>`, and falls back to regex stripping when parsing fails. This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
+  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which parses the markup with a DOM allowlist (permitted SVG elements and attributes only), strips event handlers and unsafe references (e.g. `javascript:` URLs), removes disallowed tags such as `<foreignObject>`, and **fails closed** (returns an empty string) when the markup cannot be parsed as an `<svg>` document. This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
   - **DoS mitigation:** Requests are limited to `MAX_IDS = 500` icon IDs per call.
 - **Output:** JSON mapping icon ID → sanitized SVG markup. Unknown or invalid IDs do not appear in the response.
 - **Recommendations for integrators:**

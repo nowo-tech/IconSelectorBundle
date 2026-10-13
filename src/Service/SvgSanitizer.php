@@ -96,7 +96,7 @@ final readonly class SvgSanitizer
      *
      * @param string $svg Raw SVG markup (e.g. from IconRendererInterface::renderIcon)
      *
-     * @return string Sanitized SVG safe for injection into the DOM
+     * @return string Sanitized SVG safe for injection into the DOM ('' when the input cannot be parsed as an SVG document)
      */
     public function sanitize(string $svg): string
     {
@@ -116,8 +116,11 @@ final readonly class SvgSanitizer
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
-        if ($loaded === false || !$document->documentElement instanceof DOMElement) {
-            return $this->sanitizeWithRegexFallback($svg);
+        // Fail closed: markup that is not a well-formed <svg> document is dropped, never regex-"cleaned".
+        if ($loaded === false
+            || !$document->documentElement instanceof DOMElement
+            || strtolower((string) $document->documentElement->localName) !== 'svg') {
+            return '';
         }
 
         $this->sanitizeElement($document->documentElement);
@@ -192,13 +195,5 @@ final readonly class SvgSanitizer
         $value = trim($value);
 
         return $value !== '' && str_starts_with($value, '#');
-    }
-
-    private function sanitizeWithRegexFallback(string $svg): string
-    {
-        $svg = (string) preg_replace('/<script\b[^>]*>.*?<\/script\s*>/is', '', $svg);
-        $svg = (string) preg_replace('/\s+on[a-z]+\s*=\s*["\'][^"\']*["\']/i', '', $svg);
-
-        return (string) preg_replace('/<(foreignobject|iframe|object|embed)\b[^>]*>.*?<\/\1\s*>/is', '', $svg);
     }
 }

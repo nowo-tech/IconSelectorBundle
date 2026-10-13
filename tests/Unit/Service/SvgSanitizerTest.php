@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\IconSelectorBundle\Tests\Unit\Service;
 
 use Nowo\IconSelectorBundle\Service\SvgSanitizer;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -63,12 +64,30 @@ final class SvgSanitizerTest extends TestCase
         self::assertStringContainsString('<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>', $output);
     }
 
-    public function testInvalidSvgUsesRegexFallback(): void
+    public function testInvalidSvgFailsClosed(): void
     {
-        $input  = '<<svg><script>alert(1)</script><foreignObject>x</foreignObject><path d=""/></svg>';
-        $output = $this->sanitizer->sanitize($input);
-        self::assertStringNotContainsString('script', strtolower($output));
-        self::assertStringNotContainsString('foreignobject', strtolower($output));
+        $input = '<<svg><script>alert(1)</script><foreignObject>x</foreignObject><path d=""/></svg>';
+        self::assertSame('', $this->sanitizer->sanitize($input));
+    }
+
+    /**
+     * Payloads that a regex-based cleanup would let through once the XML parser gives up.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function malformedPayloadProvider(): iterable
+    {
+        yield 'unquoted handler' => ['<svg onload=alert(1)><path d="M0 0"></svg>'];
+        yield 'unclosed script' => ['<svg><script>alert(1)</svg>'];
+        yield 'img onerror in broken svg' => ['<svg><img src=x onerror=alert(1)><</svg>'];
+        yield 'html root' => ['<html><body><img src="x" onerror="alert(1)"/></body></html>'];
+        yield 'not markup' => ['javascript:alert(1)'];
+    }
+
+    #[DataProvider('malformedPayloadProvider')]
+    public function testMalformedOrNonSvgMarkupIsDropped(string $input): void
+    {
+        self::assertSame('', $this->sanitizer->sanitize($input));
     }
 
     public function testUseElementWithExternalHrefIsStripped(): void
