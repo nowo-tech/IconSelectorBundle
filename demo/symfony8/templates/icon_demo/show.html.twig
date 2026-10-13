@@ -3,7 +3,7 @@
 {% block title %}{{ ('demo.page_' ~ demo_slug ~ '_title')|trans({}, 'messages') }} – {{ 'demo.title'|trans({}, 'messages') }}{% endblock %}
 
 {% block body %}
-<div class="container py-5">
+<div class="container py-5" data-screenshot-target>
     <nav class="mb-3">
         <a href="{{ path('app_home', { _locale: app.request.locale }) }}">← {{ 'demo.back_home'|trans({}, 'messages') }}</a>
     </nav>
