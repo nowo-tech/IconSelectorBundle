@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## To 1.2.0
+
+From **1.1.9** — security - fail-closed SVG sanitizer, only offered choices rendered, correct Symfony/ux-icons constraints.
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
+
+- Malformed or non-SVG markup now renders as empty (the regex fallback was removed).
+- Symfony 6.4 is the minimum; `symfony/ux-icons` is `^2.17 || ^3.0`.
+
 ## To 1.1.9
 
 From **1.1.8** — dependency refresh and repository maintenance.
@@ -35,6 +46,7 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 
 ## Table of contents
 
+- [To 1.2.0](#to-120)
 - [To 1.1.9](#to-119)
 - [To 1.1.8](#to-118)
 - [To 1.1.7](#to-117)

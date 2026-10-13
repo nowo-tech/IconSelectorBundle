@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-13
+
 ### Security
 
 - `SvgSanitizer` now fails closed: markup that cannot be parsed as an XML document with an `<svg>` root returns `''` instead of going through a best-effort regex cleanup (which could miss unquoted handlers such as `<svg onload=alert(1)>`).
@@ -42,6 +44,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Minimum Symfony version raised from 6.0 to **6.4** (`^6.4 || ^7.0 || ^8.0`): the controllers use `Symfony\Component\Routing\Attribute\Route` (6.2+). CI now also tests Symfony 6.4.
 - `symfony/ux-icons` constraint fixed to existing releases: `^2.17 || ^3.0` (there is no 1.x).
+
+[1.2.0]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.2.0
 
 ## [1.1.9] - 2026-10-13
 
