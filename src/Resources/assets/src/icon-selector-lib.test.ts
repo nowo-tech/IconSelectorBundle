@@ -7,6 +7,8 @@ import {
   disposeIconSelectorContainer,
   getOptionsFromScript,
   IconSelectorWidget,
+  IconSelectorIconifyWidget,
+  ATTR_EMPTY_TEXT,
   runInit,
   runInitAndObserve,
   initIconSelectorContainer,
@@ -361,5 +363,156 @@ describe('fetchIconifyIconsBatch', () => {
     expect(out['mdi:evil']).not.toMatch(/onload|onerror|script|foreignObject|alert/i);
     expect(out).not.toHaveProperty('mdi:broken');
     expect(out).not.toHaveProperty('mdi:missing');
+  });
+});
+
+/** Iconify mode must survive a failing Iconify collection API (429, network error, CORS). */
+describe('IconSelectorIconifyWidget fallback', () => {
+  const config = {
+    iconify_base: 'https://api.iconify.design',
+    sets: [{ key: 'heroicons', label: 'Heroicons', prefixes: ['heroicons-outline'] }],
+  };
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M1 1h22v22H1z"/></svg>';
+
+  /** Builds a container shaped like the form theme (hidden input + picker still marked aria-hidden). */
+  function setup(): { container: HTMLElement; input: HTMLInputElement; picker: HTMLElement } {
+    const container = document.createElement('div');
+    container.setAttribute('data-controller', 'icon-selector');
+    container.setAttribute(ATTR_EMPTY_TEXT, 'Sin iconos');
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    const picker = document.createElement('div');
+    picker.setAttribute('aria-hidden', 'true');
+    container.append(input, picker);
+    document.body.appendChild(container);
+    return { container, input, picker };
+  }
+
+  /** Routes fetch calls by URL; unknown URLs reject like a network/CORS failure. */
+  function routeFetch(routes: Record<string, () => Promise<unknown>>): void {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        for (const [needle, respond] of Object.entries(routes)) {
+          if (String(url).includes(needle)) return respond();
+        }
+        return Promise.reject(new TypeError('Failed to fetch'));
+      }),
+    );
+  }
+
+  const json = (body: unknown, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => body });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = '';
+  });
+
+  it('falls back to the bundle icon list when /collection is rate limited and still renders the trigger', async () => {
+    routeFetch({
+      '/api/icon-selector/config': () => json(config),
+      '/collection': () => json({ error: 'Too Many Requests' }, 429),
+      '/api/icon-selector/icons/svg': () => json({}),
+      '/api/icon-selector/icons': () => json({ icons_by_set: { heroicons: ['heroicons-outline:home', 'heroicons-outline:user'] } }),
+      'heroicons-outline.json': () => json({ width: 24, height: 24, icons: { home: { body: '<path d="M1 1h22v22H1z"/>' }, user: { body: '<path d="M2 2h20v20H2z"/>' } } }),
+    });
+    const { input, picker } = setup();
+    const onReady = vi.fn();
+
+    new IconSelectorIconifyWidget(picker.parentElement as HTMLElement, input, picker, '/api/icon-selector/config', undefined, onReady);
+
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
+    expect(fetch).toHaveBeenCalledWith('/api/icon-selector/icons');
+    expect(picker.hasAttribute('aria-hidden')).toBe(false);
+    const trigger = picker.querySelector<HTMLElement>('.icon-selector-trigger');
+    expect(trigger).not.toBeNull();
+    expect(trigger!.hasAttribute('data-icon-selector-state')).toBe(false);
+    trigger!.click();
+    await vi.waitFor(() => {
+      const items = picker.querySelectorAll<HTMLElement>('.icon-selector-item');
+      expect(Array.from(items).map((b) => b.dataset.iconId)).toEqual(['heroicons-outline:home', 'heroicons-outline:user']);
+      expect(items[0].querySelector('path')?.getAttribute('d')).toBe('M1 1h22v22H1z');
+    });
+  });
+
+  it('loads SVGs from the bundle endpoint when the Iconify icon API is unreachable too', async () => {
+    routeFetch({
+      '/api/icon-selector/config': () => json(config),
+      '/api/icon-selector/icons/svg': () => json({ 'heroicons-outline:home': svg.replace('<path', '<path onclick="alert(1)"') }),
+      '/api/icon-selector/icons': () => json({ icons: ['heroicons-outline:home', 'not-an-id'] }),
+    });
+    const { input, picker } = setup();
+    const onReady = vi.fn();
+
+    new IconSelectorIconifyWidget(picker.parentElement as HTMLElement, input, picker, '/api/icon-selector/config', undefined, onReady, '/api/icon-selector/icons');
+
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
+    picker.querySelector<HTMLElement>('.icon-selector-trigger')!.click();
+    await vi.waitFor(() => {
+      const items = picker.querySelectorAll<HTMLElement>('.icon-selector-item');
+      expect(items).toHaveLength(1);
+      const wrap = items[0].querySelector('.icon-selector-svg-wrap') as HTMLElement;
+      expect(wrap.classList.contains('icon-selector-svg-placeholder')).toBe(false);
+      expect(wrap.innerHTML).toContain('M1 1h22v22H1z');
+      expect(wrap.innerHTML).not.toContain('onclick');
+    });
+  });
+
+  it('renders the trigger with an empty state when neither Iconify nor the bundle list can be loaded', async () => {
+    routeFetch({
+      '/api/icon-selector/config': () => json(config),
+      '/api/icon-selector/icons': () => json({}, 500),
+    });
+    const { input, picker } = setup();
+    const onReady = vi.fn();
+
+    new IconSelectorIconifyWidget(picker.parentElement as HTMLElement, input, picker, '/api/icon-selector/config', undefined, onReady);
+
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
+    expect(picker.hasAttribute('aria-hidden')).toBe(false);
+    const trigger = picker.querySelector<HTMLElement>('.icon-selector-trigger');
+    expect(trigger).not.toBeNull();
+    expect(trigger!.getAttribute('data-icon-selector-state')).toBe('empty');
+    trigger!.click();
+    const panel = picker.querySelector<HTMLElement>('.icon-selector-panel')!;
+    expect(panel.style.display).toBe('block');
+    const empty = panel.querySelector('[role="status"]');
+    expect(empty?.textContent).toBe('Sin iconos');
+    expect(panel.querySelectorAll('.icon-selector-item')).toHaveLength(0);
+  });
+
+  it('renders the empty state when the config endpoint itself fails', async () => {
+    routeFetch({});
+    const { input, picker } = setup();
+    const onReady = vi.fn();
+
+    new IconSelectorIconifyWidget(picker.parentElement as HTMLElement, input, picker, '/api/icon-selector/config', undefined, onReady);
+
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
+    expect(picker.querySelector('.icon-selector-trigger')?.getAttribute('data-icon-selector-state')).toBe('empty');
+  });
+});
+
+/** After setup the picker contains the interactive trigger: it must not stay aria-hidden. */
+describe('IconSelectorWidget accessibility', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = '';
+  });
+
+  it('removes aria-hidden from the picker once the trigger is rendered', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ icons: ['bi:house'] }) }));
+    const container = document.createElement('div');
+    const input = document.createElement('input');
+    const picker = document.createElement('div');
+    picker.setAttribute('aria-hidden', 'true');
+    container.append(input, picker);
+    const onReady = vi.fn();
+
+    new IconSelectorWidget(container, input, picker, '/api/icons', 'direct', undefined, onReady);
+
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
+    expect(picker.querySelector('.icon-selector-trigger')).not.toBeNull();
+    expect(picker.hasAttribute('aria-hidden')).toBe(false);
   });
 });

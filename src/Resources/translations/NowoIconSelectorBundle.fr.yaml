@@ -1,6 +1,7 @@
 # Icon Selector Bundle - Français
 placeholder: 'Choisir une icône...'
 search_placeholder: 'Rechercher des icônes...'
+no_icons: 'Aucune icône disponible.'
 
 home: Accueil
 user: Utilisateur

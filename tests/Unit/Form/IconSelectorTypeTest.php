@@ -246,6 +246,28 @@ final class IconSelectorTypeTest extends TestCase
         self::assertSame('other-controller icon-selector', $view->vars['attr']['data-controller']);
     }
 
+    public function testBuildViewDoesNotDuplicateIconSelectorController(): void
+    {
+        $type               = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '');
+        $view               = new FormView();
+        $view->vars['attr'] = ['data-controller' => ' icon-selector  other icon-selector '];
+        $form               = $this->createStub(FormInterface::class);
+
+        $type->buildView($view, $form, [
+            'mode'                      => 'direct',
+            'icon_sets'                 => null,
+            'icons_api_path'            => null,
+            'icons'                     => null,
+            'choices'                   => [],
+            'placeholder'               => '',
+            'required'                  => true,
+            'translation_domain'        => 'NowoIconSelectorBundle',
+            'choice_translation_domain' => 'NowoIconSelectorBundle',
+            'search_placeholder'        => 'search_placeholder',
+        ]);
+        self::assertSame('icon-selector other', $view->vars['attr']['data-controller']);
+    }
+
     public function testBuildViewSetsChoicesAndPlaceholder(): void
     {
         $type               = $this->createType($this->createEmptyProvider(), $this->emptyIconSets(), '');

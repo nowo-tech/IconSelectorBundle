@@ -26,6 +26,8 @@ use function is_array;
 use function is_string;
 use function serialize;
 
+use const PREG_SPLIT_NO_EMPTY;
+
 /**
  * Form type for selecting an icon (grid, search, or tom_select mode).
  *
@@ -97,7 +99,7 @@ final class IconSelectorType extends AbstractType
         $view->vars['search_placeholder']                          = $options['search_placeholder'];
         $iconsApiPath                                              = $options['icons_api_path'] ?? $this->iconsApiPath;
         $view->vars['config_path']                                 = preg_replace('#/icons/?$#', '/config', $iconsApiPath);
-        $view->vars['attr']['data-controller']                     = trim(($view->vars['attr']['data-controller'] ?? '') . ' icon-selector');
+        $view->vars['attr']['data-controller']                     = $this->withIconSelectorController((string) ($view->vars['attr']['data-controller'] ?? ''));
         $view->vars['attr']['data-icon-selector-mode-value']       = $options['mode'];
         $view->vars['attr']['data-icon-selector-icons-url-value']  = $iconsApiPath;
         $view->vars['attr']['data-icon-selector-config-url-value'] = $view->vars['config_path'];
@@ -106,6 +108,21 @@ final class IconSelectorType extends AbstractType
         $view->vars['tom_select_preloaded_options']                = $options['mode'] === self::MODE_TOM_SELECT
             ? $this->buildTomSelectPreloadedOptions($choices, $currentValue)
             : [];
+    }
+
+    /**
+     * Appends the "icon-selector" Stimulus controller once (keeps any other controllers, drops duplicates).
+     *
+     * @param string $controllers Existing space-separated data-controller value
+     *
+     * @return string Space-separated controllers including "icon-selector" exactly once
+     */
+    private function withIconSelectorController(string $controllers): string
+    {
+        $list   = preg_split('/\s+/', trim($controllers), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $list[] = 'icon-selector';
+
+        return implode(' ', array_unique($list));
     }
 
     /**

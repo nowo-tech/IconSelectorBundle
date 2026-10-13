@@ -1,6 +1,7 @@
 # Icon Selector Bundle - English
 placeholder: 'Choose icon...'
 search_placeholder: 'Search icons...'
+no_icons: 'No icons available.'
 
 # Choice labels (icon names used as keys when choice_translation_domain is set)
 home: Home

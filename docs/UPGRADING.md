@@ -39,6 +39,10 @@
 
 ## Unreleased
 
+- **Markup of the icon selector widget:** the wrapper `<div>` now has `id="<field id>_icon_selector"` (it used to repeat the field id), and the form `attr` option (custom `data-*`, `class`, …) is rendered on the wrapper only, no longer on the inner hidden input / `<select>`. If your CSS or JavaScript selected the wrapper by the field id (e.g. `#form_icon`), use `#form_icon_icon_selector` or `[data-controller~="icon-selector"]`; the field id still identifies the input / select.
+- The picker is no longer `aria-hidden`; if a custom theme relied on that attribute for styling, use `[data-icon-selector-enhanced="0"]` instead.
+- New translation key `no_icons` (empty state). Override it in your `NowoIconSelectorBundle` translations if needed.
+
 ## To 1.3.0
 
 From **1.2.0** — security - Iconify SVG bodies sanitized client-side; twig lint clean; vitest 4.

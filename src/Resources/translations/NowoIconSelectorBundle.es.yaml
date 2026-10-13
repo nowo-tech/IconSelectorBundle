@@ -1,6 +1,7 @@
 # Icon Selector Bundle - Español
 placeholder: 'Elegir icono...'
 search_placeholder: 'Buscar iconos...'
+no_icons: 'No hay iconos disponibles.'
 
 # Etiquetas de opciones (nombres de iconos como claves)
 home: Inicio

@@ -37,6 +37,9 @@ export const ATTR_SEARCH_PLACEHOLDER = 'data-icon-selector-search-placeholder';
 /** Data attribute for debug mode: when "1", all console logs are shown; otherwise only "script loaded". */
 export const ATTR_DEBUG = 'data-icon-selector-debug-value';
 
+/** Translated text shown in the panel when no icons could be loaded. */
+export const ATTR_EMPTY_TEXT = 'data-icon-selector-empty-text';
+
 /** Widget config from GET /api/icon-selector/config (for 100% front Iconify flow). */
 export interface IconSelectorConfig {
   /** Base URL for Iconify API (e.g. https://api.iconify.design). */
@@ -367,7 +370,10 @@ export class IconSelectorIconifyWidget {
   private readonly input: HTMLInputElement;
   private readonly picker: HTMLElement;
   private readonly configUrl: string;
+  /** Bundle icons endpoint, used as fallback when the Iconify collection API is unavailable. */
+  private readonly iconsUrl: string;
   private readonly searchPlaceholder: string;
+  private readonly emptyText: string;
   private config: IconSelectorConfig | null = null;
   private entries: IconifyIconEntry[] = [];
   private svgCache: Record<string, string> = {};
@@ -393,6 +399,9 @@ export class IconSelectorIconifyWidget {
    * @param picker - Element where the trigger and dropdown panel are rendered.
    * @param configUrl - URL of the bundle config endpoint.
    * @param searchPlaceholder - Placeholder for the search input inside the panel.
+   * @param onReady - Called once the widget has been rendered (also when no icons could be loaded).
+   * @param iconsUrl - Bundle icons endpoint used as fallback when Iconify collections cannot be fetched
+   *   (defaults to the config URL with /config replaced by /icons).
    */
   constructor(
     container: HTMLElement,
@@ -401,13 +410,16 @@ export class IconSelectorIconifyWidget {
     configUrl: string,
     searchPlaceholder?: string,
     onReady?: () => void,
+    iconsUrl?: string,
   ) {
     this.container = container;
     this.input = input;
     this.picker = picker;
     this.configUrl = configUrl;
+    this.iconsUrl = iconsUrl ?? configUrl.replace(/\/config\/?$/, '/icons');
     this.onReady = onReady;
     this.searchPlaceholder = searchPlaceholder ?? container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ?? 'Search icons...';
+    this.emptyText = container.getAttribute(ATTR_EMPTY_TEXT) ?? 'No icons available.';
     this.load().then(async () => {
       if (this.destroyed) return;
       await this.render();
@@ -434,7 +446,6 @@ export class IconSelectorIconifyWidget {
     const config = await fetchIconifyConfig(this.configUrl);
     if (!config) {
       getLogger().warn('IconSelectorIconifyWidget: could not load config');
-      this.picker.textContent = 'Could not load config.';
       return;
     }
     this.config = config;
@@ -458,8 +469,48 @@ export class IconSelectorIconifyWidget {
         }
       }
     }
-    this.entries = allEntries;
-    getLogger().debug('IconSelectorIconifyWidget (grid): entries loaded', allEntries.length);
+    this.entries = allEntries.length > 0 ? allEntries : await this.loadEntriesFromBundle(config);
+    getLogger().debug('IconSelectorIconifyWidget (grid): entries loaded', this.entries.length);
+  }
+
+  /**
+   * Fallback when every Iconify collection request failed (rate limit, network, CORS): reads the icon IDs
+   * from the bundle endpoint (server-side Iconify list or the static default list).
+   *
+   * @param config - Loaded widget config (used to map prefixes to set keys).
+   * @returns Entries built from the bundle list (empty when that request fails too).
+   */
+  private async loadEntriesFromBundle(config: IconSelectorConfig): Promise<IconifyIconEntry[]> {
+    getLogger().warn('IconSelectorIconifyWidget: Iconify collections unavailable, falling back to', this.iconsUrl);
+    const prefixToSet: Record<string, string> = {};
+    for (const set of config.sets) {
+      for (const prefix of set.prefixes) prefixToSet[prefix] = set.key;
+    }
+    try {
+      const res = await fetch(this.iconsUrl);
+      if (!res.ok) return [];
+      const data = (await res.json()) as IconsApiResponse;
+      const entries: IconifyIconEntry[] = [];
+      const seen = new Set<string>();
+      const add = (id: unknown, setKey?: string): void => {
+        if (typeof id !== 'string' || seen.has(id)) return;
+        const sep = id.indexOf(':');
+        if (sep <= 0) return;
+        const prefix = id.slice(0, sep);
+        seen.add(id);
+        entries.push({ id, prefix, name: id.slice(sep + 1), setKey: prefixToSet[prefix] ?? setKey ?? prefix });
+      };
+      if (data.icons_by_set && typeof data.icons_by_set === 'object') {
+        for (const [setKey, ids] of Object.entries(data.icons_by_set)) {
+          if (Array.isArray(ids)) ids.forEach((id) => add(id, setKey));
+        }
+      }
+      if (Array.isArray(data.icons)) data.icons.forEach((id) => add(id));
+      return entries;
+    } catch (e) {
+      getLogger().warn('IconSelectorIconifyWidget: could not load fallback icon list', e);
+      return [];
+    }
   }
 
   /** Returns entries filtered by set, category and search query. */
@@ -503,10 +554,24 @@ export class IconSelectorIconifyWidget {
       byPrefix.set(e.prefix, arr);
       if (++count >= limit) break;
     }
-    const base = this.config!.iconify_base;
+    if (byPrefix.size === 0) return;
+    const base = this.config?.iconify_base ?? '';
+    const missing: string[] = [];
     for (const [prefix, names] of byPrefix) {
-      const batch = await fetchIconifyIconsBatch(base, prefix, names);
+      const batch = base ? await fetchIconifyIconsBatch(base, prefix, names) : {};
       Object.assign(this.svgCache, batch);
+      for (const name of names) {
+        if (!batch[`${prefix}:${name}`]) missing.push(`${prefix}:${name}`);
+      }
+    }
+    if (missing.length > 0) {
+      // Iconify unavailable for these icons: ask the bundle (ux_icons renders them server-side).
+      const fromBundle = await fetchSvgBatch(this.iconsUrl.replace(/\/$/, '') + '/svg', missing);
+      for (const [id, svg] of Object.entries(fromBundle)) {
+        if (typeof svg !== 'string' || svg === '') continue;
+        const clean = sanitizeSvg(svg);
+        if (clean) this.svgCache[id] = clean;
+      }
     }
   }
 
@@ -538,6 +603,7 @@ export class IconSelectorIconifyWidget {
     if (value && this.svgCache[value]) {
       const wrap = document.createElement('span');
       wrap.className = 'icon-selector-trigger-svg';
+      wrap.setAttribute('aria-hidden', 'true');
       wrap.style.cssText = 'width:1.25rem;height:1.25rem;display:inline-flex;flex-shrink:0;';
       wrap.innerHTML = this.svgCache[value];
       trigger.appendChild(wrap);
@@ -599,7 +665,7 @@ export class IconSelectorIconifyWidget {
    * @returns Promise that resolves when the panel has been rendered.
    */
   private renderPanelContent(): Promise<void> {
-    if (!this.panelEl || !this.config) return Promise.resolve();
+    if (!this.panelEl || this.entries.length === 0) return Promise.resolve();
     const filtered = this.getFilteredEntries();
     const toShow = filtered.slice(0, this.visibleCount);
     return this.ensureSvgForEntries(toShow, this.visibleCount).then(() => {
@@ -682,12 +748,12 @@ export class IconSelectorIconifyWidget {
   /** Builds the full widget DOM: trigger and dropdown panel with search, tabs, category filter and grid. */
   private async render(): Promise<void> {
     if (this.destroyed) return;
-    if (!this.config || this.entries.length === 0) {
-      this.picker.textContent = 'No icons loaded.';
-      return;
-    }
     this.picker.innerHTML = '';
     this.picker.className = 'icon-selector-iconify-widget position-relative';
+    // The picker now holds the interactive trigger and panel: it must stay exposed to assistive technology.
+    this.picker.removeAttribute('aria-hidden');
+    const isEmpty = this.entries.length === 0;
+    if (isEmpty) getLogger().warn('IconSelectorIconifyWidget (grid): no icons could be loaded; rendering empty state');
 
     const currentValue = this.input.value || '';
     getLogger().debug('IconSelectorIconifyWidget (grid): render initial value', {
@@ -710,6 +776,7 @@ export class IconSelectorIconifyWidget {
     }
 
     this.triggerEl = this.buildTrigger();
+    if (isEmpty) this.triggerEl.setAttribute('data-icon-selector-state', 'empty');
     this.picker.appendChild(this.triggerEl);
 
     const panel = document.createElement('div');
@@ -737,7 +804,7 @@ export class IconSelectorIconifyWidget {
     searchRow.appendChild(this.searchInput);
     panel.appendChild(searchRow);
 
-    if (this.config.sets.length > 1) {
+    if (!isEmpty && this.config && this.config.sets.length > 1) {
       const tabs = document.createElement('div');
       tabs.className = 'd-flex flex-wrap gap-1 mb-2';
       const allBtn = document.createElement('button');
@@ -812,6 +879,14 @@ export class IconSelectorIconifyWidget {
     gridContainer.className = 'icon-selector-iconify-grid-container';
     gridContainer.style.maxHeight = '16rem';
     gridContainer.style.overflowY = 'scroll';
+    if (isEmpty) {
+      gridContainer.style.overflowY = 'auto';
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'icon-selector-empty text-muted small p-2';
+      emptyEl.setAttribute('role', 'status');
+      emptyEl.textContent = this.emptyText;
+      gridContainer.appendChild(emptyEl);
+    }
     panel.appendChild(gridContainer);
     this.panelEl = panel;
     this.picker.appendChild(panel);
@@ -955,6 +1030,7 @@ export class IconSelectorWidget {
     if (value && this.svgMap[value]) {
       const wrap = document.createElement('span');
       wrap.className = 'icon-selector-svg-wrap';
+      wrap.setAttribute('aria-hidden', 'true');
       wrap.style.cssText = 'width:1.25rem;height:1.25rem;display:inline-flex;flex-shrink:0;';
       wrap.innerHTML = this.svgMap[value];
       trigger.appendChild(wrap);
@@ -1074,6 +1150,9 @@ export class IconSelectorWidget {
     this.serverRenderedCleanup = [];
     const hasServerRendered = this.picker.querySelectorAll('.icon-selector-item').length > 0;
     this.serverRenderedMode = hasServerRendered;
+
+    // The picker hosts interactive controls once set up: never leave the server-side aria-hidden on it.
+    this.picker.removeAttribute('aria-hidden');
 
     if (hasServerRendered) {
       this.attachHandlersToPicker();
@@ -2133,7 +2212,7 @@ export function initIconSelectorContainer(container: HTMLElement): IconSelectorD
   fetchIconifyConfig(configUrl).then((config) => {
     if (disposed) return;
     if (config?.sets?.length) {
-      const widget = new IconSelectorIconifyWidget(container, input, picker, configUrl, searchPlaceholder, markEnhanced);
+      const widget = new IconSelectorIconifyWidget(container, input, picker, configUrl, searchPlaceholder, markEnhanced, url);
       activeDisposer = () => widget.destroy();
     } else {
       const widget = new IconSelectorWidget(container, input, picker, url, mode, searchPlaceholder, markEnhanced);

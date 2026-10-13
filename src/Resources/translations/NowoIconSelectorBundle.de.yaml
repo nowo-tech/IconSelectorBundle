@@ -1,6 +1,7 @@
 # Icon Selector Bundle - Deutsch
 placeholder: 'Symbol wählen...'
 search_placeholder: 'Symbole suchen...'
+no_icons: 'Keine Symbole verfügbar.'
 
 home: Startseite
 user: Benutzer

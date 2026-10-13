@@ -1,6 +1,7 @@
 # Icon Selector Bundle - Nederlands
 placeholder: 'Pictogram kiezen...'
 search_placeholder: 'Pictogrammen zoeken...'
+no_icons: 'Geen pictogrammen beschikbaar.'
 
 home: Start
 user: Gebruiker

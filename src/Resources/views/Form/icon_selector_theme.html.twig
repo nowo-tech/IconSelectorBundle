@@ -13,14 +13,16 @@
 {% set placeholder_text = placeholder_key|trans({}, trans_domain) %}
 {% set search_placeholder_key = form.vars.search_placeholder|default('search_placeholder') %}
 {% set search_placeholder_text = search_placeholder_key|trans({}, trans_domain) %}
+{% set controllers = attr['data-controller']|default('')|split(' ')|filter(c => c is not empty) %}
 {% set attr = attr|merge({
-    'data-controller': (attr['data-controller']|default('') ~ ' icon-selector')|trim,
+    'data-controller': ('icon-selector' in controllers ? controllers : controllers|merge(['icon-selector']))|join(' '),
     'data-icon-selector-enhanced': '0',
     'data-icon-selector-mode-value': mode,
     'data-icon-selector-icons-url-value': form.vars.icons_api_path|default('/api/icon-selector/icons'),
     'data-icon-selector-config-url-value': form.vars.config_path|default(form.vars.icons_api_path|default('/api/icon-selector/icons')|replace({'/icons': '/config'})),
     'data-icon-selector-search-placeholder': search_placeholder_text,
-    class: (attr.class|default('') ~ ' icon-selector-widget')|trim,
+    'data-icon-selector-empty-text': 'no_icons'|trans({}, 'NowoIconSelectorBundle'),
+    class: ('icon-selector-widget' in (attr.class|default('')|split(' ')) ? attr.class : (attr.class|default('') ~ ' icon-selector-widget'))|trim,
 }) %}
 <style>
     {# Pending state: show a field-shaped shell from first paint (avoids blank/unstyled flash before JS). #}
@@ -78,12 +80,17 @@
         to { transform: rotate(360deg); }
     }
 </style>
-<div {{ block('widget_container_attributes') }}>
+{#
+  The wrapper carries the form attr (controller, data-*, class) under a suffixed id; the field id belongs to the
+  hidden input / <select> only, so ids stay unique and the label `for` targets the real control.
+#}
+<div id="{{ id }}_icon_selector"{{ block('attributes') }}>
     {% if mode == 'tom_select' %}
         <div class="icon-selector-field-shell">
             <select name="{{ full_name }}"
                     id="{{ id }}"
-                    {{ block('widget_attributes') }}
+                    {%- if disabled %} disabled="disabled"{% endif %}
+                    {%- if required %} required="required"{% endif %}
                     data-icon-selector-target="select"
                     class="form-select icon-selector-select">
                 <option value="">{{ placeholder_text }}</option>
@@ -105,10 +112,11 @@
                    name="{{ full_name }}"
                    id="{{ id }}"
                    {% if value is not empty %}value="{{ value }}"{% endif %}
-                   {{ block('widget_attributes') }}
+                   {%- if disabled %} disabled="disabled"{% endif %}
                    data-icon-selector-target="input"
                    class="icon-selector-input" />
-            <div data-icon-selector-target="picker" class="icon-selector-picker mt-2" aria-hidden="true">
+            {# Hidden until the widget is set up (CSS above); the script never leaves aria-hidden on the interactive picker. #}
+            <div data-icon-selector-target="picker" class="icon-selector-picker mt-2">
                 {% if mode == 'search' %}
                     <input type="text" class="form-control mb-2 icon-selector-search" placeholder="{{ search_placeholder_text }}" data-icon-selector-target="search" autocomplete="off" />
                 {% endif %}
