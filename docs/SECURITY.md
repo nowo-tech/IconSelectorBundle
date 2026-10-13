@@ -116,7 +116,7 @@ The following describes the security measures implemented in the bundle and rema
 |-------------------|--------|--------|
 | Auth / authz      | Not in bundle | Host must firewall `/api/icon-selector`; no user-supplied SVG dirs in `ux_icons`. |
 | Icon ID input     | Implemented | Whitelist against configured icons (IconListProvider). |
-| SVG output → DOM  | Implemented | SvgSanitizer uses a DOM allowlist (with regex fallback) for script tags, event attributes, and unsafe elements. |
+| SVG output → DOM  | Implemented | SvgSanitizer uses a DOM allowlist for script tags, event attributes, and unsafe elements; unparseable markup is dropped (fail closed). |
 | assetPath         | Implemented | Path traversal and invalid chars rejected; safe default used. |
 | Iconify API       | No SSRF | Keep config (e.g. icon_sets) non-user-controlled. |
 | Iconify SVG → DOM | Implemented | Client-side DOM allowlist sanitizer (fail closed) before innerHTML. |

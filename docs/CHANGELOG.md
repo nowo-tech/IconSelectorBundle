@@ -38,6 +38,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `docs/SECURITY.md` summary table no longer mentions the SVG regex fallback removed in 1.2.0 (the sanitizer fails closed).
+
 ## [1.3.0] - 2026-10-13
 
 ### Security
