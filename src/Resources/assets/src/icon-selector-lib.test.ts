@@ -13,11 +13,15 @@ import {
   ATTR_MODE,
   ATTR_URL,
   ATTR_SEARCH_PLACEHOLDER,
+  fetchIconifyIconsBatch,
 } from './icon-selector-lib';
 
 /** Mock TomSelect to avoid DOM/constructor side effects in initTomSelect tests. */
 vi.mock('tom-select', () => ({
-  default: vi.fn().mockImplementation(() => ({ destroy: vi.fn() })),
+  // Vitest 4: a mock used with `new` needs a `function`/`class` implementation.
+  default: vi.fn().mockImplementation(function () {
+    return { destroy: vi.fn() };
+  }),
 }));
 
 /** Tests for reading options from the script tag (icon-selector-options-{id}). */
@@ -316,5 +320,46 @@ describe('runInit', () => {
     container.setAttribute(ATTR_URL, '/api/icons');
     container.setAttribute(ATTR_MODE, 'direct');
     expect(initIconSelectorContainer(container)).toBe(false);
+  });
+});
+
+/** Iconify API responses are third-party content injected via innerHTML: they must be sanitized. */
+describe('fetchIconifyIconsBatch', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('sanitizes icon bodies and coerces dimensions from the Iconify API', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          width: 24,
+          height: 24,
+          icons: {
+            safe: { body: '<path fill="currentColor" d="M1 1h22v22H1z"/>' },
+            evil: {
+              body: '<path d="M0 0" onload="alert(1)"/><script>alert(2)</script><foreignObject><img xmlns="http://www.w3.org/1999/xhtml" src="x" onerror="alert(3)"/></foreignObject>',
+              width: '24" onload="alert(4)',
+            },
+            // Not well-formed XML (HTML-style unquoted attributes): dropped entirely (fail closed).
+            broken: { body: '<image href=x onerror=alert(5)>' },
+          },
+          aliases: { alias: { parent: 'safe' } },
+        }),
+      }),
+    );
+
+    const out = await fetchIconifyIconsBatch('https://api.iconify.design/', 'mdi', ['safe', 'evil', 'broken', 'alias', 'missing']);
+
+    expect(fetch).toHaveBeenCalledWith('https://api.iconify.design/mdi.json?icons=safe%2Cevil%2Cbroken%2Calias%2Cmissing');
+    expect(out['mdi:safe']).toContain('d="M1 1h22v22H1z"');
+    expect(out['mdi:alias']).toBe(out['mdi:safe']);
+    expect(out['mdi:evil']).toContain('d="M0 0"');
+    expect(out['mdi:evil']).toContain('width="24"');
+    expect(out['mdi:evil']).not.toMatch(/onload|onerror|script|foreignObject|alert/i);
+    expect(out).not.toHaveProperty('mdi:broken');
+    expect(out).not.toHaveProperty('mdi:missing');
   });
 });

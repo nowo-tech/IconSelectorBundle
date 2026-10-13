@@ -105,6 +105,11 @@ The following describes the security measures implemented in the bundle and rema
 
 - The SVG endpoint returns `JsonResponse` (application/json). Browsers will not interpret the response as HTML, so the main XSS vector is the frontend’s use of the JSON payload (innerHTML with SVG), which is mitigated by server-side SVG sanitization.
 
+### 6. Iconify icons loaded in the browser
+
+- **Behaviour:** In Iconify mode (`config_url` set) the widget fetches icon bodies directly from `api.iconify.design` (third-party content) and renders them with `innerHTML`.
+- **Implemented:** Every icon is sanitized client-side before it is cached or rendered (`svg-sanitizer.ts`): the markup is parsed as XML with `DOMParser` (`image/svg+xml`), only the same element/attribute allowlist as the server `SvgSanitizer` is kept (no `script`, `foreignObject`, `animate`/`set`, `image`, `a`, `style`, no `on*` attributes; `href`/`url()` only to `#fragment`), and malformed or non-SVG markup is dropped (fail closed). Width/height/viewBox numbers from the API are coerced to finite numbers.
+
 ### Summary
 
 | Area              | Status | Notes |
@@ -114,6 +119,7 @@ The following describes the security measures implemented in the bundle and rema
 | SVG output → DOM  | Implemented | SvgSanitizer uses a DOM allowlist (with regex fallback) for script tags, event attributes, and unsafe elements. |
 | assetPath         | Implemented | Path traversal and invalid chars rejected; safe default used. |
 | Iconify API       | No SSRF | Keep config (e.g. icon_sets) non-user-controlled. |
+| Iconify SVG → DOM | Implemented | Client-side DOM allowlist sanitizer (fail closed) before innerHTML. |
 | DoS               | MAX_IDS=500 | Consider rate limiting on public endpoints. |
 
 ## Preferred Languages

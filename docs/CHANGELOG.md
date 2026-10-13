@@ -33,6 +33,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Security
+
+- Iconify mode: icon bodies fetched from `api.iconify.design` are now sanitized in the browser before being injected via `innerHTML` (new `svg-sanitizer.ts`: XML `DOMParser`, element/attribute allowlist mirroring the server `SvgSanitizer`, `href`/`url()` limited to `#fragment`, fail closed on malformed markup); dimensions from the API are coerced to numbers. Shipped `icon-selector.js` rebuilt.
+
+### Fixed
+
+- Twig templates pass `composer twig:lint` again (unquoted `class` hash key, trailing commas; 22 errors).
+
+### Changed
+
+- Development: `vitest` and `@vitest/coverage-v8` upgraded to 4.x, `happy-dom` to 20.x and `vite` to 8.x (required by vitest 4; build output is equivalent). The Tom Select constructor mock now uses a `function` implementation.
+
 ## [1.2.0] - 2026-10-13
 
 ### Security

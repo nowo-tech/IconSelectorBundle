@@ -13,8 +13,8 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html'],
       reportsDirectory: './coverage-ts',
-      // Solo logger.ts para poder exigir 100%; icon-selector-lib tiene ~2000 líneas y tests en icon-selector-lib.test.ts no cuentan para este umbral.
-      include: ['src/Resources/assets/src/logger.ts'],
+      // logger.ts + svg-sanitizer.ts at 100%; icon-selector-lib tiene ~2000 líneas y tests en icon-selector-lib.test.ts no cuentan para este umbral.
+      include: ['src/Resources/assets/src/logger.ts', 'src/Resources/assets/src/svg-sanitizer.ts'],
       exclude: ['**/*.test.ts', '**/node_modules/**'],
       thresholds: {
         lines: 100,

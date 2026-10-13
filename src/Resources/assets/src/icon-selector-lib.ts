@@ -5,6 +5,7 @@
 
 import TomSelect from 'tom-select';
 import { createBundleLogger, type BundleLogger } from './logger';
+import { sanitizeSvg, toSvgNumber } from './svg-sanitizer';
 
 let bundleLogger: BundleLogger | null = null;
 
@@ -297,16 +298,22 @@ export async function fetchIconifyIconsBatch(
     const res = await fetch(url);
     if (!res.ok) return out;
     const data = (await res.json()) as IconifyIconsJsonResponse;
-    const defaultW = data.width ?? 24;
-    const defaultH = data.height ?? 24;
+    const defaultW = toSvgNumber(data.width, 24);
+    const defaultH = toSvgNumber(data.height, 24);
     for (const name of names) {
       const icon = resolveIconData(data, name);
       if (icon?.body) {
-        const w = icon.width ?? defaultW;
-        const h = icon.height ?? defaultH;
-        const left = icon.left ?? 0;
-        const top = icon.top ?? 0;
-        out[`${prefix}:${name}`] = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${left} ${top} ${w} ${h}" fill="currentColor">${icon.body}</svg>`;
+        const w = toSvgNumber(icon.width, defaultW);
+        const h = toSvgNumber(icon.height, defaultH);
+        const left = toSvgNumber(icon.left, 0);
+        const top = toSvgNumber(icon.top, 0);
+        // icon.body comes from a third-party API and ends up in innerHTML: sanitize (allowlist, fail closed).
+        const svg = sanitizeSvg(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${left} ${top} ${w} ${h}" fill="currentColor">${icon.body}</svg>`,
+        );
+        if (svg !== '') {
+          out[`${prefix}:${name}`] = svg;
+        }
       }
     }
   } catch {

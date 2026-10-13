@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Iconify mode: icons returned by `api.iconify.design` are now sanitized client-side; an icon whose markup is not well-formed SVG or only uses non-allowlisted elements is no longer rendered (empty preview). No configuration change. Run `php bin/console assets:install` to publish the rebuilt `icon-selector.js`.
+
 ## To 1.2.0
 
 From **1.1.9** — security - fail-closed SVG sanitizer, only offered choices rendered, correct Symfony/ux-icons constraints.

@@ -8,7 +8,7 @@
     'data-controller': (attr['data-controller']|default('') ~ ' icon-selector')|trim,
     'data-icon-selector-mode-value': form.vars.mode|default('direct'),
     'data-icon-selector-icons-url-value': form.vars.icons_api_path|default('/api/icon-selector/icons'),
-    'class': (attr.class|default('') ~ ' icon-selector-widget')|trim
+    class: (attr.class|default('') ~ ' icon-selector-widget')|trim,
 }) %}
 <div {{ block('widget_container_attributes') }}>
     <input type="text"

@@ -20,7 +20,7 @@
     'data-icon-selector-icons-url-value': form.vars.icons_api_path|default('/api/icon-selector/icons'),
     'data-icon-selector-config-url-value': form.vars.config_path|default(form.vars.icons_api_path|default('/api/icon-selector/icons')|replace({'/icons': '/config'})),
     'data-icon-selector-search-placeholder': search_placeholder_text,
-    'class': (attr.class|default('') ~ ' icon-selector-widget')|trim
+    class: (attr.class|default('') ~ ' icon-selector-widget')|trim,
 }) %}
 <style>
     {# Pending state: show a field-shaped shell from first paint (avoids blank/unstyled flash before JS). #}
