@@ -126,7 +126,7 @@ The demo is in `demo/symfony8`. It uses **FrankenPHP** with **Caddy** (HTTP on p
 
 | Grid (direct) | Tom Select |
 |--------------|------------|
-| ![Icon selector – Grid](docs/images/demo-grid.png) | ![Icon selector – Tom Select](docs/images/demo-tom-select.png) |
+| ![Icon selector – Grid](docs/images/demo/demo-grid.webp) | ![Icon selector – Tom Select](docs/images/demo/demo-tom-select.webp) |
 
 **Host port:** defaults to **8011** (`PORT` in the demo’s `.env`). Access is HTTP (no HTTPS) mapped from the host to port 80 in the container.
 
