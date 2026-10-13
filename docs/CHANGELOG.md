@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.4.0] - 2026-10-13](#140---2026-10-13)
 - [[1.3.0] - 2026-10-13](#130---2026-10-13)
 - [[1.2.0] - 2026-10-13](#120---2026-10-13)
 - [[1.1.9] - 2026-10-13](#119---2026-10-13)
@@ -38,12 +39,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-13
+
 ### Fixed
 
 - `docs/SECURITY.md` summary table no longer mentions the SVG regex fallback removed in 1.2.0 (the sanitizer fails closed).
 - Form themes (direct/search/tom_select, all 11 themes): the wrapper `<div>` and the inner `<input>`/`<select>` no longer share the field id — the wrapper is now `id="<field id>_icon_selector"` and the field id belongs to the control the label targets. The inner control no longer repeats the form `attr` (it used to get `data-controller="icon-selector icon-selector"`, the `icon-selector-widget` class and duplicate `id`/`name` attributes); `data-controller` and the `icon-selector-widget` class are added only once (also by `IconSelectorType::buildView()`).
 - Accessibility: the picker (`data-icon-selector-target="picker"`) is no longer `aria-hidden="true"` once the trigger button and panel are rendered inside it (the attribute was removed from the themes and is dropped by the script on setup, for custom themes); decorative SVGs in the trigger are `aria-hidden`.
 - Iconify mode: when the Iconify `/collection` requests fail (HTTP 429, network error, CORS) the widget falls back to the bundle icon list (`/api/icon-selector/icons`, i.e. the server-side Iconify list or the static default list) and to the bundle SVG endpoint for icons Iconify cannot serve. When no list can be loaded at all, the trigger is still rendered and the panel shows a translated empty state (`no_icons`, new key in the 7 bundled languages, always read from the `NowoIconSelectorBundle` domain; `data-icon-selector-empty-text`) instead of leaving the field without a control. Shipped `icon-selector.js` rebuilt.
+
+[1.4.0]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.4.0
 
 ## [1.3.0] - 2026-10-13
 

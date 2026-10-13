@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.4.0](#to-140)
 - [To 1.3.0](#to-130)
 - [To 1.2.0](#to-120)
 - [To 1.1.9](#to-119)
@@ -38,6 +39,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.4.0
+
+From **1.3.0** — unique widget ids, accessible picker, Iconify fallback
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
 
 - **Markup of the icon selector widget:** the wrapper `<div>` now has `id="<field id>_icon_selector"` (it used to repeat the field id), and the form `attr` option (custom `data-*`, `class`, …) is rendered on the wrapper only, no longer on the inner hidden input / `<select>`. If your CSS or JavaScript selected the wrapper by the field id (e.g. `#form_icon`), use `#form_icon_icon_selector` or `[data-controller~="icon-selector"]`; the field id still identifies the input / select.
 - The picker is no longer `aria-hidden`; if a custom theme relied on that attribute for styling, use `[data-icon-selector-enhanced="0"]` instead.
