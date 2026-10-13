@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## To 1.3.0
+
+From **1.2.0** — security - Iconify SVG bodies sanitized client-side; twig lint clean; vitest 4.
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+php bin/console assets:install
+```
+
 - Iconify mode: icons returned by `api.iconify.design` are now sanitized client-side; an icon whose markup is not well-formed SVG or only uses non-allowlisted elements is no longer rendered (empty preview). No configuration change. Run `php bin/console assets:install` to publish the rebuilt `icon-selector.js`.
 
 ## To 1.2.0
@@ -48,6 +57,7 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 
 ## Table of contents
 
+- [To 1.3.0](#to-130)
 - [To 1.2.0](#to-120)
 - [To 1.1.9](#to-119)
 - [To 1.1.8](#to-118)
