@@ -1,7 +1,16 @@
 # Upgrading
 
-
 ## Unreleased
+
+## To 1.1.9
+
+From **1.1.8** — dependency refresh and repository maintenance.
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
+
+- No breaking changes. No application upgrade steps.
 
 ## To 1.1.8
 
@@ -26,7 +35,7 @@ This document describes how to upgrade between versions of Icon Selector Bundle.
 
 ## Table of contents
 
-
+- [To 1.1.9](#to-119)
 - [To 1.1.8](#to-118)
 - [To 1.1.7](#to-117)
 - [From 1.1.5 to 1.1.6](#from-115-to-116)
@@ -278,5 +287,4 @@ and enable `Twig\Extra\TwigExtraBundle\TwigExtraBundle`. Flex recipes usually re
 ### Twig-CS-Fixer (maintainers)
 
 Package maintainers: `composer twig:lint` / `composer twig:fix` use `.twig-cs-fixer.php` over `src/` (and `templates/` when present).
-
 
