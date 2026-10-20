@@ -152,10 +152,8 @@ Run tests and QA with Docker: `make up && make install && make test` (or `make t
 
 ## Documentation
 
-- [GitHub Actions CI requirements](docs/GITHUB_CI.md)
 - [Installation](docs/INSTALLATION.md)
 - [Configuration](docs/CONFIGURATION.md)
-- [PSR evaluation (REQ-CS-007)](docs/PSR.md)
 - [Usage](docs/USAGE.md)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
@@ -163,13 +161,14 @@ Run tests and QA with Docker: `make up && make install && make test` (or `make t
 - [Upgrading](docs/UPGRADING.md)
 - [Release](docs/RELEASE.md)
 - [Security](docs/SECURITY.md)
-- [FrankenPHP worker audit](docs/FRANKENPHP-WORKER-AUDIT.md)
 - [Engram](docs/ENGRAM.md)
 - [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
 - [GitHub Spec Kit](docs/SPEC-KIT.md)
 
 ### Additional documentation
 
+- [GitHub Actions CI requirements](docs/GITHUB_CI.md)
+- [PSR evaluation (REQ-CS-007)](docs/PSR.md)
 - [Overriding bundle templates](docs/USAGE.md#overriding-bundle-templates)
 - [Demo with FrankenPHP (development and production)](docs/DEMO-FRANKENPHP.md) — development vs production setup, Web Profiler, Twig Inspector; reusable for other bundles
 - [FrankenPHP worker audit (scenario B, no kernel reset)](docs/FRANKENPHP-WORKER-AUDIT.md)

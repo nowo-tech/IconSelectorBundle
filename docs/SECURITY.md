@@ -14,6 +14,7 @@
   - [3. Form choice loader (IconChoiceLoader)](#3-form-choice-loader-iconchoiceloader)
   - [4. IconifyCollectionLoader](#4-iconifycollectionloader)
   - [5. Response and Content-Type](#5-response-and-content-type)
+  - [6. Iconify icons loaded in the browser](#6-iconify-icons-loaded-in-the-browser)
   - [Summary](#summary)
 - [Preferred Languages](#preferred-languages)
 - [Contact](#contact)

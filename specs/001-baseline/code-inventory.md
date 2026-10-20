@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/icon-selector-bundle`  
-**Last audited**: 2026-09-24
+**Last audited**: 2026-10-20 (wave-1 refresh: client-side SVG sanitizer)
 
 ## Symfony config
 
@@ -62,6 +62,8 @@
 | `Resources/assets/src/logger.ts` | Frontend logger | FR-ASSET-001 |
 | `Resources/assets/src/logger.test.ts` | Logger tests | FR-ASSET-001 |
 | `Resources/public/icon-selector.js` | Built bundle script | FR-ASSET-001 |
+| `Resources/assets/src/svg-sanitizer.ts` | Client SVG sanitizer | FR-ASSET-002, FR-SVC-003 |
+| `Resources/assets/src/svg-sanitizer.test.ts` | Sanitizer tests | FR-ASSET-002 |
 
 ## Translations
 
@@ -101,7 +103,7 @@
 | Form | 2 | 2 |
 | Services | 4 | 4 |
 | Twig PHP | 1 | 1 |
-| Frontend assets | 7 | 7 |
+| Frontend assets | 9 | 9 |
 | Translations | 7 | 7 |
 | Twig views — form themes | 11 | 11 |
-| **Total production sources** | **42** | **42** |
+| **Total production sources** | **44** | **44** |

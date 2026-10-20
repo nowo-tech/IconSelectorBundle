@@ -8,6 +8,7 @@
 - [Symfony UX Icons](#symfony-ux-icons)
 - [Troubleshooting](#troubleshooting)
   - ["Typed property ChoiceType::$choiceListFactory must not be accessed before initialization"](#typed-property-choicetypechoicelistfactory-must-not-be-accessed-before-initialization)
+- [Twig Extra Bundle (REQ-TWIG-004)](#twig-extra-bundle-req-twig-004)
 
 ## Requirements
 

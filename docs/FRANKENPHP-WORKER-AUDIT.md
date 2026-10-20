@@ -9,6 +9,18 @@
 | **Verdict** | ✅ **Viable under scenario B** — all bundle services are `readonly` and stateless, and `IconSelectorType` now feeds cacheable, bounded choice lists into Symfony's `form.choice_list_factory.cached` (was: ⚠️ viable with conditions) |
 | Remediation (2026-09-24) | W-01 and W-02 resolved (`src/Form/IconSelectorType.php`, `src/Service/IconifyCollectionLoader.php`, `src/Service/IconListProvider.php`). Regression tests render the field repeatedly through one shared `CachingFactoryDecorator` without `reset()` (`tests/Unit/Form/IconSelectorTypeTest.php`) and cover failure TTL / static fallback (`tests/Unit/Service/IconifyCollectionLoaderTest.php`, `tests/Unit/Service/IconListProviderTest.php`) |
 
+## Table of contents
+
+- [Execution model assumed](#execution-model-assumed)
+- [Summary](#summary)
+- [Services reviewed](#services-reviewed)
+- [Findings](#findings)
+  - [W-01 — Each form render adds an uncacheable choice list to Symfony's cached choice list factory (Medium, scenario B only)](#w-01--each-form-render-adds-an-uncacheable-choice-list-to-symfonys-cached-choice-list-factory-medium-scenario-b-only)
+  - [W-02 — Iconify collection fetch can block a worker on a cold cache and caches failures as empty lists (Low)](#w-02--iconify-collection-fetch-can-block-a-worker-on-a-cold-cache-and-caches-failures-as-empty-lists-low)
+  - [W-03 — SVG rendering per request (Info)](#w-03--svg-rendering-per-request-info)
+- [Usage recommendations in worker mode](#usage-recommendations-in-worker-mode)
+- [Re-audit triggers](#re-audit-triggers)
+
 ## Execution model assumed
 
 FrankenPHP worker mode boots the Symfony kernel once per worker and serves many requests with the same container. This audit assumes the **strict** variant: the kernel is **not** rebooted between requests, so every shared service, static property and PHP global survives from one request to the next. Two scenarios are evaluated:

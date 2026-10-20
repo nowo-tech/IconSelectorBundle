@@ -73,6 +73,7 @@ Symfony **form type** for icon selection with **direct grid**, **search**, and *
 - **FR-TWIG-001**: `NowoIconSelectorTwigExtension`, `TwigPathsPass`.
 - **FR-TWIG-002**: Form themes for Bootstrap 3–5, Foundation 5/6, Tailwind 2, table layout.
 - **FR-ASSET-001**: TypeScript lib, Stimulus controller, built `icon-selector.js`.
+- **FR-ASSET-002**: Client-side SVG sanitizer (`svg-sanitizer.ts`) for markup that does not come from the bundle endpoints (e.g. the public Iconify API): parses as XML, keeps only the allowlist mirrored from `SvgSanitizer` (FR-SVC-003), and drops anything that is not a well-formed `<svg>` (fail closed).
 
 ### i18n
 
@@ -82,7 +83,7 @@ Symfony **form type** for icon selection with **direct grid**, **search**, and *
 
 ## Success Criteria
 
-- **SC-001**: **42/42** files mapped in inventory.
+- **SC-001**: **44/44** files mapped in inventory.
 - **SC-002**: Config keys match [`docs/CONFIGURATION.md`](../../docs/CONFIGURATION.md).
 - **SC-003**: `composer qa` / CI green.
 

@@ -39,6 +39,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation: wave-1 REQ compliance — README documentation list order, CONTRIBUTING Cursor Agent settings and post-release-commit trailer check, CODEOWNERS / pull request / issue templates cleaned up, `demo/README.md`, demo compose project name `icon-selector-bundle-demo-symfony-8`, demo `.env.example` comments, doc TOCs, Spec Kit inventory refresh (44/44).
+
 ## [1.4.0] - 2026-10-13
 
 ### Fixed

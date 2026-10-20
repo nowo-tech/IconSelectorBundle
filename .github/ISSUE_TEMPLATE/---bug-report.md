@@ -19,7 +19,7 @@ assignees: ''
 
 | Q                           | A
 | ----------------------------| -----------------------
-| `IconSelectorBundle` version | x.y.z
+| `IconSelectorBundle` version        | x.y.z
 | PHP version                 | x.y.z
 | Database                    | MySQL / PostgreSQL / SQLite / Other
 

@@ -1,4 +1,4 @@
-name: icon-selector-demo-symfony8
+name: icon-selector-bundle-demo-symfony-8
 
 services:
   php:

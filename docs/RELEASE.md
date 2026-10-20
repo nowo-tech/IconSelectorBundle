@@ -4,6 +4,12 @@ Use this checklist when cutting a new version. The workflow [.github/workflows/r
 
 > Current release target: **1.0.15** (`v1.0.15`).
 
+## Table of contents
+
+- [Before tagging](#before-tagging)
+- [Tag and push](#tag-and-push)
+- [Example for v1.0.0](#example-for-v100)
+
 ## Before tagging
 
 1. **CHANGELOG.md**
