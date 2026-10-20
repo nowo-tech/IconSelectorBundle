@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.4.1] - 2026-10-20](#141---2026-10-20)
 - [[1.4.0] - 2026-10-13](#140---2026-10-13)
 - [[1.3.0] - 2026-10-13](#130---2026-10-13)
 - [[1.2.0] - 2026-10-13](#120---2026-10-13)
@@ -39,11 +40,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-20
+
+Dependency refresh (bundle and demos), php-cs-fixer ParallelConfig(2). See [UPGRADING](UPGRADING.md#to-141).
+
 ### Changed
 
 - Dependencies refreshed (Composer and pnpm/npm lock files of the bundle and its demos, campaign 2026-10-19); shipped assets rebuilt.
 - `.php-cs-fixer.dist.php`: `new ParallelConfig(2)` (REQ-CS-001).
 - Documentation: wave-1 REQ compliance — README documentation list order, CONTRIBUTING Cursor Agent settings and post-release-commit trailer check, CODEOWNERS / pull request / issue templates cleaned up, `demo/README.md`, demo compose project name `icon-selector-bundle-demo-symfony-8`, demo `.env.example` comments, doc TOCs, Spec Kit inventory refresh (44/44).
+
+[1.4.1]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.4.1
 
 ## [1.4.0] - 2026-10-13
 
