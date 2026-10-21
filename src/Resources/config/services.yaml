@@ -11,8 +11,8 @@ services:
       $collectionLoader: '@?Nowo\IconSelectorBundle\Service\IconifyCollectionLoader'
     public: true
 
-  Nowo\IconSelectorBundle\Twig\NowoIconSelectorTwigExtension:
-    tags: ['twig.extension']
+  # Tagged twig.extension by autoconfigure (REQ-SF-003).
+  Nowo\IconSelectorBundle\Twig\NowoIconSelectorTwigExtension: ~
 
   Nowo\IconSelectorBundle\Service\IconSelectorConfigProvider:
     arguments:
@@ -20,21 +20,14 @@ services:
       $debug: '%nowo_icon_selector.debug%'
     public: true
 
+  # Invokable API controllers: constructor arguments are autowired (REQ-SF-003); public for the route loader.
   Nowo\IconSelectorBundle\Controller\Api\IconListController:
-    arguments:
-      $iconListProvider: '@Nowo\IconSelectorBundle\Service\IconListProvider'
     public: true
 
   Nowo\IconSelectorBundle\Controller\Api\IconConfigController:
-    arguments:
-      $configProvider: '@Nowo\IconSelectorBundle\Service\IconSelectorConfigProvider'
     public: true
 
   Nowo\IconSelectorBundle\Controller\Api\IconSvgController:
-    arguments:
-      $iconRenderer: '@Symfony\UX\Icons\IconRendererInterface'
-      $iconListProvider: '@Nowo\IconSelectorBundle\Service\IconListProvider'
-      $svgSanitizer: '@Nowo\IconSelectorBundle\Service\SvgSanitizer'
     public: true
 
   Nowo\IconSelectorBundle\Service\SvgSanitizer: ~
@@ -47,6 +40,5 @@ services:
       $iconRenderer: '@?Symfony\UX\Icons\IconRendererInterface'
       $svgSanitizer: '@Nowo\IconSelectorBundle\Service\SvgSanitizer'
       $debug: '%nowo_icon_selector.debug%'
-    tags:
-      - { name: form.type }
+    # Tagged form.type by autoconfigure (REQ-SF-003).
     public: false

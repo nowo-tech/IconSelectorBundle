@@ -19,6 +19,9 @@
 /coverage
 coverage.xml
 
+# pnpm store (e2e tooling, REQ-GITIGNORE-003)
+/.pnpm-store/
+
 # IDE / OS
 .idea
 .vscode

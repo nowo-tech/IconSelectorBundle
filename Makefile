@@ -114,8 +114,15 @@ rector-dry: ensure-up
 phpstan: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer phpstan
 
+# REQ-MAKE-004 / REQ-I18N-002: key parity across the 7 required locales + YAML syntax (no bin/console in a bundle).
 validate-translations: ensure-up
-	$(COMPOSE) exec -T $(SERVICE_PHP) php bin/console lint:yaml src/Resources/translations
+	python3 .scripts/check-translation-key-parity.py
+	$(COMPOSE) exec -T $(SERVICE_PHP) php -r 'require "vendor/autoload.php"; foreach (glob("src/Resources/translations/*.yaml") as $$f) { Symfony\Component\Yaml\Yaml::parseFile($$f); } echo "YAML OK\n";'
+
+# REQ-TWIG-005: no raw <form>/<input>/<textarea>/<select> in Twig (bundle form themes are allowlisted).
+check-no-raw-html-form:
+	@chmod +x .scripts/check-no-raw-html-form.sh
+	@./.scripts/check-no-raw-html-form.sh
 
 qa: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer qa
@@ -132,7 +139,23 @@ check-twig-extra:
 # Run Igor worker-state audit (REQ-CS-008)
 igor: ensure-up
 	$(COMPOSE) exec -T php composer igor
-release-check: check-no-cursor-coauthor check-open-prs check-twig-extra ensure-up composer-sync cs-fix cs-check rector-dry phpstan igor coverage-check test-ts release-check-demos
+# REQ-MAKE-002: sequential chain, ensure-up first.
+release-check:
+	@$(MAKE) ensure-up
+	@$(MAKE) check-no-cursor-coauthor
+	@$(MAKE) check-open-prs
+	@$(MAKE) check-twig-extra
+	@$(MAKE) check-no-raw-html-form
+	@$(MAKE) composer-sync
+	@$(MAKE) cs-fix
+	@$(MAKE) cs-check
+	@$(MAKE) rector-dry
+	@$(MAKE) phpstan
+	@$(MAKE) igor
+	@$(MAKE) validate-translations
+	@$(MAKE) coverage-check
+	@$(MAKE) test-ts
+	@$(MAKE) release-check-demos
 
 release-check-demos:
 	@$(MAKE) -C demo release-check

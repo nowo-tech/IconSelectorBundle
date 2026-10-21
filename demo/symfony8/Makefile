@@ -32,9 +32,13 @@ up:
 	@echo "Starting server..."
 	$(COMPOSE) up -d
 	@echo "Waiting for app to respond..."
-	@PORT=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2); PORT=$${PORT:-8011}; \
+	@PORT=$$(grep "^PORT=" .env 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+	[ -z "$$PORT" ] && PORT=$$(grep "^PORT=" .env.example 2>/dev/null | cut -d= -f2 | tr -d '\r'); \
+	PORT=$${PORT:-8011}; \
 	for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do \
-		curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$PORT/" 2>/dev/null | grep -qE '^[23]' && echo "Demo started at: http://localhost:$$PORT"; exit 0; \
+		if curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$PORT/" 2>/dev/null | grep -qE '^[23]'; then \
+			echo "Demo started at: http://localhost:$$PORT"; exit 0; \
+		fi; \
 		echo "  waiting... $$i/15"; sleep 2; \
 	done; \
 	echo "App did not respond in time. Check: $(COMPOSE) logs php"; exit 1
@@ -81,8 +85,8 @@ link-bundle: ensure-up
 	@echo "Bundle linked to mounted source. Reload the page in the browser."
 
 update-bundle: ensure-up
-	$(COMPOSE) exec php composer update nowo-tech/icon-selector-bundle --no-interaction
-	$(COMPOSE) exec php php bin/console cache:clear --env=dev
+	$(COMPOSE) exec -T php composer update nowo-tech/icon-selector-bundle --no-interaction
+	$(COMPOSE) exec -T php php bin/console cache:clear --env=dev
 	@echo "Bundle updated. Reload the page in the browser."
 
 

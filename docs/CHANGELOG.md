@@ -40,6 +40,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `release-check` runs sequentially, starts with `ensure-up` and adds `check-no-raw-html-form` and `validate-translations` (REQ-MAKE-002).
+- `validate-translations` no longer calls the missing `bin/console`: it checks key parity across the seven locales (`.scripts/check-translation-key-parity.py`) and parses the YAML with Symfony Yaml (REQ-MAKE-004).
+- Services: the Twig extension and the form type rely on autoconfigure, the API controllers on autowiring (no manual tags or argument wiring) (REQ-SF-003).
+- CI: the coverage job fails below 99% PHP line coverage (REQ-TEST-003); new `Demo smoke` workflow (`make demo-smoke`, tags / weekly / manual) (REQ-TEST-011).
+- Demo: `release-check` starts the demos and runs `update-bundle` first (REQ-DEMO-007); `update-bundle` uses non-interactive `exec -T`; the smoke follows redirects and requires a final HTTP 200 and reads PORT from `.env.example` when `.env` is missing; `make up` prints the canonical "Demo started at" line after the app answers (REQ-DEMO-005); `.pnpm-store/` ignored (REQ-GITIGNORE-003).
+
+### Fixed
+
+- `.scripts/check-no-cursor-coauthor.sh` also runs inside git worktrees (`.git` file instead of directory).
+
 ## [1.4.1] - 2026-10-20
 
 Dependency refresh (bundle and demos), php-cs-fixer ParallelConfig(2). See [UPGRADING](UPGRADING.md#to-141).

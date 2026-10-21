@@ -20,6 +20,7 @@ This document describes how the bundle’s demo applications run under **Franken
   - [4. Docker Compose (production)](#4-docker-compose-production)
   - [5. Build and run (production)](#5-build-and-run-production)
 - [Switching classic vs worker (`FRANKENPHP_MODE`)](#switching-classic-vs-worker-frankenphp_mode)
+- [Demo smoke (REQ-TEST-011)](#demo-smoke-req-test-011)
 - [Reproducing in another bundle](#reproducing-in-another-bundle)
 - [Troubleshooting](#troubleshooting)
   - [Changes to Twig or PHP do not appear on refresh](#changes-to-twig-or-php-do-not-appear-on-refresh)
@@ -246,6 +247,14 @@ make -C demo/symfony8 restart
 ```
 
 ---
+
+## Demo smoke (REQ-TEST-011)
+
+```bash
+make demo-smoke        # = make -C demo release-verify
+```
+
+For each demo it runs `make up`, requests `http://127.0.0.1:$PORT/` (PORT from `.env`, else `.env.example`, default **8011**), follows redirects and requires a final **HTTP 200**, then stops the stack. `make -C demo release-check` first refreshes the bundle in every demo (`update-bundle`). CI runs the same target in `.github/workflows/demo-smoke.yml` (tags, weekly, manual).
 
 ## Reproducing in another bundle
 

@@ -198,12 +198,12 @@ jobs:
         run: |
           echo "🧪 Running tests with coverage..."
           rm -rf .phpunit.cache
-          composer test-coverage
-          if [ $? -ne 0 ]; then
-            echo "❌ ERROR: Tests failed"
-            exit 1
-          fi
+          set -o pipefail
+          composer test-coverage | tee coverage-php.txt
           echo "✅ All tests passed successfully"
+
+      - name: Enforce PHP line coverage >= 99% (REQ-TEST-003)
+        run: ./.scripts/coverage-fail-under.sh coverage-php.txt 99
 
       - name: Validate coverage file
         run: |
