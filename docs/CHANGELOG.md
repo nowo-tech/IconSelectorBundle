@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.4.2] - 2026-10-21](#142---2026-10-21)
 - [[1.4.1] - 2026-10-20](#141---2026-10-20)
 - [[1.4.0] - 2026-10-13](#140---2026-10-13)
 - [[1.3.0] - 2026-10-13](#130---2026-10-13)
@@ -40,6 +41,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-10-21
+
+Release-check chain, translation key parity, autoconfigured services, CI coverage gate, demo smoke workflow. See [UPGRADING](UPGRADING.md#to-142).
+
 ### Changed
 
 - `release-check` runs sequentially, starts with `ensure-up` and adds `check-no-raw-html-form` and `validate-translations` (REQ-MAKE-002).
@@ -51,6 +56,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - `.scripts/check-no-cursor-coauthor.sh` also runs inside git worktrees (`.git` file instead of directory).
+
+[1.4.2]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.4.2
 
 ## [1.4.1] - 2026-10-20
 

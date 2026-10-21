@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.4.2](#to-142)
 - [To 1.4.1](#to-141)
 - [To 1.4.0](#to-140)
 - [To 1.3.0](#to-130)
@@ -40,6 +41,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.4.2
+
+From **1.4.1**:
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
 
 ## To 1.4.1
 
