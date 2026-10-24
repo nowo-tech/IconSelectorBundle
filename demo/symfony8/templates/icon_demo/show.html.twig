@@ -29,8 +29,11 @@
     {% endif %}
 
     {{ form_start(form) }}
+    {# REQ-TWIG-003: child loop #}
     {% for child in form %}
-        {{ form_row(child) }}
+        {% if not child.rendered %}
+            {{ form_row(child) }}
+        {% endif %}
     {% endfor %}
     <button type="submit" class="btn btn-primary mt-3">{{ 'demo.submit'|trans({}, 'messages') }}</button>
     {{ form_end(form) }}

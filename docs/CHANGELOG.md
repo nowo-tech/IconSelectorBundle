@@ -41,6 +41,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Demo: `icon_demo/_background_fragment.html.twig` renders the form through the child loop instead of `form_row(form.icon)`, and the `icon_demo/show.html.twig` loop skips already-rendered children (REQ-TWIG-003).
+
 ## [1.4.2] - 2026-10-21
 
 Release-check chain, translation key parity, autoconfigured services, CI coverage gate, demo smoke workflow. See [UPGRADING](UPGRADING.md#to-142).
