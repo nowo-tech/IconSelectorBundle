@@ -14,7 +14,7 @@
  *      buildTime: typeof __MY_BUNDLE_BUILD_TIME__ !== 'undefined' ? __MY_BUNDLE_BUILD_TIME__ : undefined,
  *    });
  *
- * 2. Log that the script loaded (call once at startup; includes build time if provided):
+ * 2. Log that the script loaded (call once at startup; includes build id if provided):
  *
  *    log.scriptLoaded();
  *
@@ -28,7 +28,7 @@
  *    log.warn('unexpected but handled', error);
  *    log.error('failure', error);
  *
- * 5. To inject build time with Vite, add to vite.config.ts:
+ * 5. To inject build id with Vite, add to vite.config.ts:
  *
  *    define: {
  *      __MY_BUNDLE_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
@@ -46,7 +46,7 @@ export type BundleLoggerOptions = {
 };
 
 export type BundleLogger = {
-  /** Call once at startup. Logs "script loaded" and optional build time. Always shown. */
+  /** Call once at startup. Logs "script loaded" and optional build id. Always shown. */
   scriptLoaded: () => void;
   /** When false, debug/info/warn/error are no-ops (only scriptLoaded is shown). */
   setDebug: (enabled: boolean) => void;
@@ -93,7 +93,7 @@ export function createBundleLogger(name: string, options: BundleLoggerOptions = 
     scriptLoaded(): void {
       if (buildTime !== undefined && buildTime !== '') {
         console.log(
-          `%c${EMOJI.script} ${prefix} script loaded, build time: %c${buildTime}`,
+          `%c${EMOJI.script} ${prefix} script loaded, build: %c${buildTime}`,
           STYLES.script,
           'color:#059669',
         );
