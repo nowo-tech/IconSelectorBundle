@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.4.3] - 2026-10-25](#143---2026-10-25)
 - [[1.4.2] - 2026-10-21](#142---2026-10-21)
 - [[1.4.1] - 2026-10-20](#141---2026-10-20)
 - [[1.4.0] - 2026-10-13](#140---2026-10-13)
@@ -41,10 +42,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-10-25
+
+Reproducible JS bundle: the build stamp is a hash of the sources instead of the build time. See [UPGRADING](UPGRADING.md#to-143).
+
 ### Changed
 
 - **Assets:** reproducible bundle build. `__ICON_SELECTOR_BUILD_TIME__` now holds a build id (a hash of the TypeScript/CSS sources and `pnpm-lock.yaml`) instead of the build time, so rebuilding unchanged sources (`make assets`, `make release-check`) no longer rewrites the committed JS; the console line reads `script loaded, build: <id>`.
 - Demo: `icon_demo/_background_fragment.html.twig` renders the form through the child loop instead of `form_row(form.icon)`, and the `icon_demo/show.html.twig` loop skips already-rendered children (REQ-TWIG-003).
+
+[1.4.3]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.4.3
 
 ## [1.4.2] - 2026-10-21
 
