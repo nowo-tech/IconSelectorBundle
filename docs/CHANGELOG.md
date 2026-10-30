@@ -42,6 +42,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Security
+
+- **API routes registered without the route import:** on Symfony >= 7.3 the `#[Route]` attributes on the autoconfigured `IconListController`, `IconConfigController` and `IconSvgController` services gave them the `routing.controller` tag, so the host's default `controllers: { resource: routing.controllers }` exposed `/api/icon-selector/icons`, `/api/icon-selector/icons/svg` and `/api/icon-selector/config` even when the host never imported `@NowoIconSelectorBundle/Resources/config/routes.yaml` (ignoring any prefix set on that import). The controller services are no longer autoconfigured (explicit `controller.service_arguments` tag); the routes exist only through the documented import (REQ-SF-004 rule 7). Unauthenticated endpoints, public by design (no sensitive data), but now only exposed when the host opts in. Regression test with a kernel that only loads `routing.controllers`.
+
 ### Changed
 
 - Docs: USAGE states that host and demo forms are Symfony Form Types rendered with `form_start` / the `not child.rendered` child loop / `form_end`, and that raw `<form>` / `<input>` must not be reintroduced; `check-no-raw-html-form` enforces it in `release-check` (REQ-TWIG-005 rule 9).

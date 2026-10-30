@@ -43,6 +43,8 @@
 
 ## Unreleased
 
+From **1.4.3**: no action needed if you import `@NowoIconSelectorBundle/Resources/config/routes.yaml` (see [INSTALLATION](INSTALLATION.md)). If the icon API worked in your app only through the default `routing.controllers` import (Symfony >= 7.3) without that import, add it explicitly.
+
 ## To 1.4.3
 
 From **1.4.2**:
