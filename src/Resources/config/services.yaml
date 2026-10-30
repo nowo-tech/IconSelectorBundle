@@ -21,13 +21,22 @@ services:
     public: true
 
   # Invokable API controllers: constructor arguments are autowired (REQ-SF-003); public for the route loader.
+  # autoconfigure: false (REQ-SF-004 rule 7) — on Symfony >= 7.3 a #[Route] class is autoconfigured with the
+  # routing.controller tag, and the host's `routing.controllers` resource would then expose /api/icon-selector/*
+  # without the host importing @NowoIconSelectorBundle/Resources/config/routes.yaml (opt-in only).
   Nowo\IconSelectorBundle\Controller\Api\IconListController:
+    autoconfigure: false
+    tags: ['controller.service_arguments']
     public: true
 
   Nowo\IconSelectorBundle\Controller\Api\IconConfigController:
+    autoconfigure: false
+    tags: ['controller.service_arguments']
     public: true
 
   Nowo\IconSelectorBundle\Controller\Api\IconSvgController:
+    autoconfigure: false
+    tags: ['controller.service_arguments']
     public: true
 
   Nowo\IconSelectorBundle\Service\SvgSanitizer: ~
