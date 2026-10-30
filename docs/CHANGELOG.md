@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.4.4] - 2026-10-30](#144---2026-10-30)
 - [[1.4.3] - 2026-10-25](#143---2026-10-25)
 - [[1.4.2] - 2026-10-21](#142---2026-10-21)
 - [[1.4.1] - 2026-10-20](#141---2026-10-20)
@@ -42,6 +43,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.4.4] - 2026-10-30
+
+Bundle routes are opt-in again: controllers are no longer autoconfigured, so a host's routing.controllers import does not expose them (REQ-SF-004 rule 7). See [UPGRADING](UPGRADING.md#to-144).
+
 ### Security
 
 - **API routes registered without the route import:** on Symfony >= 7.3 the `#[Route]` attributes on the autoconfigured `IconListController`, `IconConfigController` and `IconSvgController` services gave them the `routing.controller` tag, so the host's default `controllers: { resource: routing.controllers }` exposed `/api/icon-selector/icons`, `/api/icon-selector/icons/svg` and `/api/icon-selector/config` even when the host never imported `@NowoIconSelectorBundle/Resources/config/routes.yaml` (ignoring any prefix set on that import). The controller services are no longer autoconfigured (explicit `controller.service_arguments` tag); the routes exist only through the documented import (REQ-SF-004 rule 7). Unauthenticated endpoints, public by design (no sensitive data), but now only exposed when the host opts in. Regression test with a kernel that only loads `routing.controllers`.
@@ -50,6 +55,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Docs: USAGE states that host and demo forms are Symfony Form Types rendered with `form_start` / the `not child.rendered` child loop / `form_end`, and that raw `<form>` / `<input>` must not be reintroduced; `check-no-raw-html-form` enforces it in `release-check` (REQ-TWIG-005 rule 9).
 - Developer tooling: `check-no-raw-html-form` allowlists the eleven shipped form themes file by file instead of the whole `src/Resources/views/Form/` directory, so any new raw control (even in a new file there) fails `release-check` (REQ-TWIG-005 rule 10).
+
+[1.4.4]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.4.4
 
 ## [1.4.3] - 2026-10-25
 

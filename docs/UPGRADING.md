@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.4.4](#to-144)
 - [To 1.4.3](#to-143)
 - [To 1.4.2](#to-142)
 - [To 1.4.1](#to-141)
@@ -42,6 +43,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.4.4
+
+From **1.4.3**:
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
 
 From **1.4.3**: no action needed if you import `@NowoIconSelectorBundle/Resources/config/routes.yaml` (see [INSTALLATION](INSTALLATION.md)). If the icon API worked in your app only through the default `routing.controllers` import (Symfony >= 7.3) without that import, add it explicitly.
 
