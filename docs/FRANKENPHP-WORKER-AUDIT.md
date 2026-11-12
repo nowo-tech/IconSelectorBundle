@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Package | `nowo-tech/icon-selector-bundle` (`symfony-bundle`) |
-| Audited revision | `v1.1.6` |
-| Audit date | 2026-09-24 |
+| Audited revision | `v1.4.4` (kept-alive test and rule-7 note re-checked 2026-11-12; earlier manual review kept below) |
+| Audit date | 2026-11-12 (first audit 2026-09) |
 | Method | Manual review of every file under `src/` (services, controllers, form type, choice loader, Twig extension, DI extension, compiler pass, YAML config), plus the Symfony Form `CachingFactoryDecorator` used by the form type (`symfony/form` v7.4.18 from `composer.lock`) |
 | **Verdict** | ✅ **Viable under scenario B** — all bundle services are `readonly` and stateless, and `IconSelectorType` now feeds cacheable, bounded choice lists into Symfony's `form.choice_list_factory.cached` (was: ⚠️ viable with conditions) |
 | Remediation (2026-09-24) | W-01 and W-02 resolved (`src/Form/IconSelectorType.php`, `src/Service/IconifyCollectionLoader.php`, `src/Service/IconListProvider.php`). Regression tests render the field repeatedly through one shared `CachingFactoryDecorator` without `reset()` (`tests/Unit/Form/IconSelectorTypeTest.php`) and cover failure TTL / static fallback (`tests/Unit/Service/IconifyCollectionLoaderTest.php`, `tests/Unit/Service/IconListProviderTest.php`) |
@@ -15,6 +15,7 @@
 - [Summary](#summary)
 - [Services reviewed](#services-reviewed)
 - [Findings](#findings)
+- [Kept-alive test (REQ-RUNTIME-002)](#kept-alive-test-req-runtime-002)
   - [W-01 — Each form render adds an uncacheable choice list to Symfony's cached choice list factory (Medium, scenario B only)](#w-01--each-form-render-adds-an-uncacheable-choice-list-to-symfonys-cached-choice-list-factory-medium-scenario-b-only)
   - [W-02 — Iconify collection fetch can block a worker on a cold cache and caches failures as empty lists (Low)](#w-02--iconify-collection-fetch-can-block-a-worker-on-a-cold-cache-and-caches-failures-as-empty-lists-low)
   - [W-03 — SVG rendering per request (Info)](#w-03--svg-rendering-per-request-info)
@@ -87,6 +88,14 @@ Worker demo: `demo/symfony8/docker/frankenphp/Caddyfile` uses `worker { file /ap
 - **Recommendation:** import the icons locally (`ux:icons:import`) or rely on the UX Icons cache in production so these endpoints do not perform on-demand HTTP calls.
 
 No other findings. The `libxml` internal-errors flag in `SvgSanitizer` is restored immediately, which is the correct pattern for a long-lived process.
+
+## Kept-alive test (REQ-RUNTIME-002)
+
+Test: `Nowo\IconSelectorBundle\Tests\Integration\Worker\WorkerKeptAliveKernelTest` (`tests/Integration/Worker/WorkerKeptAliveKernelTest.php`). It uses one booted kernel (`WorkerKeptAliveKernel`), host form built, submitted and viewed, config endpoint served through `http_kernel` `handle()` + `terminate()`; `services_resetter` / `kernel.reset` is **never** called. It runs 1,200 iterations alternating two inputs (icon lists and modes), asserts every result contains only its own data (no value of the other input appears), and that memory growth after a 100-iteration warm-up stays below 4 MiB.
+
+Result: no state is carried between requests, so the bundle is **safe with kernel reset false**.
+
+Rule 7: the bundle never clears or resets the host's default EntityManager (it uses no persistence), and nothing in `IconSelectorType` depends on it.
 
 ## Usage recommendations in worker mode
 
