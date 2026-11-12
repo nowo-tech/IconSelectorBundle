@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Form\IconDemoType;
 use Nowo\IconSelectorBundle\Form\IconSelectorType;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -60,15 +61,15 @@ class IconDemoController extends AbstractController
         $data   = [$field => $request->query->getString('icon', '')];
         $icons  = $this->iconListProvider->getIcons();
 
-        $form = $this->createFormBuilder($data, ['translation_domain' => 'messages'])
-            ->add($field, IconSelectorType::class, [
-                'mode'                      => IconSelectorType::MODE_DIRECT,
-                'label'                     => 'demo.label_icon_grid',
-                'icons'                     => $icons,
-                'translation_domain'        => 'messages',
-                'choice_translation_domain' => false,
-            ])
-            ->getForm();
+        $form = $this->createForm(IconDemoType::class, $data, [
+            'field_name'   => $field,
+            'with_submit'  => true,
+            'icon_options' => [
+                'mode'  => IconSelectorType::MODE_DIRECT,
+                'label' => 'demo.label_icon_grid',
+                'icons' => $icons,
+            ],
+        ]);
 
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
@@ -95,15 +96,15 @@ class IconDemoController extends AbstractController
         $data   = [$field => $request->query->getString('icon', '')];
         $icons  = $this->iconListProvider->getIcons();
 
-        $form = $this->createFormBuilder($data, ['translation_domain' => 'messages'])
-            ->add($field, IconSelectorType::class, [
-                'mode'                      => IconSelectorType::MODE_SEARCH,
-                'label'                     => 'demo.label_icon_search',
-                'icons'                     => $icons,
-                'translation_domain'        => 'messages',
-                'choice_translation_domain' => false,
-            ])
-            ->getForm();
+        $form = $this->createForm(IconDemoType::class, $data, [
+            'field_name'   => $field,
+            'with_submit'  => true,
+            'icon_options' => [
+                'mode'  => IconSelectorType::MODE_SEARCH,
+                'label' => 'demo.label_icon_search',
+                'icons' => $icons,
+            ],
+        ]);
 
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
@@ -131,16 +132,16 @@ class IconDemoController extends AbstractController
         $icons   = $this->iconListProvider->getIcons();
         $choices = $this->iconsToChoices($icons);
 
-        $form = $this->createFormBuilder($data, ['translation_domain' => 'messages'])
-            ->add($field, IconSelectorType::class, [
-                'mode'                      => IconSelectorType::MODE_TOM_SELECT,
-                'label'                     => 'demo.label_icon_tom_select',
-                'icons'                     => $icons,
-                'choices'                   => $choices,
-                'translation_domain'        => 'messages',
-                'choice_translation_domain' => false,
-            ])
-            ->getForm();
+        $form = $this->createForm(IconDemoType::class, $data, [
+            'field_name'   => $field,
+            'with_submit'  => true,
+            'icon_options' => [
+                'mode'    => IconSelectorType::MODE_TOM_SELECT,
+                'label'   => 'demo.label_icon_tom_select',
+                'icons'   => $icons,
+                'choices' => $choices,
+            ],
+        ]);
 
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
@@ -168,16 +169,16 @@ class IconDemoController extends AbstractController
         $heroicons = $this->iconListProvider->getIconsForSets(['heroicons']);
         $choices   = $this->iconsToChoices($heroicons);
 
-        $form = $this->createFormBuilder($data, ['translation_domain' => 'messages'])
-            ->add($field, IconSelectorType::class, [
-                'mode'                      => IconSelectorType::MODE_TOM_SELECT,
-                'label'                     => 'demo.label_icon_heroicons',
-                'icon_sets'                 => ['heroicons'],
-                'choices'                   => $choices,
-                'translation_domain'        => 'messages',
-                'choice_translation_domain' => false,
-            ])
-            ->getForm();
+        $form = $this->createForm(IconDemoType::class, $data, [
+            'field_name'   => $field,
+            'with_submit'  => true,
+            'icon_options' => [
+                'mode'      => IconSelectorType::MODE_TOM_SELECT,
+                'label'     => 'demo.label_icon_heroicons',
+                'icon_sets' => ['heroicons'],
+                'choices'   => $choices,
+            ],
+        ]);
 
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
@@ -213,15 +214,15 @@ class IconDemoController extends AbstractController
     {
         $request->setLocale($request->attributes->get('_locale', 'en'));
         $icons = $this->iconListProvider->getIcons();
-        $form  = $this->createFormBuilder(['icon' => ''], ['translation_domain' => 'messages'])
-            ->add('icon', IconSelectorType::class, [
-                'mode'                      => IconSelectorType::MODE_DIRECT,
-                'label'                     => 'demo.label_icon_grid',
-                'icons'                     => $icons,
-                'translation_domain'        => 'messages',
-                'choice_translation_domain' => false,
-            ])
-            ->getForm();
+        $form  = $this->createForm(IconDemoType::class, ['icon' => ''], [
+            'field_name'   => 'icon',
+            'with_submit'  => false,
+            'icon_options' => [
+                'mode'  => IconSelectorType::MODE_DIRECT,
+                'label' => 'demo.label_icon_grid',
+                'icons' => $icons,
+            ],
+        ]);
 
         return $this->render('icon_demo/_background_fragment.html.twig', [
             'form' => $form,
