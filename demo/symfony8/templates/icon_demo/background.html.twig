@@ -2,27 +2,27 @@
 
 {% block title %}{{ 'demo.page_background_title'|trans({}, 'messages') }} – {{ 'demo.title'|trans({}, 'messages') }}{% endblock %}
 
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {
+        title: 'demo.page_background_title'|trans({}, 'messages'),
+    }) }}
+{% endblock %}
+
 {% block body %}
-<div class="container py-5">
-    <nav class="mb-3">
-        <a href="{{ path('app_home', { _locale: app.request.locale }) }}">← {{ 'demo.back_home'|trans({}, 'messages') }}</a>
-    </nav>
+    <a class="nowo-ui-back-link" href="{{ path('app_home', { _locale: app.request.locale }) }}">← {{ 'demo.back_home'|trans({}, 'messages') }}</a>
+    <p class="nowo-ui-muted">{{ 'demo.page_background_lead'|trans({}, 'messages')|raw }}</p>
 
-    <h1>{{ 'demo.page_background_title'|trans({}, 'messages') }}</h1>
-    <p class="lead">{{ 'demo.page_background_lead'|trans({}, 'messages')|raw }}</p>
-
-    <div class="mb-4">
-        <button type="button" class="btn btn-primary" id="demo-background-load-btn" data-fragment-url="{{ path('app_demo_background_fragment', { _locale: app.request.locale }) }}">
+    <p>
+        <button type="button" class="nowo-ui-btn nowo-ui-btn--primary" id="demo-background-load-btn" data-fragment-url="{{ path('app_demo_background_fragment', { _locale: app.request.locale }) }}">
             {{ 'demo.background_load_button'|trans({}, 'messages') }}
         </button>
-    </div>
+    </p>
 
     <div id="demo-background-container" class="demo-background-container">
-        <p class="text-muted">{{ 'demo.background_placeholder'|trans({}, 'messages') }}</p>
+        <p class="nowo-ui-muted">{{ 'demo.background_placeholder'|trans({}, 'messages') }}</p>
     </div>
-</div>
 
-<script src="{{ asset('icon-selector.js', 'nowo_icon_selector') }}"></script>
+    <script src="{{ asset('icon-selector.js', 'nowo_icon_selector') }}"></script>
 <script>
 (function() {
     var btn = document.getElementById('demo-background-load-btn');
@@ -39,7 +39,7 @@
                 btn.textContent = '{{ 'demo.background_load_again'|trans({}, 'messages') }}';
             })
             .catch(function() {
-                container.innerHTML = '<p class="text-danger">{{ 'demo.background_error'|trans({}, 'messages') }}</p>';
+                container.innerHTML = '<p class="nowo-ui-flash nowo-ui-flash--error">{{ 'demo.background_error'|trans({}, 'messages') }}</p>';
                 btn.disabled = false;
                 btn.textContent = '{{ 'demo.background_load_button'|trans({}, 'messages') }}';
             });

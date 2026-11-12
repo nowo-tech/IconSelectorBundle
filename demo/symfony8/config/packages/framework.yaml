@@ -9,6 +9,7 @@ framework:
         fallbacks: ['en']
     php_errors:
         log: true
+    assets: ~
 
 # Enable profiler in dev so the Web Profiler toolbar can collect and display data.
 # In Docker, the app listens on 80 but is exposed as PORT on the host; set router port so toolbar URLs work.

@@ -18,10 +18,10 @@ test.describe('icon selector demo', () => {
     const firstIcon = page.locator('.icon-selector-item').first();
     await expect(firstIcon).toBeVisible();
     await firstIcon.click();
-    const value = await page.locator('input[name="form[icon_direct]"]').inputValue();
+    const value = await page.locator('input[name$="[icon_direct]"]').inputValue();
     expect(value).not.toBe('');
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(page.locator('.alert-success')).toContainText(value);
+    await expect(page.locator('.nowo-ui-flash--success')).toContainText(value);
   });
 
   test('tom select mode: dropdown shows icons', async ({ page }) => {
