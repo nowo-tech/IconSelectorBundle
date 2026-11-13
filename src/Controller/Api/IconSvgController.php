@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Controller\Api;
 
-use Nowo\IconSelectorBundle\Service\IconListProvider;
-use Nowo\IconSelectorBundle\Service\SvgSanitizer;
+use Nowo\IconSelectorBundle\Service\IconCatalogInterface;
+use Nowo\IconSelectorBundle\Service\SvgSanitizerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,7 +24,7 @@ use function is_string;
  * without the browser making individual requests. Use this to batch-load SVGs
  * for the icon selector grid or Tom Select options.
  *
- * Security: only icon IDs present in the configured icon sets (IconListProvider) are
+ * Security: only icon IDs present in the configured icon sets (IconCatalogInterface) are
  * rendered; returned SVG is sanitized (script tags and event attributes removed).
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
@@ -35,8 +35,8 @@ final readonly class IconSvgController
 
     public function __construct(
         private IconRendererInterface $iconRenderer,
-        private IconListProvider $iconListProvider,
-        private SvgSanitizer $svgSanitizer,
+        private IconCatalogInterface $iconListProvider,
+        private SvgSanitizerInterface $svgSanitizer,
     ) {
     }
 

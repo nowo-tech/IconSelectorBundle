@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Controller\Api;
 
-use Nowo\IconSelectorBundle\Service\IconSelectorConfigProvider;
+use Nowo\IconSelectorBundle\Service\IconSelectorConfigProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -19,7 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final readonly class IconConfigController
 {
     public function __construct(
-        private IconSelectorConfigProvider $configProvider,
+        private IconSelectorConfigProviderInterface $configProvider,
     ) {
     }
 

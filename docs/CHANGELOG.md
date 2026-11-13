@@ -43,6 +43,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Ports (REQ-ARCH-001 rules 1 and 5):** `Service\IconCatalogInterface`, `Service\IconSelectorConfigProviderInterface` and `Service\SvgSanitizerInterface`. `IconListProvider`, `IconSelectorConfigProvider` and `SvgSanitizer` implement them, the interfaces are aliased in the container, and `IconSelectorType` and the three API controllers depend on the interfaces, so a host can serve its own catalogue by overriding one alias. Strictly additive; class service ids and defaults unchanged.
+- `docs/ARCHITECTURE.md`: SPI table and a "Standard Symfony and DDD hosts" section. Tests: alias override through the container, and a plain-DTO form bound to a host catalogue.
+
 ### Changed
 
 - Demo uses the UiKit base style and FormKit forms (REQ-DEMO-014/015)

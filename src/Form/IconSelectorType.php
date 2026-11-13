@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Nowo\IconSelectorBundle\Form;
 
 use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
-use Nowo\IconSelectorBundle\Service\IconListProvider;
-use Nowo\IconSelectorBundle\Service\SvgSanitizer;
+use Nowo\IconSelectorBundle\Service\IconCatalogInterface;
+use Nowo\IconSelectorBundle\Service\SvgSanitizerInterface;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\ChoiceList\ChoiceList;
 use Symfony\Component\Form\ChoiceList\Loader\ChoiceLoaderInterface;
@@ -57,11 +57,11 @@ final class IconSelectorType extends AbstractType
      * @param bool $debug When true, frontend shows all console logs; when false, only "script loaded"
      */
     public function __construct(
-        private readonly IconListProvider $iconListProvider,
+        private readonly IconCatalogInterface $iconListProvider,
         private readonly array $iconSets = [],
         private readonly string $iconsApiPath = '/api/icon-selector/icons',
         private readonly ?IconRendererInterface $iconRenderer = null,
-        private readonly ?SvgSanitizer $svgSanitizer = null,
+        private readonly ?SvgSanitizerInterface $svgSanitizer = null,
         private readonly bool $debug = false,
     ) {
     }

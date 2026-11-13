@@ -25,7 +25,7 @@ use const LIBXML_PARSEHUGE;
  *
  * Uses DOM parsing with an element/attribute allowlist instead of regex-only stripping.
  */
-final readonly class SvgSanitizer
+final readonly class SvgSanitizer implements SvgSanitizerInterface
 {
     /** @var list<string> */
     private const ALLOWED_TAGS = [
