@@ -4,6 +4,7 @@
 
 - [Unreleased](#unreleased)
 - [To 1.5.0](#to-150)
+- [To 1.5.0](#to-150-1)
 - [To 1.4.4](#to-144)
 - [To 1.4.3](#to-143)
 - [To 1.4.2](#to-142)
@@ -44,6 +45,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.5.0
+
+From **1.4.4**:
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
 
 ## To 1.5.0
 

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.5.0] - 2026-11-13](#150---2026-11-13)
 - [[1.4.4] - 2026-10-30](#144---2026-10-30)
 - [[1.4.3] - 2026-10-25](#143---2026-10-25)
 - [[1.4.2] - 2026-10-21](#142---2026-10-21)
@@ -43,6 +44,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-13
+
 ### Added
 
 - **Ports (REQ-ARCH-001 rules 1 and 5):** `Service\IconCatalogInterface`, `Service\IconSelectorConfigProviderInterface` and `Service\SvgSanitizerInterface`. `IconListProvider`, `IconSelectorConfigProvider` and `SvgSanitizer` implement them, the interfaces are aliased in the container, and `IconSelectorType` and the three API controllers depend on the interfaces, so a host can serve its own catalogue by overriding one alias. Strictly additive; class service ids and defaults unchanged.
@@ -55,6 +58,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Tests
 
 - Tests: kept-alive worker test `WorkerKeptAliveKernelTest` (one kernel or one kept set of services, never reset, 1,200 alternating iterations, memory bound) and `docs/FRANKENPHP-WORKER-AUDIT.md` refreshed for v1.4.4; no runtime change.
+
+[1.5.0]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.5.0
 
 ## [1.4.4] - 2026-10-30
 
