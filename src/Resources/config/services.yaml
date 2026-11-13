@@ -41,13 +41,19 @@ services:
 
   Nowo\IconSelectorBundle\Service\SvgSanitizer: ~
 
+  # REQ-ARCH-001 rules 1 and 5: the form type and the API controllers read through these ports. A host replaces an
+  # alias to serve its own catalogue / config / sanitizer; the class ids above stay valid.
+  Nowo\IconSelectorBundle\Service\IconCatalogInterface: '@Nowo\IconSelectorBundle\Service\IconListProvider'
+  Nowo\IconSelectorBundle\Service\IconSelectorConfigProviderInterface: '@Nowo\IconSelectorBundle\Service\IconSelectorConfigProvider'
+  Nowo\IconSelectorBundle\Service\SvgSanitizerInterface: '@Nowo\IconSelectorBundle\Service\SvgSanitizer'
+
   Nowo\IconSelectorBundle\Form\IconSelectorType:
     arguments:
-      $iconListProvider: '@Nowo\IconSelectorBundle\Service\IconListProvider'
+      $iconListProvider: '@Nowo\IconSelectorBundle\Service\IconCatalogInterface'
       $iconSets: '%nowo_icon_selector.icon_sets%'
       $iconsApiPath: '%nowo_icon_selector.icons_api_path%'
       $iconRenderer: '@?Symfony\UX\Icons\IconRendererInterface'
-      $svgSanitizer: '@Nowo\IconSelectorBundle\Service\SvgSanitizer'
+      $svgSanitizer: '@Nowo\IconSelectorBundle\Service\SvgSanitizerInterface'
       $debug: '%nowo_icon_selector.debug%'
     # Tagged form.type by autoconfigure (REQ-SF-003).
     public: false

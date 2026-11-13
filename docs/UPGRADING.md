@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.5.0](#to-150)
 - [To 1.4.4](#to-144)
 - [To 1.4.3](#to-143)
 - [To 1.4.2](#to-142)
@@ -43,6 +44,10 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.5.0
+
+From **1.4.4**: no action. The new ports (`IconCatalogInterface`, `IconSelectorConfigProviderInterface`, `SvgSanitizerInterface`) are additive and the class service ids still work. If you decorate or mock `IconListProvider` and pass it where the form type or an endpoint is built by hand, it still satisfies the new type hints. To serve a custom catalogue, alias `IconCatalogInterface` to your service; see [ARCHITECTURE](ARCHITECTURE.md).
 
 ## To 1.4.4
 

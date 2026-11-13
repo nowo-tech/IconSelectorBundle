@@ -19,7 +19,7 @@ use function in_array;
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
-readonly class IconListProvider
+readonly class IconListProvider implements IconCatalogInterface
 {
     /**
      * Static list of common icons per set for the selector.

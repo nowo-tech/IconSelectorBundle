@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Controller\Api;
 
-use Nowo\IconSelectorBundle\Service\IconListProvider;
+use Nowo\IconSelectorBundle\Service\IconCatalogInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -16,10 +16,10 @@ use Symfony\Component\Routing\Attribute\Route;
 final readonly class IconListController
 {
     /**
-     * @param IconListProvider $iconListProvider Provider of icon identifiers for configured sets
+     * @param IconCatalogInterface $iconListProvider Provider of icon identifiers for configured sets
      */
     public function __construct(
-        private IconListProvider $iconListProvider,
+        private IconCatalogInterface $iconListProvider,
     ) {
     }
 

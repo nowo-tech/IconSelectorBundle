@@ -12,7 +12,7 @@ namespace Nowo\IconSelectorBundle\Service;
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
-final readonly class IconSelectorConfigProvider
+final readonly class IconSelectorConfigProvider implements IconSelectorConfigProviderInterface
 {
     private const ICONIFY_BASE = 'https://api.iconify.design';
 
@@ -50,7 +50,7 @@ final readonly class IconSelectorConfigProvider
     /**
      * Returns config for the frontend widget: iconify base URL and sets (key, label, prefixes).
      *
-     * @return array{iconify_base: string, sets: list<array{key: string, label: string, prefixes: list<string>}>}
+     * @return array{iconify_base: string, sets: list<array{key: string, label: string, prefixes: list<string>}>, debug: bool}
      */
     public function getConfig(): array
     {

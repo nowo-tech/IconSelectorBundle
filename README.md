@@ -101,7 +101,7 @@ $builder->add('icon', IconSelectorType::class, [
 ]);
 ```
 
-Full details: [docs/USAGE.md](docs/USAGE.md).
+Full details: [docs/USAGE.md](docs/USAGE.md). Architecture, ports and DDD hosts: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Internationalization
 
