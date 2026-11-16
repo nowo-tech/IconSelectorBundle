@@ -16,3 +16,27 @@ gear: Ingranaggio
 file-text: File di testo
 bar-chart: 'Grafico a barre'
 house: Casa
+
+# Emoji mode (field option emoji: true)
+emoji:
+    tablist: 'Tipo di icona'
+    tab_icons: 'Icone'
+    tab_emoji: 'Emoji'
+    search: 'Cerca emoji...'
+    group_all: 'Tutte le categorie'
+    group: 'Categoria'
+    tone: 'Tonalità della pelle'
+    tone_default: 'Predefinito'
+    tone_1: 'Chiara'
+    tone_2: 'Medio-chiara'
+    tone_3: 'Media'
+    tone_4: 'Medio-scura'
+    tone_5: 'Scura'
+    selected: 'Selezionato:'
+    none_selected: 'Nessuna emoji selezionata'
+    empty: 'Nessuna emoji trovata.'
+    loading: 'Caricamento emoji...'
+    error: 'Impossibile caricare l''elenco delle emoji.'
+    grid: 'Emoji'
+    invalid: 'Questo valore deve essere una singola emoji.'
+    not_emoji: 'Questo valore deve essere un''emoji.'

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Form;
 
+use Nowo\IconSelectorBundle\Emoji\EmojiCatalogInterface;
+use Nowo\IconSelectorBundle\Emoji\IconValue;
 use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use Nowo\IconSelectorBundle\Service\IconCatalogInterface;
 use Nowo\IconSelectorBundle\Service\SvgSanitizerInterface;
@@ -16,6 +18,7 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Icons\IconRendererInterface;
 use Throwable;
 
@@ -24,8 +27,11 @@ use function count;
 use function hash;
 use function is_array;
 use function is_string;
+use function json_encode;
 use function serialize;
 
+use const JSON_THROW_ON_ERROR;
+use const JSON_UNESCAPED_UNICODE;
 use const PREG_SPLIT_NO_EMPTY;
 
 /**
@@ -55,6 +61,9 @@ final class IconSelectorType extends AbstractType
      * @param list<string> $iconSets Enabled icon set names from config (used when icon_sets option is null)
      * @param IconRendererInterface|null $iconRenderer Optional renderer to verify submitted icon IDs exist (e.g. via Iconify)
      * @param bool $debug When true, frontend shows all console logs; when false, only "script loaded"
+     * @param EmojiCatalogInterface|null $emojiCatalog Emoji catalogue used when a field enables the emoji option
+     * @param string $emojiDataUrl Default URL of the bundled emoji dataset (JSON) for the picker
+     * @param TranslatorInterface|null $translator Translates the emoji picker labels passed to the frontend
      */
     public function __construct(
         private readonly IconCatalogInterface $iconListProvider,
@@ -63,6 +72,9 @@ final class IconSelectorType extends AbstractType
         private readonly ?IconRendererInterface $iconRenderer = null,
         private readonly ?SvgSanitizerInterface $svgSanitizer = null,
         private readonly bool $debug = false,
+        private readonly ?EmojiCatalogInterface $emojiCatalog = null,
+        private readonly string $emojiDataUrl = '/bundles/nowoiconselector/emoji-data.json',
+        private readonly ?TranslatorInterface $translator = null,
     ) {
     }
 
@@ -108,6 +120,77 @@ final class IconSelectorType extends AbstractType
         $view->vars['tom_select_preloaded_options']                = $options['mode'] === self::MODE_TOM_SELECT
             ? $this->buildTomSelectPreloadedOptions($choices, $currentValue)
             : [];
+
+        $emoji                     = ($options['emoji'] ?? false) === true && $this->emojiCatalog instanceof EmojiCatalogInterface;
+        $view->vars['emoji']       = $emoji;
+        $view->vars['emoji_value'] = null;
+        $view->vars['emoji_name']  = null;
+        if ($emoji) {
+            $view->vars['attr']['data-icon-selector-emoji-value']     = '1';
+            $view->vars['attr']['data-icon-selector-emoji-url-value'] = $options['emoji_data_url'] ?? $this->emojiDataUrl;
+            $view->vars['attr']['data-icon-selector-emoji-labels']    = $this->emojiLabels($options['translation_domain']);
+            $grapheme                                                 = IconValue::emojiOf($currentValue);
+            if ($grapheme !== null && $this->emojiCatalog->isValid($grapheme)) {
+                $view->vars['emoji_value'] = $grapheme;
+                $view->vars['emoji_name']  = $this->emojiCatalog->getName($grapheme);
+            }
+        }
+    }
+
+    /** Translation keys of the emoji picker labels (frontend label key => translation key). */
+    private const EMOJI_LABEL_KEYS = [
+        'tablist'       => 'emoji.tablist',
+        'tab_icons'     => 'emoji.tab_icons',
+        'tab_emoji'     => 'emoji.tab_emoji',
+        'search'        => 'emoji.search',
+        'group_all'     => 'emoji.group_all',
+        'group'         => 'emoji.group',
+        'tone'          => 'emoji.tone',
+        'tone_default'  => 'emoji.tone_default',
+        'selected'      => 'emoji.selected',
+        'none_selected' => 'emoji.none_selected',
+        'empty'         => 'emoji.empty',
+        'loading'       => 'emoji.loading',
+        'error'         => 'emoji.error',
+        'grid'          => 'emoji.grid',
+    ];
+
+    /** Translation keys of the five skin tones, light to dark. */
+    private const EMOJI_TONE_KEYS = ['emoji.tone_1', 'emoji.tone_2', 'emoji.tone_3', 'emoji.tone_4', 'emoji.tone_5'];
+
+    /**
+     * JSON object with the translated emoji picker labels (the frontend falls back to English per missing key).
+     *
+     * @param mixed $translationDomain Field translation domain option
+     */
+    private function emojiLabels(mixed $translationDomain): string
+    {
+        if (!$this->translator instanceof TranslatorInterface) {
+            return '{}';
+        }
+        $domain = is_string($translationDomain) ? $translationDomain : 'NowoIconSelectorBundle';
+        $labels = [];
+        foreach (self::EMOJI_LABEL_KEYS as $key => $id) {
+            $labels[$key] = $this->translateWithFallback($id, $domain);
+        }
+        $labels['tones'] = array_map(fn (string $id): string => $this->translateWithFallback($id, $domain), self::EMOJI_TONE_KEYS);
+
+        return json_encode($labels, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Translates $id in $domain, then in the bundle domain; returns '' when untranslated (frontend default wins).
+     */
+    private function translateWithFallback(string $id, string $domain): string
+    {
+        foreach (array_unique([$domain, 'NowoIconSelectorBundle']) as $d) {
+            $text = $this->translator?->trans($id, [], $d) ?? $id;
+            if ($text !== $id) {
+                return $text;
+            }
+        }
+
+        return '';
     }
 
     /**
@@ -290,7 +373,12 @@ final class IconSelectorType extends AbstractType
             'placeholder'               => 'placeholder',
             'search_placeholder'        => 'search_placeholder',
             'choice_value'              => ChoiceList::value($this, static fn ($choice) => $choice),
+            'emoji'                     => false,
+            'emoji_data_url'            => null,
         ]);
+        $resolver->setAllowedTypes('emoji', 'bool');
+        $resolver->setAllowedTypes('emoji_data_url', ['null', 'string']);
+        $resolver->setInfo('emoji', 'Adds an "Emoji" tab; stores "emoji:<grapheme>" values validated against the bundled RGI emoji catalogue.');
         $resolver->setAllowedTypes('icons', ['null', 'array']);
         $resolver->setAllowedTypes('icon_sets', ['null', 'array']);
         $resolver->setAllowedTypes('translation_domain', ['null', 'string', 'bool']);
@@ -313,8 +401,8 @@ final class IconSelectorType extends AbstractType
 
         return ChoiceList::loader(
             $this,
-            new IconChoiceLoader($choices, $this->iconRenderer),
-            [$options['icon_sets'] ?? $this->iconSets, hash('xxh128', serialize($choices))],
+            new IconChoiceLoader($choices, $this->iconRenderer, $options['emoji'] ? $this->emojiCatalog : null),
+            [$options['icon_sets'] ?? $this->iconSets, hash('xxh128', serialize($choices)), (bool) $options['emoji']],
         );
     }
 

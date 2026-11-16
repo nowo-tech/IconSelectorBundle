@@ -6,7 +6,10 @@ namespace Nowo\IconSelectorBundle\Tests\Unit\DependencyInjection;
 
 use Nowo\IconSelectorBundle\DependencyInjection\Configuration;
 use Nowo\IconSelectorBundle\DependencyInjection\NowoIconSelectorExtension;
+use Nowo\IconSelectorBundle\Emoji\EmojiCatalogInterface;
 use Nowo\IconSelectorBundle\Service\IconifyCollectionLoader;
+use Nowo\IconSelectorBundle\Twig\IconRenderTwigExtension;
+use Nowo\IconSelectorBundle\Validator\Constraints\EmojiIconValidator;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -37,6 +40,20 @@ final class NowoIconSelectorExtensionTest extends TestCase
         self::assertTrue($container->hasParameter('nowo_icon_selector.form_theme'));
         self::assertSame(['heroicons', 'bootstrap-icons'], $container->getParameter('nowo_icon_selector.icon_sets'));
         self::assertSame('/api/icon-selector/icons', $container->getParameter('nowo_icon_selector.icons_api_path'));
+        $emojiUrl = $container->getParameter('nowo_icon_selector.emoji_data_url');
+        self::assertIsString($emojiUrl);
+        self::assertMatchesRegularExpression('#^/bundles/nowoiconselector/emoji-data\.json\?v=\d+\.\d+$#', $emojiUrl);
+        self::assertTrue($container->hasDefinition(EmojiIconValidator::class));
+        self::assertTrue($container->hasAlias(EmojiCatalogInterface::class));
+        self::assertTrue($container->hasDefinition(IconRenderTwigExtension::class));
+    }
+
+    public function testCustomEmojiDataUrl(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoIconSelectorExtension())->load([['emoji_data_url' => '/assets/emoji.json']], $container);
+
+        self::assertSame('/assets/emoji.json', $container->getParameter('nowo_icon_selector.emoji_data_url'));
     }
 
     /** Asserts custom config is applied to container parameters. */

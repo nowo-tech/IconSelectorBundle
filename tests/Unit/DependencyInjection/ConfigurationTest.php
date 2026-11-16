@@ -42,6 +42,7 @@ final class ConfigurationTest extends TestCase
         self::assertSame(['heroicons', 'bootstrap-icons'], $config['icon_sets']);
         self::assertSame('/api/icon-selector/icons', $config['icons_api_path']);
         self::assertSame('form_div_layout.html.twig', $config['form_theme']);
+        self::assertNull($config['emoji_data_url']);
     }
 
     /** Asserts custom config values are processed correctly. */

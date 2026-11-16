@@ -47,7 +47,8 @@
         "twig/string-extra": "^3.12"
     },
     "suggest": {
-        "symfony/http-client": "Required when use_iconify_collection is true (to fetch full icon lists from api.iconify.design)"
+        "symfony/http-client": "Required when use_iconify_collection is true (to fetch full icon lists from api.iconify.design)",
+        "symfony/validator": "Required for the EmojiIcon constraint (validate emoji:<grapheme> values on entities / DTOs)"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0",
@@ -62,6 +63,7 @@
         "symfony/browser-kit": "^6.4 || ^7.0 || ^8.0",
         "symfony/dom-crawler": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-client": "^6.4 || ^7.0 || ^8.0",
+        "symfony/validator": "^6.4 || ^7.0 || ^8.0",
         "symfony/yaml": "^6.4 || ^7.0 || ^8.0",
         "vincentlanglet/twig-cs-fixer": "^4.0"
     },

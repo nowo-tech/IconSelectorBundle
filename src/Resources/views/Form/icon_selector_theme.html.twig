@@ -108,13 +108,17 @@
         </div>
     {% else %}
         <div class="icon-selector-field-shell">
-            <input type="hidden"
+            {# With emoji: true the value input is a text field (no-JS fallback); the script turns it into a hidden input. #}
+            <input type="{{ form.vars.emoji|default(false) ? 'text' : 'hidden' }}"
                    name="{{ full_name }}"
                    id="{{ id }}"
                    {% if value is not empty %}value="{{ value }}"{% endif %}
                    {%- if disabled %} disabled="disabled"{% endif %}
-                   data-icon-selector-target="input"
-                   class="icon-selector-input" />
+                   {%- if form.vars.emoji|default(false) %} data-icon-selector-emoji-fallback="1" autocomplete="off" class="icon-selector-input form-control"{% else %} class="icon-selector-input"{% endif %}
+                   data-icon-selector-target="input" />
+            {% if form.vars.emoji|default(false) %}
+                <noscript><style>.icon-selector-widget[data-icon-selector-enhanced="0"] .icon-selector-skeleton { display: none !important; }</style></noscript>
+            {% endif %}
             {# Hidden until the widget is set up (CSS above); the script never leaves aria-hidden on the interactive picker. #}
             <div data-icon-selector-target="picker" class="icon-selector-picker mt-2">
                 {% if mode == 'search' %}

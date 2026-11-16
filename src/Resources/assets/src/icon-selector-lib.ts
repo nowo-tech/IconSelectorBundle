@@ -6,6 +6,7 @@
 import TomSelect from 'tom-select';
 import { createBundleLogger, type BundleLogger } from './logger';
 import { sanitizeSvg, toSvgNumber } from './svg-sanitizer';
+import { attachEmojiPicker } from './emoji-picker';
 
 let bundleLogger: BundleLogger | null = null;
 
@@ -2155,14 +2156,18 @@ export function initIconSelectorContainer(container: HTMLElement): IconSelectorD
     if (disposed) return;
     disposed = true;
     activeDisposer();
+    emojiDisposer?.();
+    emojiDisposer = null;
     readyGuard.cleanup();
     container.removeAttribute(ATTR_INIT);
     container.removeAttribute('data-icon-selector-enhanced');
     delete (container as HTMLElement & { [CONTAINER_DISPOSER_KEY]?: IconSelectorDisposer })[CONTAINER_DISPOSER_KEY];
   };
   (container as HTMLElement & { [CONTAINER_DISPOSER_KEY]?: IconSelectorDisposer })[CONTAINER_DISPOSER_KEY] = dispose;
+  let emojiDisposer: IconSelectorDisposer | null = null;
   const markEnhanced = (): void => {
     if (disposed) return;
+    if (!emojiDisposer) emojiDisposer = attachEmojiPicker(container);
     container.setAttribute('data-icon-selector-enhanced', '1');
     readyGuard.markReady();
   };

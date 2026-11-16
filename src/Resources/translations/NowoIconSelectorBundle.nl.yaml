@@ -16,3 +16,27 @@ gear: Tandwiel
 file-text: Bestand
 bar-chart: 'Staafdiagram'
 house: Huis
+
+# Emoji mode (field option emoji: true)
+emoji:
+    tablist: 'Pictogramtype'
+    tab_icons: 'Pictogrammen'
+    tab_emoji: 'Emoji'
+    search: 'Emoji zoeken...'
+    group_all: 'Alle categorieën'
+    group: 'Categorie'
+    tone: 'Huidskleur'
+    tone_default: 'Standaard'
+    tone_1: 'Licht'
+    tone_2: 'Middellicht'
+    tone_3: 'Middel'
+    tone_4: 'Middeldonker'
+    tone_5: 'Donker'
+    selected: 'Geselecteerd:'
+    none_selected: 'Geen emoji geselecteerd'
+    empty: 'Geen emoji gevonden.'
+    loading: 'Emoji laden...'
+    error: 'De emojilijst kon niet worden geladen.'
+    grid: 'Emoji'
+    invalid: 'Deze waarde moet één emoji zijn.'
+    not_emoji: 'Deze waarde moet een emoji zijn.'

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Tests\Unit\Form\ChoiceLoader;
 
+use Nowo\IconSelectorBundle\Emoji\EmojiCatalog;
 use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -108,5 +109,23 @@ final class IconChoiceLoaderTest extends TestCase
         $result = $loader->loadChoicesForValues(['']);
 
         self::assertSame([], $result);
+    }
+
+    public function testEmojiValuesAreCheckedAgainstTheCatalogueAndNeverRendered(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->expects(self::never())->method('renderIcon');
+        $loader = new IconChoiceLoader(['bi:house' => 'house'], $renderer, new EmojiCatalog());
+
+        $result = $loader->loadChoicesForValues(['emoji:🚀', 'emoji:rocket', 'emoji:🚀🚀', "emoji:\u{202E}🚀", 'emoji:'], static fn ($v) => $v);
+
+        self::assertSame(['emoji:🚀'], array_values($result));
+    }
+
+    public function testWithoutCatalogueEmojiValuesKeepThePreviousBehaviour(): void
+    {
+        $loader = new IconChoiceLoader([]);
+
+        self::assertSame(['emoji:x'], array_values($loader->loadChoicesForValues(['emoji:x'], static fn ($v) => $v)));
     }
 }

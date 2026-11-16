@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Form\ChoiceLoader;
 
+use Nowo\IconSelectorBundle\Emoji\EmojiCatalogInterface;
+use Nowo\IconSelectorBundle\Emoji\IconValue;
 use Symfony\Component\Form\ChoiceList\Loader\AbstractChoiceLoader;
 use Symfony\UX\Icons\IconRendererInterface;
 use Throwable;
@@ -23,10 +25,13 @@ final class IconChoiceLoader extends AbstractChoiceLoader
     /**
      * @param array<string, string> $choices Map of icon ID (value) to label
      * @param IconRendererInterface|null $iconRenderer Optional UX Icons renderer to verify icon existence (e.g. Iconify)
+     * @param EmojiCatalogInterface|null $emojiCatalog When set (field option emoji: true), "emoji:<grapheme>" values
+     *                                                 are accepted only if the grapheme is one RGI emoji
      */
     public function __construct(
         private readonly array $choices,
         private readonly ?IconRendererInterface $iconRenderer = null,
+        private readonly ?EmojiCatalogInterface $emojiCatalog = null,
     ) {
     }
 
@@ -70,6 +75,13 @@ final class IconChoiceLoader extends AbstractChoiceLoader
      */
     private function iconExists(string $id): bool
     {
+        if ($this->emojiCatalog instanceof EmojiCatalogInterface && IconValue::isEmoji($id)) {
+            // Never handed to the icon renderer: validated against the bundled catalogue only.
+            $emoji = IconValue::emojiOf($id);
+
+            return $emoji !== null && $this->emojiCatalog->isValid($emoji);
+        }
+
         $parts = explode(':', $id, 2);
         if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
             return false;

@@ -16,3 +16,27 @@ gear: Zahnrad
 file-text: Datei
 bar-chart: 'Balkendiagramm'
 house: Haus
+
+# Emoji mode (field option emoji: true)
+emoji:
+    tablist: 'Symboltyp'
+    tab_icons: 'Symbole'
+    tab_emoji: 'Emoji'
+    search: 'Emoji suchen...'
+    group_all: 'Alle Kategorien'
+    group: 'Kategorie'
+    tone: 'Hautton'
+    tone_default: 'Standard'
+    tone_1: 'Hell'
+    tone_2: 'Mittelhell'
+    tone_3: 'Mittel'
+    tone_4: 'Mitteldunkel'
+    tone_5: 'Dunkel'
+    selected: 'Ausgewählt:'
+    none_selected: 'Kein Emoji ausgewählt'
+    empty: 'Keine Emojis gefunden.'
+    loading: 'Emojis werden geladen...'
+    error: 'Die Emoji-Liste konnte nicht geladen werden.'
+    grid: 'Emoji'
+    invalid: 'Dieser Wert muss ein einzelnes Emoji sein.'
+    not_emoji: 'Dieser Wert muss ein Emoji sein.'
