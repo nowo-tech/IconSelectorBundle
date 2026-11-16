@@ -76,7 +76,7 @@ The following describes the security measures implemented in the bundle and rema
 - **Input:** Icon IDs come from the request (GET query `ids` or POST JSON `ids`). They are trimmed and filtered.
 - **Implemented:**
   - **Whitelist:** Only icon IDs that appear in the configured icon sets (`IconListProvider::getIcons()`) are passed to the renderer. Requests for unknown or disallowed IDs are ignored (omitted from the response).
-  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which parses the markup with a DOM allowlist (permitted SVG elements and attributes only), strips event handlers and unsafe references (e.g. `javascript:` URLs), removes disallowed tags such as `<foreignObject>`, and **fails closed** (returns an empty string) when the markup cannot be parsed as an `<svg>` document. This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
+  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which parses the markup with a DOM allowlist (permitted SVG elements and attributes only), strips event handlers and unsafe references (e.g. `javascript:` URLs), removes disallowed tags such as `<foreignObject>`, removes every non-element node except text (processing instructions, comments, CDATA, doctype and entity references in text; kept attributes are written back from their expanded, validated value; `<title>`/`<desc>` keep text only), and **fails closed** (returns an empty string) when the markup cannot be parsed as an `<svg>` document. This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
   - **DoS mitigation:** Requests are limited to `MAX_IDS = 500` icon IDs per call.
 - **Output:** JSON mapping icon ID → sanitized SVG markup. Unknown or invalid IDs do not appear in the response.
 - **Recommendations for integrators:**
@@ -109,7 +109,7 @@ The following describes the security measures implemented in the bundle and rema
 ### 6. Iconify icons loaded in the browser
 
 - **Behaviour:** In Iconify mode (`config_url` set) the widget fetches icon bodies directly from `api.iconify.design` (third-party content) and renders them with `innerHTML`.
-- **Implemented:** Every icon is sanitized client-side before it is cached or rendered (`svg-sanitizer.ts`): the markup is parsed as XML with `DOMParser` (`image/svg+xml`), only the same element/attribute allowlist as the server `SvgSanitizer` is kept (no `script`, `foreignObject`, `animate`/`set`, `image`, `a`, `style`, no `on*` attributes; `href`/`url()` only to `#fragment`), and malformed or non-SVG markup is dropped (fail closed). Width/height/viewBox numbers from the API are coerced to finite numbers.
+- **Implemented:** Every icon is sanitized client-side before it is cached or rendered (`svg-sanitizer.ts`): the markup is parsed as XML with `DOMParser` (`image/svg+xml`), only the same element/attribute allowlist as the server `SvgSanitizer` is kept (no `script`, `foreignObject`, `animate`/`set`, `image`, `a`, `style`, no `on*` attributes; `href`/`url()` only to `#fragment`), processing instructions, comments, CDATA and doctypes are dropped, the output is rebuilt from the sanitized tree with explicit escaping (not `XMLSerializer`), and malformed or non-SVG markup is dropped (fail closed). Width/height/viewBox numbers from the API are coerced to finite numbers.
 
 ### Summary
 

@@ -5,6 +5,11 @@
  * Mirrors the server-side allowlist of {@see Nowo\IconSelectorBundle\Service\SvgSanitizer}: the markup is
  * parsed as XML (never as HTML), every element/attribute outside the allowlist is removed, and anything
  * that is not a well-formed <svg> document is dropped (fail closed).
+ *
+ * The output is not produced by XMLSerializer: it is rebuilt from the sanitised tree with only allowlisted
+ * elements, allowlisted attributes and text, escaped explicitly. Processing instructions, comments, CDATA
+ * sections, doctypes and entity references are never emitted, so the string cannot change meaning when the
+ * caller later inserts it with innerHTML (HTML parsing rules differ from XML for those constructs).
  */
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -96,35 +101,74 @@ function isSafeAttributeValue(name: string, value: string): boolean {
   return true;
 }
 
-function sanitizeElement(element: Element): void {
+/**
+ * Elements that are HTML integration points inside SVG (their content is parsed with HTML rules when the
+ * markup is inserted with innerHTML). They keep text only, never child elements.
+ */
+const TEXT_ONLY_TAGS = new Set<string>(['title', 'desc']);
+
+/** Attribute qualified names that may be written back verbatim (letters, digits, '-', '_', '.', ':'). */
+const SAFE_ATTRIBUTE_NAME = /^[A-Za-z_][A-Za-z0-9_.:-]*$/;
+
+const ELEMENT_NODE = 1;
+const TEXT_NODE = 3;
+
+function escapeText(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escapeAttribute(value: string): string {
+  return escapeText(value).replace(/"/g, '&quot;');
+}
+
+function isAllowedAttribute(attribute: Attr): boolean {
+  const name = attribute.localName.toLowerCase();
+  const qualified = attribute.name.toLowerCase();
+
+  if (!SAFE_ATTRIBUTE_NAME.test(attribute.name)) {
+    return false;
+  }
+
+  if (qualified === 'xmlns' || qualified.startsWith('xmlns:')) {
+    return true;
+  }
+
+  if (name === 'href') {
+    return isSafeFragment(attribute.value);
+  }
+
+  return !name.startsWith('on') && ALLOWED_ATTRIBUTES.has(name) && isSafeAttributeValue(name, attribute.value);
+}
+
+/**
+ * Serialises an allowlisted element and its allowlisted descendants. Anything that is not an allowlisted
+ * SVG element or a text node (processing instructions, comments, CDATA, entity references, foreign
+ * elements) is dropped together with its content.
+ */
+function serializeElement(element: Element): string {
   const tag = element.localName.toLowerCase();
   if (!ALLOWED_TAGS.has(tag) || element.namespaceURI !== SVG_NS) {
-    element.remove();
-
-    return;
+    return '';
   }
 
+  let out = `<${element.localName}`;
   for (const attribute of Array.from(element.attributes)) {
-    const name = attribute.localName.toLowerCase();
-    const qualified = attribute.name.toLowerCase();
-
-    if (qualified === 'xmlns' || qualified.startsWith('xmlns:')) {
-      continue;
+    if (isAllowedAttribute(attribute)) {
+      out += ` ${attribute.name}="${escapeAttribute(attribute.value)}"`;
     }
+  }
+  out += '>';
 
-    const keep =
-      name === 'href'
-        ? isSafeFragment(attribute.value)
-        : !name.startsWith('on') && ALLOWED_ATTRIBUTES.has(name) && isSafeAttributeValue(name, attribute.value);
-
-    if (!keep) {
-      element.removeAttributeNode(attribute);
+  const textOnly = TEXT_ONLY_TAGS.has(tag);
+  for (const child of Array.from(element.childNodes)) {
+    if (child.nodeType === TEXT_NODE) {
+      out += escapeText((child as Text).data);
+    } else if (child.nodeType === ELEMENT_NODE && !textOnly) {
+      out += serializeElement(child as Element);
     }
   }
 
-  for (const child of Array.from(element.children)) {
-    sanitizeElement(child);
-  }
+  return `${out}</${element.localName}>`;
 }
 
 /**
@@ -134,7 +178,7 @@ function sanitizeElement(element: Element): void {
  * @returns Sanitized SVG markup, or '' when the input is empty or not a well-formed SVG document.
  */
 export function sanitizeSvg(svg: string): string {
-  if (svg === '' || typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+  if (svg === '' || typeof DOMParser === 'undefined') {
     return '';
   }
 
@@ -155,9 +199,7 @@ export function sanitizeSvg(svg: string): string {
     return '';
   }
 
-  sanitizeElement(root);
-
-  return new XMLSerializer().serializeToString(root);
+  return serializeElement(root);
 }
 
 /**

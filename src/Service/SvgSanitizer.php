@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Nowo\IconSelectorBundle\Service;
 
 use DOMAttr;
+use DOMCdataSection;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
+use DOMText;
 
 use function in_array;
 use function is_string;
@@ -23,7 +25,10 @@ use const LIBXML_PARSEHUGE;
 /**
  * Sanitizes SVG markup to reduce XSS risk when SVG is injected into the DOM (e.g. via innerHTML).
  *
- * Uses DOM parsing with an element/attribute allowlist instead of regex-only stripping.
+ * Uses DOM parsing with an element/attribute allowlist instead of regex-only stripping. Only allowlisted
+ * elements, allowlisted attributes and text survive: processing instructions, comments, CDATA sections,
+ * doctypes and entity references are removed, because HTML parses them differently from XML once the
+ * output is inserted with innerHTML.
  */
 final readonly class SvgSanitizer implements SvgSanitizerInterface
 {
@@ -48,6 +53,15 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
         'desc',
         'use',
     ];
+
+    /**
+     * HTML integration points inside SVG: their content is parsed with HTML rules on innerHTML, so they keep text only.
+     *
+     * @var list<string>
+     */
+    private const TEXT_ONLY_TAGS = ['title', 'desc'];
+
+    private const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
     /** @var list<string> */
     private const ALLOWED_ATTRIBUTES = [
@@ -119,21 +133,25 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
         // Fail closed: markup that is not a well-formed <svg> document is dropped, never regex-"cleaned".
         if ($loaded === false
             || !$document->documentElement instanceof DOMElement
-            || strtolower((string) $document->documentElement->localName) !== 'svg') {
+            || strtolower((string) $document->documentElement->localName) !== 'svg'
+            || !in_array($document->documentElement->namespaceURI, [null, self::SVG_NAMESPACE], true)) {
             return '';
         }
 
-        $this->sanitizeElement($document->documentElement);
+        $root = $document->documentElement;
+        $this->sanitizeElement($root);
 
-        $output = $document->saveXML($document->documentElement);
+        $output = $document->saveXML($root);
 
         return is_string($output) ? $output : '';
     }
 
     private function sanitizeElement(DOMElement $element): void
     {
-        $tag = strtolower($element->tagName);
-        if (!in_array($tag, self::ALLOWED_TAGS, true)) {
+        $tag          = strtolower($element->tagName);
+        $namespaceUri = $element->namespaceURI;
+        if (!in_array($tag, self::ALLOWED_TAGS, true)
+            || ($namespaceUri !== null && $namespaceUri !== self::SVG_NAMESPACE)) {
             $parent = $element->parentNode;
             if ($parent instanceof DOMNode) {
                 $parent->removeChild($element);
@@ -145,6 +163,8 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
         if ($element->hasAttributes()) {
             /** @var list<DOMAttr> $toRemove */
             $toRemove = [];
+            /** @var list<array{?string, string, string}> $toKeep namespace URI, qualified name, expanded value */
+            $toKeep = [];
             foreach ($element->attributes as $attribute) {
                 $localName     = strtolower((string) $attribute->localName);
                 $qualifiedName = strtolower($attribute->nodeName);
@@ -153,6 +173,8 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
                 if ($localName === 'href') {
                     if (!$this->isSafeFragmentReference($attribute->value)) {
                         $toRemove[] = $attribute;
+                    } else {
+                        $toKeep[] = [$attribute->namespaceURI, $attribute->nodeName, $attribute->value];
                     }
 
                     continue;
@@ -165,6 +187,8 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
 
                 if (str_starts_with($localName, 'on') || !in_array($localName, self::ALLOWED_ATTRIBUTES, true)) {
                     $toRemove[] = $attribute;
+                } else {
+                    $toKeep[] = [$attribute->namespaceURI, $attribute->nodeName, $attribute->value];
                 }
             }
 
@@ -176,6 +200,17 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
                     $element->removeAttribute($attribute->name);
                 }
             }
+
+            // Re-set every kept attribute from its validated, expanded value: an attribute may still hold
+            // entity references (declared in an internal DTD subset) that saveXML() would write back unexpanded,
+            // so the browser would decode a different value from the one that was checked.
+            foreach ($toKeep as [$namespaceUri, $qualifiedName, $value]) {
+                if (is_string($namespaceUri) && $namespaceUri !== '') {
+                    $element->setAttributeNS($namespaceUri, $qualifiedName, $value);
+                } else {
+                    $element->setAttribute($qualifiedName, $value);
+                }
+            }
         }
 
         $children = [];
@@ -183,10 +218,21 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
             $children[] = $child;
         }
 
+        $textOnly = in_array($tag, self::TEXT_ONLY_TAGS, true);
         foreach ($children as $child) {
-            if ($child instanceof DOMElement) {
+            if ($child instanceof DOMElement && !$textOnly) {
                 $this->sanitizeElement($child);
+
+                continue;
             }
+
+            // Keep plain text only: CDATA (a DOMText subclass), comments, processing instructions,
+            // entity references and, inside <title>/<desc>, child elements are removed.
+            if ($child instanceof DOMText && !$child instanceof DOMCdataSection) {
+                continue;
+            }
+
+            $element->removeChild($child);
         }
     }
 

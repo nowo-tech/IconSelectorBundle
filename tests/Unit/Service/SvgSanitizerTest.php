@@ -110,4 +110,92 @@ final class SvgSanitizerTest extends TestCase
         $output = $this->sanitizer->sanitize($input);
         self::assertStringContainsString('#icon', $output);
     }
+
+    /**
+     * Non-element nodes that HTML parses differently from XML once the output is inserted with innerHTML.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function nonElementNodeProvider(): iterable
+    {
+        yield 'processing instruction' => ['<path d="M0 0"/><?x x><img src=x onerror=alert(1)>?>'];
+        yield 'processing instruction with xml-stylesheet target' => ['<path d="M0 0"/><?xml-stylesheet href="x"?><?y <img src=x onerror=alert(1)>?>'];
+        yield 'comment' => ['<path d="M0 0"/><!--><img src=x onerror=alert(1)>-->'];
+        yield 'cdata' => ['<path d="M0 0"/><![CDATA[><img src=x onerror=alert(1)>]]>'];
+        yield 'cdata inside title' => ['<title><![CDATA[</title><img src=x onerror=alert(1)>]]></title><path d="M0 0"/>'];
+        yield 'processing instruction inside nested group' => ['<g><g><path d="M0 0"/><?x x><img src=x onerror=alert(1)>?></g></g>'];
+        yield 'nested foreignObject' => ['<g><foreignObject><div xmlns="http://www.w3.org/1999/xhtml"><img src="x" onerror="alert(1)"/></div></foreignObject></g><path d="M0 0"/>'];
+        yield 'style and script' => ['<style>*{background:url(x)}</style><script>alert(1)</script><path d="M0 0"/>'];
+    }
+
+    #[DataProvider('nonElementNodeProvider')]
+    public function testNonElementNodesAreRemoved(string $body): void
+    {
+        $output = $this->sanitizer->sanitize('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' . $body . '</svg>');
+
+        self::assertStringStartsWith('<svg', $output);
+        self::assertStringContainsString('<path d="M0 0"/>', $output);
+        foreach (['<?', '<!', ']]>', 'img', 'onerror', 'alert', 'script', 'style', 'foreignObject', 'div'] as $needle) {
+            self::assertStringNotContainsString($needle, $output);
+        }
+    }
+
+    public function testDoctypeAndEntityReferencesAreRemoved(): void
+    {
+        $input = '<!DOCTYPE svg [<!ENTITY e "<img src=\'x\' onerror=\'alert(1)\'/>"><!ENTITY t "text">]>'
+            . '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/>&e;<title>&t;</title></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertSame('<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/><title/></svg>', $output);
+    }
+
+    public function testTitleAndDescKeepTextOnly(): void
+    {
+        $input  = '<svg xmlns="http://www.w3.org/2000/svg"><title>Home &lt;b&gt;<path d="M1 1"/></title><desc>A<g/></desc><path d="M0 0"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertSame('<svg xmlns="http://www.w3.org/2000/svg"><title>Home &lt;b&gt;</title><desc>A</desc><path d="M0 0"/></svg>', $output);
+    }
+
+    public function testElementsOutsideTheSvgNamespaceAreRemoved(): void
+    {
+        $input  = '<svg xmlns="http://www.w3.org/2000/svg"><path xmlns="http://www.w3.org/1999/xhtml" d="M1 1"/><path d="M0 0"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertSame('<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>', $output);
+    }
+
+    public function testSvgRootOutsideTheSvgNamespaceFailsClosed(): void
+    {
+        self::assertSame('', $this->sanitizer->sanitize('<svg xmlns="http://www.w3.org/1999/xhtml"><path d="M0 0"/></svg>'));
+    }
+
+    public function testTextIsKeptEscaped(): void
+    {
+        $output = $this->sanitizer->sanitize('<svg><g>a &amp; &lt;img src=x onerror=alert(1)&gt;</g></svg>');
+
+        self::assertSame('<svg><g>a &amp; &lt;img src=x onerror=alert(1)&gt;</g></svg>', $output);
+    }
+
+    public function testEntityReferencesInAttributesAreWrittenExpanded(): void
+    {
+        $input = '<!DOCTYPE svg [<!ENTITY Tab "#"><!ENTITY frag "#icon">]>'
+            . '<svg xmlns="http://www.w3.org/2000/svg"><path id="icon" d="M0 0"/>'
+            . '<use href="&Tab;javascript:alert(1)"/><use href="&frag;"/><path d="M&Tab;1 1" fill="red"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertStringNotContainsString('&Tab;', $output);
+        self::assertStringNotContainsString('&frag;', $output);
+        self::assertStringContainsString('<use href="#javascript:alert(1)"/>', $output);
+        self::assertStringContainsString('<use href="#icon"/>', $output);
+        self::assertStringContainsString('<path d="M#1 1" fill="red"/>', $output);
+    }
+
+    public function testNamespacedAttributesKeepTheirNamespace(): void
+    {
+        $input  = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="#icon" x="1"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertSame('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="#icon" x="1"/></svg>', $output);
+    }
 }
