@@ -22,6 +22,7 @@ use Symfony\Component\Form\FormFactoryBuilder;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
+use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Icons\IconRendererInterface;
@@ -622,6 +623,42 @@ final class IconSelectorTypeTest extends TestCase
         $icon = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'emoji' => true]);
         $icon->submit('heroicons-outline:home');
         self::assertSame('heroicons-outline:home', $icon->getData());
+    }
+
+    public function testIconPrefixesRestrictChoicesSubmissionAndTheBrowserConfig(): void
+    {
+        $factory = $this->createEmojiFormFactory();
+        $form    = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons', 'bootstrap-icons'], 'icon_prefixes' => ['bi', 'bi']]);
+        $view    = $form->createView();
+
+        $values = array_map(static fn (ChoiceView $c): string => $c->value, $view->vars['choices']);
+        self::assertNotSame([], $values);
+        foreach ($values as $value) {
+            self::assertStringStartsWith('bi:', $value);
+        }
+        self::assertSame('bi', $view->vars['attr']['data-icon-selector-prefixes-value']);
+        self::assertStringEndsWith('/config#prefixes=bi', $view->vars['attr']['data-icon-selector-config-url-value']);
+
+        $ok = $factory->create(IconSelectorType::class, null, ['icon_prefixes' => ['tabler']]);
+        $ok->submit('tabler:home');
+        self::assertSame('tabler:home', $ok->getData());
+
+        $bad = $factory->create(IconSelectorType::class, null, ['icon_prefixes' => ['tabler']]);
+        $bad->submit('lucide:rocket');
+        self::assertFalse($bad->isSynchronized());
+
+        $both = $factory->create(IconSelectorType::class, null, ['icon_prefixes' => ['tabler'], 'emoji' => true]);
+        $both->submit('emoji:🚀');
+        self::assertSame('emoji:🚀', $both->getData());
+
+        $icons = $factory->create(IconSelectorType::class, null, ['icons' => ['tabler:home', 'bi:house'], 'icon_prefixes' => ['tabler']])->createView();
+        self::assertSame(['tabler:home'], array_map(static fn (ChoiceView $c): string => $c->value, $icons->vars['choices']));
+    }
+
+    public function testIconPrefixesRejectsMalformedPrefixes(): void
+    {
+        $this->expectException(InvalidOptionsException::class);
+        $this->createEmojiFormFactory()->create(IconSelectorType::class, null, ['icon_prefixes' => ['Tabler!']]);
     }
 
     private function createEmojiFormFactory(?TranslatorInterface $translator = null): FormFactoryInterface

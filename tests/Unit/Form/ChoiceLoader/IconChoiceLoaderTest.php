@@ -128,4 +128,11 @@ final class IconChoiceLoaderTest extends TestCase
 
         self::assertSame(['emoji:x'], array_values($loader->loadChoicesForValues(['emoji:x'], static fn ($v) => $v)));
     }
+
+    public function testAllowedPrefixesRefuseOtherIconSets(): void
+    {
+        $loader = new IconChoiceLoader([], null, null, ['tabler']);
+
+        self::assertSame(['tabler:home'], array_values($loader->loadChoicesForValues(['tabler:home', 'bi:house'], static fn ($v) => $v)));
+    }
 }

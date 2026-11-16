@@ -11,6 +11,7 @@ use Symfony\UX\Icons\IconRendererInterface;
 use Throwable;
 
 use function count;
+use function in_array;
 
 /**
  * Choice loader that accepts icon IDs (prefix:name) from the base list and also
@@ -27,11 +28,13 @@ final class IconChoiceLoader extends AbstractChoiceLoader
      * @param IconRendererInterface|null $iconRenderer Optional UX Icons renderer to verify icon existence (e.g. Iconify)
      * @param EmojiCatalogInterface|null $emojiCatalog When set (field option emoji: true), "emoji:<grapheme>" values
      *                                                 are accepted only if the grapheme is one RGI emoji
+     * @param list<string>|null $allowedPrefixes Field option icon_prefixes: icon ids with another prefix are refused
      */
     public function __construct(
         private readonly array $choices,
         private readonly ?IconRendererInterface $iconRenderer = null,
         private readonly ?EmojiCatalogInterface $emojiCatalog = null,
+        private readonly ?array $allowedPrefixes = null,
     ) {
     }
 
@@ -84,6 +87,10 @@ final class IconChoiceLoader extends AbstractChoiceLoader
 
         $parts = explode(':', $id, 2);
         if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
+            return false;
+        }
+
+        if ($this->allowedPrefixes !== null && !in_array($parts[0], $this->allowedPrefixes, true)) {
             return false;
         }
 

@@ -64,6 +64,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Port `EmojiCatalogInterface` (aliased to the immutable `EmojiCatalog`, loaded once — worker-safe with kernel reset off).
 - Config `emoji_data_url` (default `null` = `/bundles/nowoiconselector/emoji-data.json?v=<emoji version>`) and field option
   `emoji_data_url`.
+- Field option `icon_prefixes` (e.g. `['tabler']`): restricts the icon list, the submitted ids and the browser widgets to
+  those prefixes (the restriction travels in the config URL fragment, never sent to the server).
 - Translations for the emoji picker labels and validation messages (en, es, fr, de, it, pt, nl).
 - Demo page `/{locale}/demo/emoji`; the saved value is shown with `nowo_icon_selector_render()`.
 

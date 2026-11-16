@@ -138,13 +138,54 @@ const TOM_SELECT_ONDEMAND_PAGE_SIZE = 100;
  */
 export async function fetchIconifyConfig(configUrl: string): Promise<IconSelectorConfig | null> {
   try {
-    const res = await fetch(configUrl);
+    const res = await fetch(configUrl.split('#')[0]);
     if (!res.ok) return null;
-    const data = (await res.json()) as IconSelectorConfig;
+    const data = restrictConfigToPrefixes((await res.json()) as IconSelectorConfig, prefixesFromConfigUrl(configUrl));
     return data?.sets?.length ? data : null;
   } catch {
     return null;
   }
+}
+
+/** Container attribute: comma-separated icon prefixes the field accepts (field option icon_prefixes). */
+export const ATTR_PREFIXES = 'data-icon-selector-prefixes-value';
+
+/** Parses a comma-separated prefix list (lowercase letters, digits, hyphens); null when empty. */
+export function parsePrefixes(raw: string | null | undefined): string[] | null {
+  if (!raw) return null;
+  const list = raw.split(',').map((p) => p.trim()).filter((p) => /^[a-z0-9-]+$/.test(p));
+  return list.length > 0 ? list : null;
+}
+
+/** Prefix restriction carried in the config URL fragment (#prefixes=a,b): the fragment is never sent to the server. */
+export function prefixesFromConfigUrl(configUrl: string): string[] | null {
+  const hash = configUrl.split('#')[1] ?? '';
+  const m = /(?:^|&)prefixes=([^&]*)/.exec(hash);
+  return m ? parsePrefixes(decodeURIComponent(m[1])) : null;
+}
+
+/**
+ * Keeps only the allowed prefixes in the config sets (dropping emptied sets); an allowed prefix no set lists gets a
+ * set of its own (Iconify serves any prefix). No restriction: the config is returned as is.
+ */
+export function restrictConfigToPrefixes(config: IconSelectorConfig | null, prefixes: string[] | null): IconSelectorConfig | null {
+  if (!config || !prefixes) return config;
+  const seen = new Set<string>();
+  const sets: IconSelectorConfig['sets'] = [];
+  for (const set of config.sets ?? []) {
+    const kept = (set.prefixes ?? []).filter((p) => prefixes.includes(p));
+    kept.forEach((p) => seen.add(p));
+    if (kept.length > 0) sets.push({ ...set, prefixes: kept });
+  }
+  for (const p of prefixes) {
+    if (!seen.has(p)) sets.push({ key: p, label: p, prefixes: [p] });
+  }
+  return { ...config, sets };
+}
+
+/** Whether an icon id is allowed by an optional prefix list. */
+export function iconAllowedByPrefixes(id: string, prefixes: string[] | null): boolean {
+  return !prefixes || prefixes.includes(id.split(':')[0]);
 }
 
 /**
@@ -493,8 +534,9 @@ export class IconSelectorIconifyWidget {
       const data = (await res.json()) as IconsApiResponse;
       const entries: IconifyIconEntry[] = [];
       const seen = new Set<string>();
+      const allowed = parsePrefixes(this.container.getAttribute(ATTR_PREFIXES));
       const add = (id: unknown, setKey?: string): void => {
-        if (typeof id !== 'string' || seen.has(id)) return;
+        if (typeof id !== 'string' || seen.has(id) || !iconAllowedByPrefixes(id, allowed)) return;
         const sep = id.indexOf(':');
         if (sep <= 0) return;
         const prefix = id.slice(0, sep);
@@ -999,9 +1041,11 @@ export class IconSelectorWidget {
     try {
       const res = await fetch(this.url);
       const data = (await res.json()) as IconsApiResponse;
-      this.icons = Array.isArray(data.icons)
+      const prefixes = parsePrefixes(this.container.getAttribute(ATTR_PREFIXES));
+      this.icons = (Array.isArray(data.icons)
         ? data.icons
-        : (data.icons_by_set && (Object.values(data.icons_by_set).flat() as string[])) || [];
+        : (data.icons_by_set && (Object.values(data.icons_by_set).flat() as string[])) || []
+      ).filter((id) => iconAllowedByPrefixes(id, prefixes));
       getLogger().info('IconSelectorWidget (grid): icons loaded', this.icons.length);
     } catch (e) {
       this.icons = [];
@@ -1849,9 +1893,11 @@ function initTomSelectFullList(
   return fetch(url)
     .then((res) => res.json())
     .then((data: IconsApiResponse) => {
-      const icons = Array.isArray(data.icons)
+      const allowed = prefixesFromConfigUrl(configUrl ?? '');
+      const icons = (Array.isArray(data.icons)
         ? data.icons
-        : (data.icons_by_set && Object.values(data.icons_by_set).flat()) ?? [];
+        : (data.icons_by_set && Object.values(data.icons_by_set).flat()) ?? []
+      ).filter((id) => iconAllowedByPrefixes(id, allowed));
       const preloadedByValue = new Map(initialOptions.map((o) => [o.value, o]));
       const apiOptions: IconOption[] = icons.map((id) => {
         const preloaded = preloadedByValue.get(id);
