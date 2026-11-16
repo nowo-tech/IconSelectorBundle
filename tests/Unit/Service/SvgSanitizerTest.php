@@ -176,4 +176,26 @@ final class SvgSanitizerTest extends TestCase
 
         self::assertSame('<svg><g>a &amp; &lt;img src=x onerror=alert(1)&gt;</g></svg>', $output);
     }
+
+    public function testEntityReferencesInAttributesAreWrittenExpanded(): void
+    {
+        $input = '<!DOCTYPE svg [<!ENTITY Tab "#"><!ENTITY frag "#icon">]>'
+            . '<svg xmlns="http://www.w3.org/2000/svg"><path id="icon" d="M0 0"/>'
+            . '<use href="&Tab;javascript:alert(1)"/><use href="&frag;"/><path d="M&Tab;1 1" fill="red"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertStringNotContainsString('&Tab;', $output);
+        self::assertStringNotContainsString('&frag;', $output);
+        self::assertStringContainsString('<use href="#javascript:alert(1)"/>', $output);
+        self::assertStringContainsString('<use href="#icon"/>', $output);
+        self::assertStringContainsString('<path d="M#1 1" fill="red"/>', $output);
+    }
+
+    public function testNamespacedAttributesKeepTheirNamespace(): void
+    {
+        $input  = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="#icon" x="1"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertSame('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="#icon" x="1"/></svg>', $output);
+    }
 }

@@ -163,6 +163,8 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
         if ($element->hasAttributes()) {
             /** @var list<DOMAttr> $toRemove */
             $toRemove = [];
+            /** @var list<array{?string, string, string}> $toKeep namespace URI, qualified name, expanded value */
+            $toKeep = [];
             foreach ($element->attributes as $attribute) {
                 $localName     = strtolower((string) $attribute->localName);
                 $qualifiedName = strtolower($attribute->nodeName);
@@ -171,6 +173,8 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
                 if ($localName === 'href') {
                     if (!$this->isSafeFragmentReference($attribute->value)) {
                         $toRemove[] = $attribute;
+                    } else {
+                        $toKeep[] = [$attribute->namespaceURI, $attribute->nodeName, $attribute->value];
                     }
 
                     continue;
@@ -183,6 +187,8 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
 
                 if (str_starts_with($localName, 'on') || !in_array($localName, self::ALLOWED_ATTRIBUTES, true)) {
                     $toRemove[] = $attribute;
+                } else {
+                    $toKeep[] = [$attribute->namespaceURI, $attribute->nodeName, $attribute->value];
                 }
             }
 
@@ -192,6 +198,17 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
                     $element->removeAttributeNS($namespaceUri, (string) $attribute->localName);
                 } else {
                     $element->removeAttribute($attribute->name);
+                }
+            }
+
+            // Re-set every kept attribute from its validated, expanded value: an attribute may still hold
+            // entity references (declared in an internal DTD subset) that saveXML() would write back unexpanded,
+            // so the browser would decode a different value from the one that was checked.
+            foreach ($toKeep as [$namespaceUri, $qualifiedName, $value]) {
+                if (is_string($namespaceUri) && $namespaceUri !== '') {
+                    $element->setAttributeNS($namespaceUri, $qualifiedName, $value);
+                } else {
+                    $element->setAttribute($qualifiedName, $value);
                 }
             }
         }
