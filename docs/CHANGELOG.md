@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.6.0] - 2026-11-16](#160---2026-11-16)
 - [[1.5.1] - 2026-11-16](#151---2026-11-16)
 - [[1.5.0] - 2026-11-13](#150---2026-11-13)
 - [[1.4.4] - 2026-10-30](#144---2026-10-30)
@@ -45,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-16
+
 ### Added
 
 - **Emoji mode** (opt-in per field): `IconSelectorType` option `emoji: true` adds an accessible *Icons | Emoji* tab pair
@@ -70,6 +73,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   and the Tom Select initial-value loader never asks Iconify for `emoji:` values or ids outside `icon_prefixes`.
 - Translations for the emoji picker labels and validation messages (en, es, fr, de, it, pt, nl).
 - Demo page `/{locale}/demo/emoji`; the saved value is shown with `nowo_icon_selector_render()`.
+
+[1.6.0]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.6.0
 
 ## [1.5.1] - 2026-11-16
 

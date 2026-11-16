@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.6.0](#to-160)
 - [To 1.5.1](#to-151)
 - [To 1.5.0](#to-150)
 - [To 1.4.4](#to-144)
@@ -45,6 +46,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.6.0
+
+From **1.5.1**:
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
 
 No breaking change. Emoji mode is opt-in per field:
 
