@@ -83,7 +83,7 @@ Symfony **form type** for icon selection with **direct grid**, **search**, and *
 
 ## Success Criteria
 
-- **SC-001**: **44/44** files mapped in inventory.
+- **SC-001**: **47/47** files mapped in inventory.
 - **SC-002**: Config keys match [`docs/CONFIGURATION.md`](../../docs/CONFIGURATION.md).
 - **SC-003**: `composer qa` / CI green.
 
