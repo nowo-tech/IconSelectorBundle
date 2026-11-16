@@ -88,6 +88,40 @@ describe('sanitizeSvg', () => {
   });
 });
 
+describe('sanitizeSvg non-element nodes', () => {
+  // Processing instructions and CDATA are covered in svg-sanitizer.dom.test.ts (jsdom's XML parser supports them).
+  const payloads: Record<string, string> = {
+    comment: '<path d="M0 0"/><!--><img src=x onerror=alert(1)>-->',
+    'nested foreignObject':
+      '<g><foreignObject><div xmlns="http://www.w3.org/1999/xhtml"><img src="x" onerror="alert(1)"/></div></foreignObject></g><path d="M0 0"/>',
+    'style and script': '<style>*{background:url(x)}</style><script>alert(1)</script><path d="M0 0"/>',
+  };
+
+  for (const [name, body] of Object.entries(payloads)) {
+    it(`drops ${name}`, () => {
+      const out = sanitizeSvg(wrap(body));
+
+      expect(out.startsWith('<svg')).toBe(true);
+      expect(out).toContain('<path d="M0 0"></path>');
+      expect(out).not.toMatch(/<\?|<!|\]\]>|img|onerror|alert|script|style|foreignObject|div/i);
+    });
+  }
+
+  it('keeps text only inside title and desc, escaped', () => {
+    const out = sanitizeSvg(wrap('<title>Home &lt;b&gt; &amp;<path d="M1 1"/></title><desc>A<g/></desc><path d="M0 0"/>'));
+
+    expect(out).toContain('<title>Home &lt;b&gt; &amp;</title>');
+    expect(out).toContain('<desc>A</desc>');
+    expect(out).not.toContain('M1 1');
+  });
+
+  it('escapes attribute values', () => {
+    const out = sanitizeSvg(wrap('<path d="M0 0&quot;&gt;&lt;img src=x onerror=alert(1)&gt;"/>'));
+
+    expect(out).toContain('d="M0 0&quot;&gt;&lt;img src=x onerror=alert(1)&gt;"');
+  });
+});
+
 describe('toSvgNumber', () => {
   it('accepts finite numbers and falls back otherwise', () => {
     expect(toSvgNumber(16, 24)).toBe(16);

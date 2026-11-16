@@ -45,6 +45,8 @@
 
 ## Unreleased
 
+From **1.5.0**: no action; update and run `assets:install` (the shipped `icon-selector.js` changed). Sanitized SVG may lose comments, processing instructions, CDATA and doctypes, and `<title>`/`<desc>` keep their text only; rendered icons are unchanged. If you aliased `SvgSanitizerInterface` to your own sanitizer, make sure it also removes those node types: its output is inserted with `innerHTML`.
+
 ## To 1.5.0
 
 From **1.4.4**: no action. The new ports (`IconCatalogInterface`, `IconSelectorConfigProviderInterface`, `SvgSanitizerInterface`) are additive and the class service ids still work. If you decorate or mock `IconListProvider` and pass it where the form type or an endpoint is built by hand, it still satisfies the new type hints. To serve a custom catalogue, alias `IconCatalogInterface` to your service; see [ARCHITECTURE](ARCHITECTURE.md).
