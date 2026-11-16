@@ -46,6 +46,20 @@
 
 ## Unreleased
 
+No breaking change. Emoji mode is opt-in per field:
+
+```php
+$builder->add('icon', IconSelectorType::class, ['mode' => 'search', 'emoji' => true]);
+```
+
+- Run `php bin/console assets:install` so `public/bundles/nowoiconselector/emoji-data.json` exists (or point
+  `nowo_icon_selector.emoji_data_url` to where you serve it).
+- Code that prints stored icon values with `ux_icon()` must handle `emoji:` values: switch to
+  `nowo_icon_selector_render(value)` (renders both icons and emoji), or branch on `nowo_icon_selector_is_emoji(value)`.
+- With `emoji: true` and the default form theme, the value field is a text input until the script runs (no-JS
+  fallback); with JavaScript it becomes hidden as before.
+- `IconSelectorType` and `IconChoiceLoader` gained optional trailing constructor arguments; positional calls keep working.
+
 ## To 1.5.1
 
 From **1.5.0**:

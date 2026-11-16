@@ -15,7 +15,8 @@
     {% if saved_value %}
         <div class="nowo-ui-flash nowo-ui-flash--info" role="status">
             <strong>{{ 'demo.saved_value'|trans({}, 'messages') }}</strong>
-            {{ ux_icon(saved_value, { style: 'width:1.5rem;height:1.5rem;' }) }}
+            {# nowo_icon_selector_render(): icons through UX Icons + the SVG sanitizer, emoji:<grapheme> as escaped text. #}
+            {{ nowo_icon_selector_render(saved_value, { style: 'width:1.5rem;height:1.5rem;' }) }}
             <code class="nowo-ui-code">{{ saved_value }}</code>
         </div>
     {% endif %}

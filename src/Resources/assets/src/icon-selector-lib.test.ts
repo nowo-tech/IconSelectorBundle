@@ -516,3 +516,70 @@ describe('IconSelectorWidget accessibility', () => {
     expect(picker.hasAttribute('aria-hidden')).toBe(false);
   });
 });
+
+describe('icon prefix restriction', () => {
+  it('parses prefixes from attributes and config URL fragments', async () => {
+    const lib = await import('./icon-selector-lib');
+    expect(lib.parsePrefixes(null)).toBeNull();
+    expect(lib.parsePrefixes(' tabler, BAD ,bi')).toEqual(['tabler', 'bi']);
+    expect(lib.parsePrefixes('!!')).toBeNull();
+    expect(lib.prefixesFromConfigUrl('/api/icon-selector/config#prefixes=tabler%2Cbi')).toEqual(['tabler', 'bi']);
+    expect(lib.prefixesFromConfigUrl('/api/icon-selector/config')).toBeNull();
+    expect(lib.iconAllowedByPrefixes('tabler:home', ['tabler'])).toBe(true);
+    expect(lib.iconAllowedByPrefixes('bi:house', ['tabler'])).toBe(false);
+    expect(lib.iconAllowedByPrefixes('bi:house', null)).toBe(true);
+  });
+
+  it('restricts config sets and adds sets for unlisted prefixes', async () => {
+    const lib = await import('./icon-selector-lib');
+    const config = {
+      iconify_base: 'https://api.iconify.design',
+      sets: [
+        { key: 'heroicons', label: 'Heroicons', prefixes: ['heroicons-outline', 'heroicons-solid'] },
+        { key: 'bootstrap-icons', label: 'Bootstrap', prefixes: ['bi'] },
+      ],
+    };
+    expect(lib.restrictConfigToPrefixes(config, null)).toBe(config);
+    expect(lib.restrictConfigToPrefixes(null, ['bi'])).toBeNull();
+    expect(lib.restrictConfigToPrefixes(config, ['heroicons-outline', 'tabler'])!.sets).toEqual([
+      { key: 'heroicons', label: 'Heroicons', prefixes: ['heroicons-outline'] },
+      { key: 'tabler', label: 'tabler', prefixes: ['tabler'] },
+    ]);
+  });
+
+  it('fetchIconifyConfig never sends the fragment and applies it', async () => {
+    const lib = await import('./icon-selector-lib');
+    const fetchFn = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ iconify_base: 'x', sets: [{ key: 'bootstrap-icons', label: 'B', prefixes: ['bi'] }] }),
+    }));
+    vi.stubGlobal('fetch', fetchFn);
+    const config = await lib.fetchIconifyConfig('/api/icon-selector/config#prefixes=tabler');
+    expect(fetchFn).toHaveBeenCalledWith('/api/icon-selector/config');
+    expect(config!.sets).toEqual([{ key: 'tabler', label: 'tabler', prefixes: ['tabler'] }]);
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('Tom Select initial value (audit RO-2)', () => {
+  it('never asks Iconify for emoji values or ids outside the prefix restriction', async () => {
+    const lib = await import('./icon-selector-lib');
+    expect(lib.shouldFetchIconSvg('emoji:🚀', '/api/icon-selector/config')).toBe(false);
+    expect(lib.shouldFetchIconSvg('tabler:home', '/api/icon-selector/config')).toBe(true);
+    expect(lib.shouldFetchIconSvg('tabler:home', '/api/icon-selector/config#prefixes=tabler')).toBe(true);
+    expect(lib.shouldFetchIconSvg('bi:house', '/api/icon-selector/config#prefixes=tabler')).toBe(false);
+    expect(lib.shouldFetchIconSvg('home', undefined)).toBe(false);
+    expect(lib.shouldFetchIconSvg('', undefined)).toBe(false);
+    expect(lib.shouldFetchIconSvg(null, undefined)).toBe(false);
+  });
+
+  it('keeps a stored emoji as a Tom Select option (audit RO-1)', async () => {
+    const lib = await import('./icon-selector-lib');
+    const base = [{ value: 'tabler:home', text: 'home', svg: '' }];
+    expect(lib.withStoredEmojiOption(base, 'emoji:🚀')).toEqual([...base, { value: 'emoji:🚀', text: '🚀', svg: '' }]);
+    expect(lib.withStoredEmojiOption(base, 'tabler:home')).toBe(base);
+    expect(lib.withStoredEmojiOption(base, 'emoji:')).toBe(base);
+    const withEmoji = [{ value: 'emoji:🚀', text: '🚀', svg: '' }];
+    expect(lib.withStoredEmojiOption(withEmoji, 'emoji:🚀')).toBe(withEmoji);
+  });
+});

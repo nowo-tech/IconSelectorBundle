@@ -97,4 +97,6 @@ return (new Config())
         (new Finder())
             ->in(__DIR__)
             ->exclude(['vendor', 'var', 'coverage', '.phpunit.cache'])
+            // Generated emoji dataset (scripts/emoji/build-emoji-data.mjs).
+            ->notPath('src/Resources/emoji/emoji-data.php')
     );

@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\DependencyInjection;
 
+use Nowo\IconSelectorBundle\Emoji\EmojiCatalog;
+use Nowo\IconSelectorBundle\Emoji\EmojiCatalogInterface;
+use Nowo\IconSelectorBundle\Validator\Constraints\EmojiIconValidator;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\Validator\ConstraintValidator;
+
+use function class_exists;
+use function rawurlencode;
 
 /**
  * Loads bundle configuration and services.
@@ -53,6 +61,17 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
         $container->setParameter(Configuration::ALIAS . '.icons_api_path', $config['icons_api_path'] ?? '/api/icon-selector/icons');
         $container->setParameter(Configuration::ALIAS . '.form_theme', $config['form_theme'] ?? 'form_div_layout.html.twig');
         $container->setParameter(Configuration::ALIAS . '.debug', $config['debug'] ?? false);
+        $container->setParameter(
+            Configuration::ALIAS . '.emoji_data_url',
+            $config['emoji_data_url'] ?? '/bundles/nowoiconselector/emoji-data.json?v=' . rawurlencode((new EmojiCatalog())->getVersion()),
+        );
+
+        // The EmojiIcon constraint validator is registered only when symfony/validator is installed (optional).
+        if (class_exists(ConstraintValidator::class)) {
+            $container->register(EmojiIconValidator::class, EmojiIconValidator::class)
+                ->setArgument('$catalog', new Reference(EmojiCatalogInterface::class))
+                ->addTag('validator.constraint_validator');
+        }
 
         if (!empty($config['use_iconify_collection'])) {
             $loader->load('services_iconify.yaml');

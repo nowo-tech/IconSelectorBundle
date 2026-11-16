@@ -16,3 +16,27 @@ gear: Engrenage
 file-text: Fichier
 bar-chart: 'Graphique en barres'
 house: Maison
+
+# Emoji mode (field option emoji: true)
+emoji:
+    tablist: 'Type d''icône'
+    tab_icons: 'Icônes'
+    tab_emoji: 'Emoji'
+    search: 'Rechercher un emoji...'
+    group_all: 'Toutes les catégories'
+    group: 'Catégorie'
+    tone: 'Teinte de peau'
+    tone_default: 'Par défaut'
+    tone_1: 'Claire'
+    tone_2: 'Moyennement claire'
+    tone_3: 'Moyenne'
+    tone_4: 'Moyennement foncée'
+    tone_5: 'Foncée'
+    selected: 'Sélectionné :'
+    none_selected: 'Aucun emoji sélectionné'
+    empty: 'Aucun emoji trouvé.'
+    loading: 'Chargement des emojis...'
+    error: 'La liste des emojis n''a pas pu être chargée.'
+    grid: 'Emoji'
+    invalid: 'Cette valeur doit être un seul emoji.'
+    not_emoji: 'Cette valeur doit être un emoji.'

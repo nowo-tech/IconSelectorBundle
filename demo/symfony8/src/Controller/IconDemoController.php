@@ -85,6 +85,43 @@ class IconDemoController extends AbstractController
     }
 
     /**
+     * Demo page: icon selector with the optional emoji tab (field option emoji: true).
+     */
+    #[Route(path: '/{_locale}/demo/emoji', name: 'app_demo_emoji', requirements: self::LOCALE_REQUIREMENT, defaults: ['_locale' => 'en'], methods: ['GET', 'POST'])]
+    public function emoji(Request $request): Response
+    {
+        $request->setLocale($request->attributes->get('_locale', 'en'));
+        $field = 'icon_emoji';
+        $data  = [$field => $request->query->getString('icon', '')];
+        $icons = $this->iconListProvider->getIcons();
+
+        $form = $this->createForm(IconDemoType::class, $data, [
+            'field_name'   => $field,
+            'with_submit'  => true,
+            'icon_options' => [
+                // ?mode=tom_select shows the emoji tab next to the Tom Select dropdown.
+                'mode'  => $request->query->getString('mode') === IconSelectorType::MODE_TOM_SELECT ? IconSelectorType::MODE_TOM_SELECT : IconSelectorType::MODE_SEARCH,
+                'label' => 'demo.label_icon_emoji',
+                'icons' => $icons,
+                'emoji' => true,
+            ],
+        ]);
+
+        $form->handleRequest($request);
+        $savedValue = $data[$field];
+        if ($form->isSubmitted() && $form->isValid()) {
+            $savedValue = (string) $form->get($field)->getData();
+            $this->addFlash('success', $this->translator->trans('demo.saved_success', ['%icon%' => $savedValue], 'messages'));
+        }
+
+        return $this->render('icon_demo/show.html.twig', [
+            'form'        => $form,
+            'demo_slug'   => 'emoji',
+            'saved_value' => $savedValue,
+        ]);
+    }
+
+    /**
      * Demo page: icon selector in search mode.
      */
     #[Route(path: '/{_locale}/demo/search', name: 'app_demo_search', requirements: self::LOCALE_REQUIREMENT, defaults: ['_locale' => 'en'], methods: ['GET', 'POST'])]

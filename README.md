@@ -38,6 +38,7 @@ Looking for **icon selector**, **icon picker**, **Symfony form icon**, **UX Icon
 - ✅ **API endpoint** returns available icons (JSON) for the frontend; **batch SVG endpoint** (`/svg`) returns SVG markup for many icon IDs in one request (server uses ux_icon), so the selector avoids N individual requests when painting icons
 - ✅ **Form theme** aligned with your app: set `form_theme` to match `twig.form_themes` (form_div, Bootstrap 5, etc.)
 - ✅ **Frontend**: TypeScript + Vite; built script in `Resources/public/` for `assets:install`
+- ✅ **Emoji mode** (opt-in, `emoji: true`): accessible *Icons | Emoji* tabs, searchable emoji grid with skin tones from a bundled Unicode dataset (no CDN), values stored as `emoji:🚀` and validated server-side (one RGI emoji); `nowo_icon_selector_render()` renders icons and emoji safely
 - ✅ **Demo** (Symfony 8) with both selector types, persisting the chosen icon string
 - ✅ **Demo runs with FrankenPHP** (Caddy, HTTP on port 80 in the container). Default **`APP_ENV=dev`** uses **Caddyfile.dev** (no PHP worker so template/PHP changes show on refresh). **Worker mode** applies to a production-style setup — see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md)
 - ✅ **Internationalizable**: uses Symfony Translation; domain `NowoIconSelectorBundle` for placeholder, search placeholder and choice labels; override with `translation_domain` and `search_placeholder` options
@@ -122,11 +123,15 @@ $builder->add('icon', IconSelectorType::class, [
 
 ## Demo
 
-The demo is in `demo/symfony8`. It uses **FrankenPHP** with **Caddy** (HTTP on port 80 inside the container). **`docker-compose`** sets **`APP_ENV=dev`**: the entrypoint uses **Caddyfile.dev** (no PHP worker), so edits to Twig/PHP are visible on refresh. A **production-style** stack uses the default Caddyfile with **worker** mode — see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md). The demo shows icon selector fields (grid, search, Tom Select, Heroicons); the chosen icon strings are stored in session.
+The demo is in `demo/symfony8`. It uses **FrankenPHP** with **Caddy** (HTTP on port 80 inside the container). **`docker-compose`** sets **`APP_ENV=dev`**: the entrypoint uses **Caddyfile.dev** (no PHP worker), so edits to Twig/PHP are visible on refresh. A **production-style** stack uses the default Caddyfile with **worker** mode — see [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md). The demo shows icon selector fields (grid, search, Tom Select, Heroicons, emoji tab); the chosen icon strings are stored in session.
 
 | Grid (direct) | Tom Select |
 |--------------|------------|
 | ![Icon selector – Grid](docs/images/demo/demo-grid.webp) | ![Icon selector – Tom Select](docs/images/demo/demo-tom-select.webp) |
+
+| Emoji tab (`emoji: true`) |
+|---------------------------|
+| ![Icon selector – Emoji tab](docs/images/demo/demo-emoji.webp) |
 
 **Host port:** defaults to **8011** (`PORT` in the demo’s `.env`). Access is HTTP (no HTTPS) mapped from the host to port 80 in the container.
 

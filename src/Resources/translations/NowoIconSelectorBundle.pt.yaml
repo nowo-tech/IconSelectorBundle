@@ -16,3 +16,27 @@ gear: Engrenagem
 file-text: Ficheiro
 bar-chart: 'Gráfico de barras'
 house: Casa
+
+# Emoji mode (field option emoji: true)
+emoji:
+    tablist: 'Tipo de ícone'
+    tab_icons: 'Ícones'
+    tab_emoji: 'Emoji'
+    search: 'Pesquisar emoji...'
+    group_all: 'Todas as categorias'
+    group: 'Categoria'
+    tone: 'Tom de pele'
+    tone_default: 'Padrão'
+    tone_1: 'Claro'
+    tone_2: 'Médio-claro'
+    tone_3: 'Médio'
+    tone_4: 'Médio-escuro'
+    tone_5: 'Escuro'
+    selected: 'Selecionado:'
+    none_selected: 'Nenhum emoji selecionado'
+    empty: 'Nenhum emoji encontrado.'
+    loading: 'A carregar emojis...'
+    error: 'Não foi possível carregar a lista de emojis.'
+    grid: 'Emoji'
+    invalid: 'Este valor deve ser um único emoji.'
+    not_emoji: 'Este valor deve ser um emoji.'

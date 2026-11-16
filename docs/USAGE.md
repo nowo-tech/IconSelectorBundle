@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Form type](#form-type)
+- [Emoji mode](#emoji-mode)
 - [Rendering the selected icon](#rendering-the-selected-icon)
 - [Frontend: two ways to load the widget](#frontend-two-ways-to-load-the-widget)
   - [Option A: Use as normal JS (script tag)](#option-a-use-as-normal-js-script-tag)
@@ -31,6 +32,9 @@ Options:
 - **label**: Form label (optional).
 - **icon_sets**: Override the bundle config for this field (optional).
 - **icons_api_path**: Override the API path for this field (optional).
+- **icon_prefixes**: list of icon prefixes (e.g. `['tabler']`) the field accepts. Restricts the server-side choice list and submitted ids, and the browser widgets (Iconify grid/search, Tom Select, legacy grid) only offer those prefixes; a prefix no configured set lists gets its own Iconify set. Explicit `choices` are kept as given. Default `null` (no restriction).
+- **emoji**: `true` adds an *Emoji* tab (see [Emoji mode](#emoji-mode)). Default `false`.
+- **emoji_data_url**: Override the emoji dataset URL for this field (optional; trusted host configuration, same origin recommended, see CONFIGURATION).
 
 When the bundle config endpoint (`/api/icon-selector/config`) returns icon sets, the frontend may use the **Iconify-based widget** (grid, library tabs, category filter, SVGs from api.iconify.design). Otherwise it falls back to the legacy grid/search or Tom Select using the icons API.
 
@@ -49,9 +53,55 @@ When the bundle config endpoint (`/api/icon-selector/config`) returns icon sets,
 
 Hosts and demos must not reintroduce raw `<form>` / `<input>` / `<textarea>` / `<select>` markup; `make check-no-raw-html-form` (part of `make release-check`) fails when bundle or demo Twig contains them; only the shipped form themes (`Form/icon_selector_theme*.html.twig`, which implement the widget block) are allowlisted, file by file.
 
+## Emoji mode
+
+```php
+$builder->add('icon', IconSelectorType::class, [
+    'mode'  => 'search',
+    'emoji' => true,
+]);
+```
+
+- The widget shows two tabs, **Icons** and **Emoji** (ARIA `tablist`; Left/Right/Home/End switch tabs). The Emoji tab has a
+  search box (CLDR English name and keywords, or paste the emoji), a category filter, a skin-tone selector and a grid of
+  buttons with roving focus (arrows, Home/End, PageUp/PageDown; Enter/Space selects). The field opens on the Emoji tab
+  when its value is an emoji.
+- The stored value is `emoji:<grapheme>`, e.g. `emoji:🚀`, `emoji:👋🏽`, `emoji:🇪🇸`. Icons keep their `prefix:name` ids.
+- Server side, an `emoji:` value is accepted only if it is exactly one RGI emoji from the bundled catalogue (≤ 64 bytes).
+  Anything else fails the field with the usual "invalid choice" error. To validate stored values elsewhere use the
+  constraint (requires `symfony/validator`):
+
+  ```php
+  use Nowo\IconSelectorBundle\Validator\Constraints\EmojiIcon;
+
+  #[EmojiIcon]                 // emoji: values must be valid; icon ids pass through
+  #[EmojiIcon(emojiOnly: true)] // only emoji: values are accepted
+  public ?string $icon = null;
+  ```
+
+- The dataset is a static JSON file shipped with the bundle (`emoji-data.json`, ~150 kB, ~45 kB gzipped) fetched once
+  per page when the Emoji tab is first opened; there is no third-party CDN. Source: Unicode Emoji 18.0 `emoji-test.txt`
+  and Unicode CLDR 49 annotations (en), Unicode License v3 (`src/Resources/emoji/LICENSE-UNICODE.txt`). Regenerate with
+  `node scripts/emoji/build-emoji-data.mjs <emoji-test.txt> <annotations.json> <cldr-version>`.
+- CSP: the picker uses no inline script and builds its DOM with `textContent` / attributes only.
+- No JavaScript: with the default form theme the value is a plain text input (type `emoji:🚀` or `tabler:home`); the other
+  themes already render a text input. In `tom_select` mode the no-JS fallback stays the native `<select>`.
+
 ## Rendering the selected icon
 
-The bundle requires **symfony/ux-icons**; it is installed with the bundle. In Twig:
+Use the bundle helper, which renders both icon ids and `emoji:` values safely:
+
+```twig
+{{ nowo_icon_selector_render(entity.icon) }}
+{{ entity.icon|nowo_icon_selector_render({ class: 'me-1' }) }}
+{% if nowo_icon_selector_is_emoji(entity.icon) %}({{ nowo_icon_selector_emoji_name(entity.icon) }}){% endif %}
+```
+
+- Icons go through `ux_icon` rendering **and** the bundle SVG sanitizer; unknown icons render nothing.
+- Emoji render as `<span class="nowo-icon-emoji" role="img" aria-label="rocket">🚀</span>` (escaped text; `on*`, `style`
+  and `role` attributes are dropped; `aria-label` may be overridden). Invalid emoji render nothing.
+
+The bundle requires **symfony/ux-icons**; it is installed with the bundle. For icon ids you can also use it directly:
 
 ```twig
 {{ ux_icon(entity.icon) }}

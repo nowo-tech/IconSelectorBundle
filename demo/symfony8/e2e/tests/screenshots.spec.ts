@@ -55,4 +55,15 @@ test.describe('feature screenshots', () => {
     await expect(dropdown.locator('.option svg').nth(5)).toBeVisible({ timeout: 20_000 });
     await shotUnion(page, page.locator('[data-screenshot-target]'), dropdown, 'demo-tom-select.png');
   });
+
+  test('emoji tab', async ({ page }) => {
+    await page.goto('/en/demo/emoji');
+    await hideProfiler(page);
+    await page.getByRole('tab', { name: 'Emoji' }).click();
+    await expect(page.locator('.icon-selector-emoji-item').nth(40)).toBeVisible();
+    await page.getByRole('combobox', { name: 'Category' }).selectOption({ label: 'Travel & Places' });
+    await page.locator('.icon-selector-emoji-item[data-emoji="🚀"]').click();
+    await page.getByRole('combobox', { name: 'Category' }).selectOption({ label: 'All categories' });
+    await page.locator('[data-screenshot-target]').screenshot({ path: resolve(outDir, 'demo-emoji.png') });
+  });
 });

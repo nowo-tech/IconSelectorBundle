@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Tests\Unit\Form;
 
+use Nowo\IconSelectorBundle\Emoji\EmojiCatalog;
 use Nowo\IconSelectorBundle\Form\IconSelectorType;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use Nowo\IconSelectorBundle\Service\SvgSanitizer;
@@ -21,7 +22,9 @@ use Symfony\Component\Form\FormFactoryBuilder;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
+use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Icons\IconRendererInterface;
 
 use function count;
@@ -536,6 +539,146 @@ final class IconSelectorTypeTest extends TestCase
         $second->submit('lucide:rocket');
         self::assertTrue($second->isSynchronized());
         self::assertSame('lucide:rocket', $second->getData());
+    }
+
+    public function testEmojiOptionDefaultsOff(): void
+    {
+        $type     = $this->createType($this->createEmptyProvider());
+        $resolver = new OptionsResolver();
+        $type->configureOptions($resolver);
+        $options = $resolver->resolve([]);
+
+        self::assertFalse($options['emoji']);
+        self::assertNull($options['emoji_data_url']);
+
+        $form = $this->createEmojiFormFactory()->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons']]);
+        $view = $form->createView();
+        self::assertFalse($view->vars['emoji']);
+        self::assertArrayNotHasKey('data-icon-selector-emoji-value', $view->vars['attr']);
+    }
+
+    public function testEmojiOptionExposesDatasetUrlLabelsAndCurrentEmoji(): void
+    {
+        $translator = new class implements TranslatorInterface {
+            /**
+             * @param array<string, mixed> $parameters
+             */
+            public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+            {
+                return match ($id) {
+                    'emoji.tab_emoji' => 'Emoji <b>',
+                    'emoji.tone_1'    => 'Clara',
+                    default           => $id,
+                };
+            }
+
+            public function getLocale(): string
+            {
+                return 'es';
+            }
+        };
+        $factory = $this->createEmojiFormFactory($translator);
+        $form    = $factory->create(IconSelectorType::class, 'emoji:🚀', ['icon_sets' => ['heroicons'], 'emoji' => true]);
+        $view    = $form->createView();
+
+        self::assertTrue($view->vars['emoji']);
+        self::assertSame('🚀', $view->vars['emoji_value']);
+        self::assertSame('rocket', $view->vars['emoji_name']);
+        self::assertSame('1', $view->vars['attr']['data-icon-selector-emoji-value']);
+        self::assertSame('/emoji.json', $view->vars['attr']['data-icon-selector-emoji-url-value']);
+        $labels = json_decode($view->vars['attr']['data-icon-selector-emoji-labels'], true);
+        self::assertIsArray($labels);
+        self::assertSame('Emoji <b>', $labels['tab_emoji']);
+        self::assertSame('', $labels['search']);
+        self::assertSame(['Clara', '', '', '', ''], $labels['tones']);
+
+        $custom = $factory->create(IconSelectorType::class, 'emoji:nope', ['icon_sets' => ['heroicons'], 'emoji' => true, 'emoji_data_url' => '/x.json'])->createView();
+        self::assertSame('/x.json', $custom->vars['attr']['data-icon-selector-emoji-url-value']);
+        self::assertNull($custom->vars['emoji_value']);
+    }
+
+    public function testEmojiLabelsAreEmptyWithoutTranslator(): void
+    {
+        $view = $this->createEmojiFormFactory()->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'emoji' => true])->createView();
+
+        self::assertSame('{}', $view->vars['attr']['data-icon-selector-emoji-labels']);
+    }
+
+    public function testSubmittingEmojiIsValidatedOnlyWhenEnabled(): void
+    {
+        $factory = $this->createEmojiFormFactory();
+
+        $ok = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'emoji' => true]);
+        $ok->submit('emoji:👩🏽‍💻');
+        self::assertTrue($ok->isSynchronized());
+        self::assertSame('emoji:👩🏽‍💻', $ok->getData());
+
+        foreach (['emoji:rocket', 'emoji:🚀🚀', "emoji:\u{202E}🚀", 'emoji:<b>'] as $bad) {
+            $form = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'emoji' => true]);
+            $form->submit($bad);
+            self::assertFalse($form->isSynchronized(), $bad);
+        }
+
+        // Icons keep working next to emoji.
+        $icon = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'emoji' => true]);
+        $icon->submit('heroicons-outline:home');
+        self::assertSame('heroicons-outline:home', $icon->getData());
+    }
+
+    public function testIconPrefixesRestrictChoicesSubmissionAndTheBrowserConfig(): void
+    {
+        $factory = $this->createEmojiFormFactory();
+        $form    = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons', 'bootstrap-icons'], 'icon_prefixes' => ['bi', 'bi']]);
+        $view    = $form->createView();
+
+        $values = array_map(static fn (ChoiceView $c): string => $c->value, $view->vars['choices']);
+        self::assertNotSame([], $values);
+        foreach ($values as $value) {
+            self::assertStringStartsWith('bi:', $value);
+        }
+        self::assertSame('bi', $view->vars['attr']['data-icon-selector-prefixes-value']);
+        self::assertStringEndsWith('/config#prefixes=bi', $view->vars['attr']['data-icon-selector-config-url-value']);
+
+        $ok = $factory->create(IconSelectorType::class, null, ['icon_prefixes' => ['tabler']]);
+        $ok->submit('tabler:home');
+        self::assertSame('tabler:home', $ok->getData());
+
+        $bad = $factory->create(IconSelectorType::class, null, ['icon_prefixes' => ['tabler']]);
+        $bad->submit('lucide:rocket');
+        self::assertFalse($bad->isSynchronized());
+
+        $both = $factory->create(IconSelectorType::class, null, ['icon_prefixes' => ['tabler'], 'emoji' => true]);
+        $both->submit('emoji:🚀');
+        self::assertSame('emoji:🚀', $both->getData());
+
+        $icons = $factory->create(IconSelectorType::class, null, ['icons' => ['tabler:home', 'bi:house'], 'icon_prefixes' => ['tabler']])->createView();
+        self::assertSame(['tabler:home'], array_map(static fn (ChoiceView $c): string => $c->value, $icons->vars['choices']));
+    }
+
+    public function testIconPrefixesRejectsMalformedPrefixes(): void
+    {
+        $this->expectException(InvalidOptionsException::class);
+        $this->createEmojiFormFactory()->create(IconSelectorType::class, null, ['icon_prefixes' => ['Tabler!']]);
+    }
+
+    private function createEmojiFormFactory(?TranslatorInterface $translator = null): FormFactoryInterface
+    {
+        $type = new IconSelectorType(
+            new IconListProvider(['heroicons']),
+            ['heroicons'],
+            '/api/icons',
+            null,
+            new SvgSanitizer(),
+            false,
+            new EmojiCatalog(),
+            '/emoji.json',
+            $translator,
+        );
+
+        return (new FormFactoryBuilder())
+            ->addExtension(new CoreExtension(null, new CachingFactoryDecorator(new DefaultChoiceListFactory())))
+            ->addType($type)
+            ->getFormFactory();
     }
 
     private function createFormFactory(IconListProvider $provider, CachingFactoryDecorator $decorator): FormFactoryInterface

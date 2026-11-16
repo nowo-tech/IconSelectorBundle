@@ -91,6 +91,23 @@ nowo_icon_selector:
 
 If you use a custom or third-party form theme not listed, set `form_theme` to the closest match (e.g. `form_div_layout.html.twig`); the widget will still work although the row/label markup may not match your framework exactly.
 
+### `emoji_data_url`
+
+URL of the emoji dataset used by fields with `emoji: true`. Default `null` =
+`/bundles/nowoiconselector/emoji-data.json?v=<emoji version>` (the file is installed by `assets:install`; the version
+query string changes when the dataset is updated, so it can be cached as immutable). Set it when your assets live
+elsewhere (CDN of your own, different public path). Per field: option `emoji_data_url`.
+
+```yaml
+nowo_icon_selector:
+    emoji_data_url: '/static/emoji-data.json'
+```
+
+**Trusted configuration.** `emoji_data_url` (global and the field option) is host configuration, never user input: the
+browser fetches it with same-origin credentials and lists what it returns. Serve it from your own origin (recommended)
+or from a host you control; the picker only ever inserts the file's strings as text, and the server validates every
+submitted emoji against the bundled catalogue whatever the file says.
+
 ### `debug`
 
 When `true`, the frontend script logs all debug/info/warn/error messages to the browser console (e.g. runInit, Tom Select polling, load more). When `false` (default), only the initial "script loaded" message (with build time) is shown.

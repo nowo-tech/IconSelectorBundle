@@ -45,6 +45,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Emoji mode** (opt-in per field): `IconSelectorType` option `emoji: true` adds an accessible *Icons | Emoji* tab pair
+  (ARIA tabs, roving focus in the emoji grid, search by CLDR name/keyword, category filter, skin-tone selector). Selected
+  emoji are stored as `emoji:<grapheme>` (e.g. `emoji:🚀`), next to the existing `prefix:name` icon ids. Default unchanged.
+- Bundled, versioned emoji dataset (Unicode Emoji 18.0 `emoji-test.txt` + CLDR 49 English annotations, Unicode License v3,
+  see `src/Resources/emoji/LICENSE-UNICODE.txt`): `src/Resources/public/emoji-data.json` for the picker (static asset,
+  no runtime CDN) and `src/Resources/emoji/emoji-data.php` for the server. Regenerate with `scripts/emoji/build-emoji-data.mjs`.
+- Server-side validation: with `emoji: true` a submitted `emoji:` value is accepted only when it is exactly one RGI emoji
+  (fully- or minimally-qualified sequence: ZWJ sequences, skin tones, flags, keycaps, VS16), at most 64 bytes; text,
+  control, bidi and invisible characters are rejected. Emoji values are never handed to the icon renderer.
+- `EmojiIcon` constraint (`Nowo\IconSelectorBundle\Validator\Constraints\EmojiIcon`, option `emojiOnly`) for entities and
+  DTOs (requires `symfony/validator`, now suggested).
+- Twig helpers `nowo_icon_selector_render(value, attrs)` (function and filter), `nowo_icon_selector_is_emoji(value)` and
+  `nowo_icon_selector_emoji_name(value)`: icons render through UX Icons + the SVG sanitizer, emoji as escaped text in
+  `<span class="nowo-icon-emoji" role="img" aria-label="…">`.
+- Port `EmojiCatalogInterface` (aliased to the immutable `EmojiCatalog`, loaded once — worker-safe with kernel reset off).
+- Config `emoji_data_url` (default `null` = `/bundles/nowoiconselector/emoji-data.json?v=<emoji version>`) and field option
+  `emoji_data_url`.
+- Field option `icon_prefixes` (e.g. `['tabler']`): restricts the icon list, the submitted ids and the browser widgets to
+  those prefixes (the restriction travels in the config URL fragment, never sent to the server).
+- `tom_select` mode with `emoji: true` keeps a stored emoji as the selected `<option>` (re-saving no longer clears it),
+  and the Tom Select initial-value loader never asks Iconify for `emoji:` values or ids outside `icon_prefixes`.
+- Translations for the emoji picker labels and validation messages (en, es, fr, de, it, pt, nl).
+- Demo page `/{locale}/demo/emoji`; the saved value is shown with `nowo_icon_selector_render()`.
+
 ## [1.5.1] - 2026-11-16
 
 ### Security

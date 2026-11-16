@@ -17,3 +17,27 @@ gear: Gear
 file-text: File
 bar-chart: 'Bar chart'
 house: House
+
+# Emoji mode (field option emoji: true)
+emoji:
+    tablist: 'Icon type'
+    tab_icons: 'Icons'
+    tab_emoji: 'Emoji'
+    search: 'Search emoji...'
+    group_all: 'All categories'
+    group: 'Category'
+    tone: 'Skin tone'
+    tone_default: 'Default'
+    tone_1: 'Light'
+    tone_2: 'Medium-light'
+    tone_3: 'Medium'
+    tone_4: 'Medium-dark'
+    tone_5: 'Dark'
+    selected: 'Selected:'
+    none_selected: 'No emoji selected'
+    empty: 'No emoji found.'
+    loading: 'Loading emoji...'
+    error: 'The emoji list could not be loaded.'
+    grid: 'Emoji'
+    invalid: 'This value must be a single emoji.'
+    not_emoji: 'This value must be an emoji.'

@@ -97,6 +97,10 @@
                 {% for choice in form.vars.choices %}
                     <option value="{{ choice.value }}" {% if choice.value == value %}selected="selected"{% endif %}>{{ choice_domain ? choice.label|trans({}, choice_domain) : choice.label }}</option>
                 {% endfor %}
+                {# Emoji mode: the stored emoji is no icon choice; keep it as the selected option so a re-save does not clear it. #}
+                {% if form.vars.emoji_value|default(null) %}
+                    <option value="{{ value }}" selected="selected">{{ form.vars.emoji_value }}</option>
+                {% endif %}
             </select>
             {% if form.vars.tom_select_preloaded_options is defined and form.vars.tom_select_preloaded_options is not empty %}
                 <script type="application/json" id="icon-selector-options-{{ id }}">{{ form.vars.tom_select_preloaded_options|json_encode|raw }}</script>
@@ -108,13 +112,17 @@
         </div>
     {% else %}
         <div class="icon-selector-field-shell">
-            <input type="hidden"
+            {# With emoji: true the value input is a text field (no-JS fallback); the script turns it into a hidden input. #}
+            <input type="{{ form.vars.emoji|default(false) ? 'text' : 'hidden' }}"
                    name="{{ full_name }}"
                    id="{{ id }}"
                    {% if value is not empty %}value="{{ value }}"{% endif %}
                    {%- if disabled %} disabled="disabled"{% endif %}
-                   data-icon-selector-target="input"
-                   class="icon-selector-input" />
+                   {%- if form.vars.emoji|default(false) %} data-icon-selector-emoji-fallback="1" autocomplete="off" class="icon-selector-input form-control"{% else %} class="icon-selector-input"{% endif %}
+                   data-icon-selector-target="input" />
+            {% if form.vars.emoji|default(false) %}
+                <noscript><style>.icon-selector-widget[data-icon-selector-enhanced="0"] .icon-selector-skeleton { display: none !important; }</style></noscript>
+            {% endif %}
             {# Hidden until the widget is set up (CSS above); the script never leaves aria-hidden on the interactive picker. #}
             <div data-icon-selector-target="picker" class="icon-selector-picker mt-2">
                 {% if mode == 'search' %}
