@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/icon-selector-bundle`  
-**Last audited**: 2026-10-20 (wave-1 refresh: client-side SVG sanitizer)
+**Last audited**: 2026-11-16 (1.5.0 service interfaces mapped; previous: 2026-10-20 wave-1 SVG sanitizer)
 
 ## Symfony config
 
@@ -40,10 +40,13 @@
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
+| `Service/IconCatalogInterface.php` | Available icons — port (REQ-ARCH-001) | FR-SVC-001 |
 | `Service/IconListProvider.php` | Available icons | FR-SVC-001, FR-WORKER-002 |
 | `Service/IconSelectorConfigProvider.php` | Frontend config | FR-SVC-001 |
+| `Service/IconSelectorConfigProviderInterface.php` | Frontend config — port (REQ-ARCH-001) | FR-SVC-001 |
 | `Service/IconifyCollectionLoader.php` | Iconify API loader | FR-SVC-002, FR-WORKER-002 |
 | `Service/SvgSanitizer.php` | SVG sanitization | FR-SVC-003 |
+| `Service/SvgSanitizerInterface.php` | SVG sanitization — port (REQ-ARCH-001) | FR-SVC-003 |
 
 ## Twig PHP
 
@@ -101,9 +104,9 @@
 | Bundle & DI | 4 | 4 |
 | HTTP — API | 3 | 3 |
 | Form | 2 | 2 |
-| Services | 4 | 4 |
+| Services | 7 | 7 |
 | Twig PHP | 1 | 1 |
 | Frontend assets | 9 | 9 |
 | Translations | 7 | 7 |
 | Twig views — form themes | 11 | 11 |
-| **Total production sources** | **44** | **44** |
+| **Total production sources** | **47** | **47** |

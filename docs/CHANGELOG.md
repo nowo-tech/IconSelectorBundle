@@ -44,6 +44,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Spec Kit: `specs/001-baseline/code-inventory.md` maps the three 1.5.0 service interfaces (47/47 files) (REQ-SPECKIT-001/003)
+- README: Tests and coverage marks Python as N/A (REQ-TEST-007)
+- CI: Dependabot npm updates for the bundle assets (`/`) and `demo/symfony8/e2e` (REQ-GH-002)
+
 ## [1.5.0] - 2026-11-13
 
 ### Added
