@@ -34,9 +34,14 @@ final readonly class EmojiCatalog implements EmojiCatalogInterface
     public function __construct(string $dataFile = self::DEFAULT_DATA_FILE)
     {
         /** @var mixed $data */
-        $data          = require $dataFile;
-        $emoji         = is_array($data) && is_array($data['emoji'] ?? null) ? $data['emoji'] : [];
-        $this->emoji   = array_filter($emoji, static fn ($name, $key): bool => is_string($name) && is_string($key), ARRAY_FILTER_USE_BOTH);
+        $data  = require $dataFile;
+        $emoji = is_array($data) && is_array($data['emoji'] ?? null) ? $data['emoji'] : [];
+        // The bundled file is generated (string => string): only a host-supplied file is filtered entry by entry.
+        /** @var array<string, string> $bundled */
+        $bundled     = $emoji;
+        $this->emoji = $dataFile === self::DEFAULT_DATA_FILE
+            ? $bundled
+            : array_filter($emoji, static fn ($name, $key): bool => is_string($name) && is_string($key), ARRAY_FILTER_USE_BOTH);
         $this->version = is_array($data) && is_string($data['emoji_version'] ?? null) ? $data['emoji_version'] : '';
     }
 

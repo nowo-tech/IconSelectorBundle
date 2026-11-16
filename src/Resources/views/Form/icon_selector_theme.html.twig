@@ -97,6 +97,10 @@
                 {% for choice in form.vars.choices %}
                     <option value="{{ choice.value }}" {% if choice.value == value %}selected="selected"{% endif %}>{{ choice_domain ? choice.label|trans({}, choice_domain) : choice.label }}</option>
                 {% endfor %}
+                {# Emoji mode: the stored emoji is no icon choice; keep it as the selected option so a re-save does not clear it. #}
+                {% if form.vars.emoji_value|default(null) %}
+                    <option value="{{ value }}" selected="selected">{{ form.vars.emoji_value }}</option>
+                {% endif %}
             </select>
             {% if form.vars.tom_select_preloaded_options is defined and form.vars.tom_select_preloaded_options is not empty %}
                 <script type="application/json" id="icon-selector-options-{{ id }}">{{ form.vars.tom_select_preloaded_options|json_encode|raw }}</script>

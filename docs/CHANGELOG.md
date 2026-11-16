@@ -66,6 +66,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `emoji_data_url`.
 - Field option `icon_prefixes` (e.g. `['tabler']`): restricts the icon list, the submitted ids and the browser widgets to
   those prefixes (the restriction travels in the config URL fragment, never sent to the server).
+- `tom_select` mode with `emoji: true` keeps a stored emoji as the selected `<option>` (re-saving no longer clears it),
+  and the Tom Select initial-value loader never asks Iconify for `emoji:` values or ids outside `icon_prefixes`.
 - Translations for the emoji picker labels and validation messages (en, es, fr, de, it, pt, nl).
 - Demo page `/{locale}/demo/emoji`; the saved value is shown with `nowo_icon_selector_render()`.
 

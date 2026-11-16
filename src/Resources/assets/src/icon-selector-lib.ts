@@ -183,6 +183,24 @@ export function restrictConfigToPrefixes(config: IconSelectorConfig | null, pref
   return { ...config, sets };
 }
 
+/**
+ * Whether the SVG of a stored value may be asked from Iconify: an icon id (prefix:name), never an emoji value, and
+ * within the field's prefix restriction (carried in the config URL fragment) when there is one.
+ */
+export function shouldFetchIconSvg(value: string | null | undefined, configUrl: string | undefined): boolean {
+  if (!value || !value.includes(':') || value.startsWith('emoji:')) return false;
+  return iconAllowedByPrefixes(value, prefixesFromConfigUrl(configUrl ?? ''));
+}
+
+/**
+ * Emoji mode (audit RO-1): a stored "emoji:<grapheme>" value is no icon option; keep it as one (text = the emoji) so
+ * Tom Select does not drop the selection and a re-save does not clear it.
+ */
+export function withStoredEmojiOption(options: IconOption[], currentValue: string): IconOption[] {
+  if (!currentValue.startsWith('emoji:') || currentValue.length <= 6 || options.some((o) => o.value === currentValue)) return options;
+  return [...options, { value: currentValue, text: currentValue.slice(6), svg: '' }];
+}
+
 /** Whether an icon id is allowed by an optional prefix list. */
 export function iconAllowedByPrefixes(id: string, prefixes: string[] | null): boolean {
   return !prefixes || prefixes.includes(id.split(':')[0]);
@@ -1482,7 +1500,7 @@ async function loadTomSelectOnDemand(
   if (!state) {
     const config = await fetchIconifyConfig(configUrl);
     if (!config?.iconify_base || !config.sets?.length) {
-      if (currentValue && currentValue.includes(':')) {
+      if (shouldFetchIconSvg(currentValue, configUrl)) {
         const svgMap = await fetchIconifySvgsForIds(configUrl, [currentValue]);
         const text = currentValue.split(/[:/]/).pop() ?? currentValue;
         callback([{ value: currentValue, text, svg: svgMap[currentValue] ?? '' }]);
@@ -1652,7 +1670,7 @@ function initTomSelectOnDemand(
     valueField: 'value',
     labelField: 'text',
     searchField: ['text', 'value'],
-    options: initialOptions,
+    options: withStoredEmojiOption(initialOptions, currentValue),
     items: currentValue ? [currentValue] : [],
     maxOptions: null,
     /** Allow load() to be called with empty query so dropdown opens with first batch of "all" icons. */
@@ -1819,7 +1837,7 @@ function initTomSelectOnDemand(
 
   // Ensure the selected value is available as option with SVG so the trigger displays it
   let initialValuePromise: Promise<void> = Promise.resolve();
-  if (currentValue && currentValue.includes(':')) {
+  if (shouldFetchIconSvg(currentValue, configUrl)) {
     getLogger().debug('Tom Select: fetching SVG for initial value', currentValue);
     initialValuePromise = fetchIconifySvgsForIds(configUrl, [currentValue])
       .then((svgMap) => {
@@ -1916,7 +1934,7 @@ function initTomSelectFullList(
         valueField: 'value',
         labelField: 'text',
         searchField: ['text', 'value'],
-        options: apiOptions,
+        options: withStoredEmojiOption(apiOptions, currentValue),
         items: currentValue ? [currentValue] : [],
         maxOptions: null,
         render: {

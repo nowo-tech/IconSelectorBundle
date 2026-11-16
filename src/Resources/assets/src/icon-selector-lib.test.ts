@@ -560,3 +560,26 @@ describe('icon prefix restriction', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('Tom Select initial value (audit RO-2)', () => {
+  it('never asks Iconify for emoji values or ids outside the prefix restriction', async () => {
+    const lib = await import('./icon-selector-lib');
+    expect(lib.shouldFetchIconSvg('emoji:🚀', '/api/icon-selector/config')).toBe(false);
+    expect(lib.shouldFetchIconSvg('tabler:home', '/api/icon-selector/config')).toBe(true);
+    expect(lib.shouldFetchIconSvg('tabler:home', '/api/icon-selector/config#prefixes=tabler')).toBe(true);
+    expect(lib.shouldFetchIconSvg('bi:house', '/api/icon-selector/config#prefixes=tabler')).toBe(false);
+    expect(lib.shouldFetchIconSvg('home', undefined)).toBe(false);
+    expect(lib.shouldFetchIconSvg('', undefined)).toBe(false);
+    expect(lib.shouldFetchIconSvg(null, undefined)).toBe(false);
+  });
+
+  it('keeps a stored emoji as a Tom Select option (audit RO-1)', async () => {
+    const lib = await import('./icon-selector-lib');
+    const base = [{ value: 'tabler:home', text: 'home', svg: '' }];
+    expect(lib.withStoredEmojiOption(base, 'emoji:🚀')).toEqual([...base, { value: 'emoji:🚀', text: '🚀', svg: '' }]);
+    expect(lib.withStoredEmojiOption(base, 'tabler:home')).toBe(base);
+    expect(lib.withStoredEmojiOption(base, 'emoji:')).toBe(base);
+    const withEmoji = [{ value: 'emoji:🚀', text: '🚀', svg: '' }];
+    expect(lib.withStoredEmojiOption(withEmoji, 'emoji:🚀')).toBe(withEmoji);
+  });
+});

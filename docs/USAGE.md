@@ -34,7 +34,7 @@ Options:
 - **icons_api_path**: Override the API path for this field (optional).
 - **icon_prefixes**: list of icon prefixes (e.g. `['tabler']`) the field accepts. Restricts the server-side choice list and submitted ids, and the browser widgets (Iconify grid/search, Tom Select, legacy grid) only offer those prefixes; a prefix no configured set lists gets its own Iconify set. Explicit `choices` are kept as given. Default `null` (no restriction).
 - **emoji**: `true` adds an *Emoji* tab (see [Emoji mode](#emoji-mode)). Default `false`.
-- **emoji_data_url**: Override the emoji dataset URL for this field (optional).
+- **emoji_data_url**: Override the emoji dataset URL for this field (optional; trusted host configuration, same origin recommended, see CONFIGURATION).
 
 When the bundle config endpoint (`/api/icon-selector/config`) returns icon sets, the frontend may use the **Iconify-based widget** (grid, library tabs, category filter, SVGs from api.iconify.design). Otherwise it falls back to the legacy grid/search or Tom Select using the icons API.
 

@@ -7,6 +7,7 @@ namespace Nowo\IconSelectorBundle\Tests\Unit\Form;
 use DOMDocument;
 use DOMElement;
 use DOMXPath;
+use Nowo\IconSelectorBundle\Emoji\EmojiCatalog;
 use Nowo\IconSelectorBundle\Form\IconSelectorType;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use PHPUnit\Framework\Attributes\CoversNothing;
@@ -89,10 +90,36 @@ final class IconSelectorThemeRenderingTest extends TestCase
         self::assertSame('no_icons', $this->single($xpath, '//*[@data-icon-selector-empty-text]')->getAttribute('data-icon-selector-empty-text'));
     }
 
+    public function testTomSelectKeepsAStoredEmojiAsTheSelectedOption(): void
+    {
+        $xpath  = $this->render('icon_selector_theme.html.twig', ['mode' => 'tom_select', 'emoji' => true], 'emoji:🚀');
+        $option = $this->single($xpath, '//select[@name="form[icon_direct]"]/option[@selected]');
+
+        self::assertSame('emoji:🚀', $option->getAttribute('value'));
+        self::assertSame('🚀', $option->textContent);
+    }
+
+    public function testTomSelectWithoutEmojiModeAddsNoEmojiOption(): void
+    {
+        $xpath = $this->render('icon_selector_theme.html.twig', ['mode' => 'tom_select'], 'heroicons-outline:home');
+
+        self::assertSame(0, $this->countNodes($xpath, '//option[starts-with(@value, "emoji:")]'));
+    }
+
+    public function testEmojiDirectModeRendersTheTextFallbackInput(): void
+    {
+        $xpath = $this->render('icon_selector_theme.html.twig', ['mode' => 'direct', 'emoji' => true], 'emoji:🚀');
+        $input = $this->single($xpath, '//input[@name="form[icon_direct]"]');
+
+        self::assertSame('text', $input->getAttribute('type'));
+        self::assertSame('1', $input->getAttribute('data-icon-selector-emoji-fallback'));
+        self::assertSame('emoji:🚀', $input->getAttribute('value'));
+    }
+
     /**
      * @param array<string, mixed> $options IconSelectorType options
      */
-    private function render(string $theme, array $options): DOMXPath
+    private function render(string $theme, array $options, ?string $data = null): DOMXPath
     {
         $vendorDir = dirname((new ReflectionClass(FormExtension::class))->getFileName() ?: '', 2);
         $loader    = new FilesystemLoader([$vendorDir . '/Resources/views/Form', dirname(__DIR__, 3) . '/src/Resources/views/Form']);
@@ -102,17 +129,17 @@ final class IconSelectorThemeRenderingTest extends TestCase
         $renderer = new FormRenderer(new TwigRendererEngine([$theme], $twig));
         $twig->addRuntimeLoader(new FactoryRuntimeLoader([FormRenderer::class => static fn (): FormRenderer => $renderer]));
 
-        $type    = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons');
+        $type    = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', null, null, false, new EmojiCatalog());
         $factory = Forms::createFormFactoryBuilder()->addType($type)->getFormFactory();
         $form    = $factory->createNamedBuilder('form', FormType::class)
-            ->add('icon_direct', IconSelectorType::class, $options)
+            ->add('icon_direct', IconSelectorType::class, $options + ['data' => $data])
             ->getForm();
 
         $html = $twig->createTemplate('{{ form_widget(form.icon_direct) }}')->render(['form' => $form->createView()]);
 
         $dom      = new DOMDocument();
         $previous = libxml_use_internal_errors(true);
-        $dom->loadHTML('<!DOCTYPE html><html><body>' . $html . '</body></html>');
+        $dom->loadHTML('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . $html . '</body></html>');
         libxml_use_internal_errors($previous);
 
         return new DOMXPath($dom);

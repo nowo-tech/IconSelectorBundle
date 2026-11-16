@@ -99,7 +99,8 @@ class IconDemoController extends AbstractController
             'field_name'   => $field,
             'with_submit'  => true,
             'icon_options' => [
-                'mode'  => IconSelectorType::MODE_SEARCH,
+                // ?mode=tom_select shows the emoji tab next to the Tom Select dropdown.
+                'mode'  => $request->query->getString('mode') === IconSelectorType::MODE_TOM_SELECT ? IconSelectorType::MODE_TOM_SELECT : IconSelectorType::MODE_SEARCH,
                 'label' => 'demo.label_icon_emoji',
                 'icons' => $icons,
                 'emoji' => true,

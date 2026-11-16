@@ -101,4 +101,15 @@ test.describe('icon selector demo', () => {
     await expect(page.locator('.nowo-ui-flash--success')).toContainText('emoji:🎉');
     await context.close();
   });
+
+  test('emoji + Tom Select: a stored emoji survives a re-save (audit RO-1)', async ({ page }) => {
+    const iconify: string[] = [];
+    page.on('request', (r) => { if (r.url().includes('api.iconify.design') && r.url().includes('emoji')) iconify.push(r.url()); });
+    await page.goto('/en/demo/emoji?mode=tom_select&icon=' + encodeURIComponent('emoji:🚀'));
+    await expect(page.locator('div.icon-selector-widget[data-icon-selector-enhanced="1"]')).toBeAttached();
+    await expect(page.locator('select[name$="[icon_emoji]"]')).toHaveValue('emoji:🚀');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.locator('.nowo-ui-flash--success')).toContainText('emoji:🚀');
+    expect(iconify).toEqual([]);
+  });
 });

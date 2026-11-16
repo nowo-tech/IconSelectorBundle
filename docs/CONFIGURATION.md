@@ -103,6 +103,11 @@ nowo_icon_selector:
     emoji_data_url: '/static/emoji-data.json'
 ```
 
+**Trusted configuration.** `emoji_data_url` (global and the field option) is host configuration, never user input: the
+browser fetches it with same-origin credentials and lists what it returns. Serve it from your own origin (recommended)
+or from a host you control; the picker only ever inserts the file's strings as text, and the server validates every
+submitted emoji against the bundled catalogue whatever the file says.
+
 ### `debug`
 
 When `true`, the frontend script logs all debug/info/warn/error messages to the browser console (e.g. runInit, Tom Select polling, load more). When `false` (default), only the initial "script loaded" message (with build time) is shown.
