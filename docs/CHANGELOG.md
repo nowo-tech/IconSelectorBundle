@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.5.1] - 2026-11-16](#151---2026-11-16)
 - [[1.5.0] - 2026-11-13](#150---2026-11-13)
 - [[1.4.4] - 2026-10-30](#144---2026-10-30)
 - [[1.4.3] - 2026-10-25](#143---2026-10-25)
@@ -44,6 +45,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-16
+
 ### Security
 
 - SVG sanitization (server `SvgSanitizer` and browser `svg-sanitizer.ts`): only allowlisted elements, allowlisted attributes and text are kept. Processing instructions, comments, CDATA sections and doctypes are now removed; entity references are removed from text, and the server writes attribute values back in their expanded (validated) form; before, some of them were passed through and could be reinterpreted when the sanitized SVG was inserted into the page. `<title>` and `<desc>` keep text only, and elements outside the SVG namespace are dropped. The browser sanitizer now builds its output from the sanitized tree with explicit escaping instead of `XMLSerializer`. Affects the server sanitizer up to 1.5.0 and the Iconify browser sanitizer from 1.3.0 to 1.5.0. Shipped `icon-selector.js` rebuilt.
@@ -54,6 +57,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Spec Kit: `specs/001-baseline/code-inventory.md` maps the three 1.5.0 service interfaces (47/47 files) (REQ-SPECKIT-001/003)
 - README: Tests and coverage marks Python as N/A (REQ-TEST-007)
 - CI: Dependabot npm updates for the bundle assets (`/`) and `demo/symfony8/e2e` (REQ-GH-002)
+
+[1.5.1]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.5.1
 
 ## [1.5.0] - 2026-11-13
 

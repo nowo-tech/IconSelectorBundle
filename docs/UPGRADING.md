@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.5.1](#to-151)
 - [To 1.5.0](#to-150)
 - [To 1.4.4](#to-144)
 - [To 1.4.3](#to-143)
@@ -44,6 +45,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.5.1
+
+From **1.5.0**:
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
 
 From **1.5.0**: no action; update and run `assets:install` (the shipped `icon-selector.js` changed). Sanitized SVG may lose comments, processing instructions, CDATA and doctypes, and `<title>`/`<desc>` keep their text only; rendered icons are unchanged. If you aliased `SvgSanitizerInterface` to your own sanitizer, make sure it also removes those node types: its output is inserted with `innerHTML`.
 
