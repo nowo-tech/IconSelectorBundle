@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.7.0](#to-170)
 - [To 1.6.0](#to-160)
 - [To 1.5.1](#to-151)
 - [To 1.5.0](#to-150)
@@ -46,6 +47,14 @@
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
 ## Unreleased
+
+## To 1.7.0
+
+From **1.6.0**:
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
 
 Target **1.7.0**. Run `php bin/console assets:install` (new `icon-selector.css`, rebuilt `icon-selector.js`).
 

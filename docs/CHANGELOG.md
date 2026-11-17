@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.7.0] - 2026-11-17](#170---2026-11-17)
 - [[1.6.0] - 2026-11-16](#160---2026-11-16)
 - [[1.5.1] - 2026-11-16](#151---2026-11-16)
 - [[1.5.0] - 2026-11-13](#150---2026-11-13)
@@ -45,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[1.0.0] - 2026-03-11](#100---2026-03-11)
 
 ## [Unreleased]
+
+## [1.7.0] - 2026-11-17
 
 ### Added
 
@@ -106,6 +109,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `tom_select`: a stored icon id that is no longer a choice stays the selected option (server-rendered and in Tom
   Select), so a re-save submits it (accepted, or refused with a form error) instead of silently clearing the field.
 - Shipped `icon-selector.js` rebuilt; new `icon-selector.css`.
+
+[1.7.0]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.7.0
 
 ## [1.6.0] - 2026-11-16
 
