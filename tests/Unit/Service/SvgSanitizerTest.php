@@ -225,4 +225,19 @@ final class SvgSanitizerTest extends TestCase
 
         self::assertSame('<svg xmlns="http://www.w3.org/2000/svg"><use/><use/><use/><use href="#ok.1:2_3-4"/></svg>', $output);
     }
+
+    /** Allowlist grammar: CSS escapes and functions other than rgb/hsl/url(#id) are refused. */
+    public function testPaintValuesRejectCssEscapesAndOtherFunctions(): void
+    {
+        $input = '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<path d="M0 0" fill="#fff" stroke="rgb(1, 2, 3)"/>'
+            . '<path d="M1 1" fill="\\75 rl(https://evil.example/a)" stroke="image-set(\'https://evil.example/b\' 1x)"/>'
+            . '<path d="M2 2" fill="hsla(10, 20%, 30%, .5)" clip-path="url(#c) x"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertStringContainsString('<path d="M0 0" fill="#fff" stroke="rgb(1, 2, 3)"/>', $output);
+        self::assertStringContainsString('<path d="M1 1"/>', $output);
+        self::assertStringContainsString('<path d="M2 2" fill="hsla(10, 20%, 30%, .5)"/>', $output);
+        self::assertStringNotContainsString('evil.example', $output);
+    }
 }

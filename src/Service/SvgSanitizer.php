@@ -16,6 +16,7 @@ use function is_string;
 use function libxml_clear_errors;
 use function libxml_use_internal_errors;
 use function preg_match;
+use function str_contains;
 use function strtolower;
 use function trim;
 
@@ -66,6 +67,9 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
 
     /** Attributes whose url() value may only reference a same-document fragment: url(#id). */
     private const URL_REFERENCE_ATTRIBUTES = ['fill', 'stroke', 'clip-path', 'mask'];
+
+    /** Allowed values of the attributes above: keyword, hex colour, rgb/hsl colour function, or url(#id). */
+    private const PAINT_VALUE_PATTERN = '/^(?:[a-z]+|#[0-9a-f]{3,8}|(?:rgba?|hsla?)\(\s*[0-9.,%\/\s+-]+\)|url\(\s*#[a-z0-9_.:-]+\s*\))$/Di';
 
     /** @var list<string> */
     private const ALLOWED_ATTRIBUTES = [
@@ -251,15 +255,20 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
     }
 
     /**
-     * Paint / reference attributes (fill, stroke, clip-path, mask) holding a url() may only point to a
-     * same-document fragment: url(#id). Mirrors isSafeAttributeValue() in the browser sanitizer.
+     * Paint / reference attributes (fill, stroke, clip-path, mask) follow an allowlist grammar: none, a colour
+     * keyword (currentColor, red, transparent...), a hex colour, rgb()/rgba()/hsl()/hsla() with numeric arguments,
+     * or url(#id). Any backslash (CSS escape such as "\75 rl(") is refused, and so is every other function
+     * (image-set(), external url()). Mirrors isSafeAttributeValue() in the browser sanitizer.
      */
     private function isSafeAttributeValue(string $localName, string $value): bool
     {
-        if (in_array($localName, self::URL_REFERENCE_ATTRIBUTES, true) && preg_match('/url\s*\(/i', $value) === 1) {
-            return preg_match('/^url\(\s*#[A-Za-z0-9_.:-]+\s*\)$/Di', trim($value)) === 1;
+        if (!in_array($localName, self::URL_REFERENCE_ATTRIBUTES, true)) {
+            return true;
+        }
+        if (str_contains($value, '\\')) {
+            return false;
         }
 
-        return true;
+        return preg_match(self::PAINT_VALUE_PATTERN, trim($value)) === 1;
     }
 }

@@ -93,12 +93,17 @@ function isSafeFragment(value: string): boolean {
   return /^#[A-Za-z0-9_.:-]+$/.test(value.trim());
 }
 
-function isSafeAttributeValue(name: string, value: string): boolean {
-  if (URL_REFERENCE_ATTRIBUTES.has(name) && /url\s*\(/i.test(value)) {
-    return /^url\(\s*#[A-Za-z0-9_.:-]+\s*\)$/i.test(value.trim());
-  }
+/**
+ * Allowed values of the paint/reference attributes: a keyword (none, currentColor, red...), a hex colour,
+ * rgb()/rgba()/hsl()/hsla() with numeric arguments, or url(#id). Mirrors PAINT_VALUE_PATTERN in the server sanitizer.
+ */
+const PAINT_VALUE = /^(?:[a-z]+|#[0-9a-f]{3,8}|(?:rgba?|hsla?)\(\s*[0-9.,%/\s+-]+\)|url\(\s*#[a-z0-9_.:-]+\s*\))$/i;
 
-  return true;
+function isSafeAttributeValue(name: string, value: string): boolean {
+  if (!URL_REFERENCE_ATTRIBUTES.has(name)) return true;
+  // CSS escapes (e.g. "\75 rl(") and any other function (image-set(), external url()) are refused.
+  if (value.includes('\\')) return false;
+  return PAINT_VALUE.test(value.trim());
 }
 
 /**

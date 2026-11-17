@@ -41,8 +41,8 @@ Where the picker reads its icon list and SVG previews from.
 default when `symfony/http-client` is installed) the **server** still calls Iconify for icons that are not on disk.
 
 Static lists exist only for `heroicons`, `bootstrap-icons`, `lucide` and `tabler` (about 20 icons each): with
-`bundle` and `use_iconify_collection: false`, any other set has an empty picker and the bundle logs a warning (compiler
-log and runtime logger). Prefer `ux_icons_local` when your icons are committed or `ux_icons.iconify.on_demand` is
+`bundle` and `use_iconify_collection: false`, any other set has an empty picker and the bundle logs a warning in the container
+compiler log at build time. Prefer `ux_icons_local` when your icons are committed or `ux_icons.iconify.on_demand` is
 `false`.
 
 `null` resolves to `iconify` when `use_iconify_collection` is `true`, else to `bundle`. The allowed prefixes
@@ -91,12 +91,29 @@ loads the file itself:
 The bundle emits no inline `<style>` element and no `style=` attribute, so it works under a nonce-only
 `style-src 'self' 'nonce-…'` policy without passing a nonce.
 
-**Pure-nonce `style-src-elem`** (no `'self'`): a `<link>` needs the nonce. When NelmioSecurityBundle is installed the
-themes add `nonce="…"` from `nelmio_security.csp_listener` (`getNonce('style')`) automatically. Otherwise set
-`include_stylesheet: false` and link the file from your layout with your nonce:
+**Pure-nonce `style-src-elem`** (no `'self'`): a `<link>` needs the nonce. Either enable `stylesheet_nonce` (below), or
+set `include_stylesheet: false` and link the file from your layout with your nonce:
 
 ```twig
 <link rel="stylesheet" href="{{ asset('icon-selector.css', 'nowo_icon_selector') }}" nonce="{{ csp_nonce('style') }}">
+```
+
+### `stylesheet_nonce`
+
+**Type:** `bool` · **Default:** `false`
+
+Opt-in. When `true`, the stylesheet `<link>` gets `nonce="…"`:
+
+1. from the `csp_nonce` request attribute when it is set (nowo-tech convention, filled by HttpHardeningBundle), else
+2. from NelmioSecurityBundle (`nelmio_security.csp_listener`, `getNonce('style')`).
+
+Keep it `false` unless your policy needs it (`style-src-elem` with nonces and without `'self'`). Asking Nelmio for a
+nonce **creates** one: Nelmio then adds `'nonce-…'` to `style-src` (or `default-src`), and browsers ignore
+`'unsafe-inline'` as soon as a nonce is present, so every other inline style on the page would be blocked.
+
+```yaml
+nowo_icon_selector:
+    stylesheet_nonce: true
 ```
 
 ### `iconify_http_timeout`

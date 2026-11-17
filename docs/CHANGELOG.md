@@ -63,9 +63,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   asset next to `icon-selector.js`. New option **`include_stylesheet`** (default `true`): the form themes link it with
   `<link rel="stylesheet">` (asset package `nowo_icon_selector`); set `false` when your layout loads it.
 - Warning for sets without a static list (only `heroicons`, `bootstrap-icons`, `lucide` and `tabler` have one)
-  while the source is `bundle`: container compiler log at build time, `logger` warning at runtime.
-- The stylesheet `<link>` carries the CSP style nonce when NelmioSecurityBundle's CSP listener is available
-  (`nelmio_security.csp_listener`, `getNonce('style')`), for pure-nonce `style-src-elem` policies.
+  while the source is `bundle`: container compiler log at build time (once, not on every request).
+- **`stylesheet_nonce` option** (default `false`, opt-in): the stylesheet `<link>` carries the CSP nonce from the
+  `csp_nonce` request attribute (HttpHardening convention), else from NelmioSecurityBundle `getNonce('style')`. Off by
+  default because asking Nelmio creates a style nonce, which makes browsers ignore `'unsafe-inline'` page-wide.
 - Strict-CSP browser test (`tests/E2eCsp`, `make test-e2e-csp`, CI job *E2E strict CSP*): Playwright under
   `default-src 'self'; style-src 'self' 'nonce-…'; script-src 'self' 'nonce-…'; connect-src 'self'` asserts zero
   CSP violations and zero third-party requests for the `bundle` and `ux_icons_local` sources in the three modes.
@@ -92,9 +93,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   visitor's IP, user agent and referrer to a third party and broke under `connect-src 'self'`.
 - Bundle SVG endpoint results rendered by the grid widget: icons rendered by UX Icons without `xmlns` were dropped by
   the browser sanitizer (placeholder shown); the namespace is now added before sanitizing.
-- Server `SvgSanitizer` now matches the browser sanitizer for references: `fill`, `stroke`, `mask` and `clip-path`
-  keep a `url()` only when it is `url(#id)`, and `href`/`xlink:href` keep only a strict `#id` fragment (before, any
-  value starting with `#` was kept).
+- SVG sanitizers (server `SvgSanitizer` and browser `svg-sanitizer.ts`): `fill`, `stroke`, `mask` and `clip-path`
+  follow an allowlist grammar (a keyword such as `none`/`currentColor`, a hex colour, `rgb()`/`rgba()`/`hsl()`/`hsla()`
+  with numeric arguments, or `url(#id)`); any backslash (CSS escapes such as `\75 rl(`) and any other function
+  (`image-set()`, external `url()`) drop the attribute. On the server, `href`/`xlink:href` keep only a strict `#id`
+  fragment (before, any value starting with `#` was kept).
 - `ux_icons_local` directory scan: an unreadable subdirectory is skipped instead of failing every request; only
   `<dir>/<prefix>/` is walked for the allowed prefixes (real directories, no symlinks), and the icons-by-set listing
   uses one walk instead of one per set.

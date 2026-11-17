@@ -68,6 +68,7 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
         $container->setParameter(Configuration::ALIAS . '.source', $source->value);
         $container->setParameter(Configuration::ALIAS . '.ux_icons_dir', $config['ux_icons_dir'] ?? $this->defaultUxIconsDir($container));
         $container->setParameter(Configuration::ALIAS . '.include_stylesheet', $config['include_stylesheet'] ?? true);
+        $container->setParameter(Configuration::ALIAS . '.stylesheet_nonce', $config['stylesheet_nonce'] ?? false);
         $container->setParameter(
             Configuration::ALIAS . '.emoji_data_url',
             $config['emoji_data_url'] ?? '/bundles/nowoiconselector/emoji-data.json?v=' . rawurlencode((new EmojiCatalog())->getVersion()),

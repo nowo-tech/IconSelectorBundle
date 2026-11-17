@@ -68,6 +68,7 @@ final class ConfigurationTest extends TestCase
         self::assertNull($defaults['source']);
         self::assertNull($defaults['ux_icons_dir']);
         self::assertTrue($defaults['include_stylesheet']);
+        self::assertFalse($defaults['stylesheet_nonce']);
 
         $config = $processor->processConfiguration(new Configuration(), [[
             'source'             => 'ux_icons_local',

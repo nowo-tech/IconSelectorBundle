@@ -68,6 +68,9 @@ final class IconSelectorType extends AbstractType
     /** Bundle stylesheet (built next to icon-selector.js); linked by the form themes when include_stylesheet is true. */
     private const STYLESHEET = 'icon-selector.css';
 
+    /** Request attribute holding the per-request CSP nonce (nowo-tech HttpHardening convention). */
+    private const CSP_NONCE_ATTRIBUTE = 'csp_nonce';
+
     /**
      * @param list<string> $iconSets Enabled icon set names from config (used when icon_sets option is null)
      * @param IconRendererInterface|null $iconRenderer Optional renderer to verify submitted icon IDs exist (e.g. via Iconify)
@@ -80,7 +83,9 @@ final class IconSelectorType extends AbstractType
      * @param Packages|null $packages Asset packages (symfony/asset) used to build the stylesheet URL; null = fixed bundle path
      * @param RequestStack|null $requestStack Current request (base path of the fallback stylesheet URL); read per call, never stored
      * @param object|null $cspNonceProvider Optional CSP listener exposing getNonce('style') (NelmioSecurityBundle
-     *                                      nelmio_security.csp_listener); its nonce is added to the stylesheet <link>
+     *                                      nelmio_security.csp_listener); asked only when $stylesheetNonce is true and
+     *                                      the request carries no "csp_nonce" attribute
+     * @param bool $stylesheetNonce Opt-in (stylesheet_nonce): add a CSP nonce to the stylesheet <link>
      */
     public function __construct(
         private readonly IconCatalogInterface $iconListProvider,
@@ -97,6 +102,7 @@ final class IconSelectorType extends AbstractType
         private readonly ?Packages $packages = null,
         private readonly ?RequestStack $requestStack = null,
         private readonly ?object $cspNonceProvider = null,
+        private readonly bool $stylesheetNonce = false,
     ) {
     }
 
@@ -197,11 +203,21 @@ final class IconSelectorType extends AbstractType
     }
 
     /**
-     * CSP nonce for the stylesheet <link>, when the host exposes one (NelmioSecurityBundle CSP listener). Needed
-     * only for a pure-nonce style-src-elem policy without 'self'.
+     * CSP nonce for the stylesheet <link> (opt-in, stylesheet_nonce: true; needed only for a pure-nonce
+     * style-src-elem policy without 'self'). An existing nonce is read from the "csp_nonce" request attribute
+     * (nowo-tech HttpHardening convention). Only then is NelmioSecurityBundle asked: getNonce('style') creates a
+     * style nonce, which makes browsers ignore 'unsafe-inline' for every other inline style, so it never happens
+     * by default.
      */
     private function styleNonce(): ?string
     {
+        if (!$this->stylesheetNonce) {
+            return null;
+        }
+        $existing = $this->requestStack?->getCurrentRequest()?->attributes->get(self::CSP_NONCE_ATTRIBUTE);
+        if (is_string($existing) && $existing !== '') {
+            return $existing;
+        }
         if ($this->cspNonceProvider === null || !method_exists($this->cspNonceProvider, 'getNonce')) {
             return null;
         }

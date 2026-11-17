@@ -8,7 +8,6 @@ use Nowo\IconSelectorBundle\Service\IconifyCollectionLoader;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use Nowo\IconSelectorBundle\Service\LocalUxIconsScanner;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -139,19 +138,10 @@ final class IconListProviderTest extends TestCase
         self::assertSame([], $provider->getIcons());
     }
 
-    /** SA-M1: source bundle warns about a set without a static list (empty picker); other sets and sources do not. */
-    public function testWarnsAboutSetsWithoutStaticListWithSourceBundle(): void
+    public function testStaticListSets(): void
     {
         self::assertSame(['heroicons', 'bootstrap-icons', 'lucide', 'tabler'], IconListProvider::staticListSets());
-
-        $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects(self::once())->method('warning')->with(self::stringContains('no static list'), self::callback(static fn (array $c): bool => $c['set'] === 'mdi'));
-        $icons = (new IconListProvider(['tabler', 'mdi'], false, null, 'bundle', null, $logger))->getIconsForSets(['mdi', 'tabler']);
-        self::assertContains('tabler:home', $icons);
-
-        $silent = $this->createMock(LoggerInterface::class);
-        $silent->expects(self::never())->method('warning');
-        (new IconListProvider(['mdi'], false, null, 'iconify', null, $silent))->getIcons();
+        self::assertSame([], (new IconListProvider(['mdi']))->getIcons());
     }
 
     public function testUxIconsLocalGroupsBySetWithOneWalk(): void

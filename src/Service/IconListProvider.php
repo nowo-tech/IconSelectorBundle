@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Service;
 
-use Psr\Log\LoggerInterface;
 use Throwable;
 
 use function in_array;
@@ -127,7 +126,6 @@ readonly class IconListProvider implements IconCatalogInterface
      * @param IconifyCollectionLoader|null $collectionLoader Loader for Iconify API collections (injected when use_iconify_collection is true)
      * @param string $source Effective icon source (nowo_icon_selector.source, see {@see IconSource}); with ux_icons_local the list is read from $localScanner only
      * @param LocalUxIconsScanner|null $localScanner Lists the icons committed under the UX Icons directory (used with source ux_icons_local)
-     * @param LoggerInterface|null $logger Warns when a configured set has no static list (empty picker with source bundle)
      */
     public function __construct(
         private array $iconSets,
@@ -135,7 +133,6 @@ readonly class IconListProvider implements IconCatalogInterface
         private ?IconifyCollectionLoader $collectionLoader = null,
         private string $source = 'bundle',
         private ?LocalUxIconsScanner $localScanner = null,
-        private ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -195,12 +192,6 @@ readonly class IconListProvider implements IconCatalogInterface
                     $icons[] = $id;
                 }
             } else {
-                if (!isset(self::DEFAULT_ICONS[$set]) && IconSource::tryFrom($this->source) === IconSource::Bundle) {
-                    $this->logger?->warning('nowo_icon_selector: icon set "{set}" has no static list; the picker offers no icon for it. Use source ux_icons_local or iconify (or use_iconify_collection: true).', [
-                        'set'         => $set,
-                        'static_sets' => self::staticListSets(),
-                    ]);
-                }
                 $setIcons = self::DEFAULT_ICONS[$set] ?? [];
                 foreach ($setIcons as $id) {
                     $icons[] = $id;

@@ -20,7 +20,8 @@ use function sprintf;
 /**
  * Container-build warning (compiler log): with source bundle and use_iconify_collection false, an icon set without
  * a bundled static list (only heroicons, bootstrap-icons, lucide and tabler have one) gives an empty picker.
- * The same condition is logged at runtime by {@see IconListProvider}.
+ * Build time only: a runtime log line would repeat on every list call (and keeping a per-request flag would be
+ * request state, unwanted in worker mode).
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */

@@ -761,21 +761,45 @@ final class IconSelectorTypeTest extends TestCase
         self::assertNull($view->vars['stylesheet_url']);
     }
 
-    public function testFallbackStylesheetUrlKeepsTheRequestBasePathAndAddsTheCspNonce(): void
+    public function testFallbackStylesheetUrlKeepsTheRequestBasePath(): void
     {
         $requestStack = new RequestStack();
         $requestStack->push(Request::create('http://localhost/sub/app/index.php/page', 'GET', [], [], [], ['SCRIPT_NAME' => '/sub/app/index.php', 'SCRIPT_FILENAME' => '/srv/sub/app/index.php']));
-        $nonceProvider = new class {
-            public function getNonce(string $usage): string
-            {
-                return $usage === 'style' ? 'abc123' : 'other';
-            }
-        };
-        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', requestStack: $requestStack, cspNonceProvider: $nonceProvider);
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', requestStack: $requestStack);
         $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
 
         self::assertSame('/sub/app/bundles/nowoiconselector/icon-selector.css', $view->vars['stylesheet_url']);
-        self::assertSame('abc123', $view->vars['stylesheet_nonce']);
+    }
+
+    /** SA-D1: by default Nelmio is never asked for a style nonce (that would disable 'unsafe-inline' page-wide). */
+    public function testStylesheetNonceIsNotRequestedByDefault(): void
+    {
+        $provider = $this->nonceProvider('nelmio-nonce');
+        $type     = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', cspNonceProvider: $provider);
+        $view     = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+
+        self::assertNull($view->vars['stylesheet_nonce']);
+        self::assertSame(0, $provider->calls);
+    }
+
+    public function testStylesheetNonceOptInPrefersTheRequestAttribute(): void
+    {
+        $request = Request::create('/');
+        $request->attributes->set('csp_nonce', 'from-request');
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+        $provider = $this->nonceProvider('nelmio-nonce');
+
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', requestStack: $requestStack, cspNonceProvider: $provider, stylesheetNonce: true);
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertSame('from-request', $view->vars['stylesheet_nonce']);
+        self::assertSame(0, $provider->calls);
+
+        // No request attribute: fall back to the Nelmio listener.
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', cspNonceProvider: $provider, stylesheetNonce: true);
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertSame('nelmio-nonce', $view->vars['stylesheet_nonce']);
+        self::assertSame(1, $provider->calls);
 
         $failing = new class {
             public function getNonce(string $usage): string
@@ -783,11 +807,16 @@ final class IconSelectorTypeTest extends TestCase
                 throw new RuntimeException('no request');
             }
         };
-        foreach ([new stdClass(), $failing] as $provider) {
-            $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', cspNonceProvider: $provider);
+        foreach ([null, new stdClass(), $failing] as $candidate) {
+            $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', cspNonceProvider: $candidate, stylesheetNonce: true);
             $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
             self::assertNull($view->vars['stylesheet_nonce']);
         }
+    }
+
+    private function nonceProvider(string $nonce): RecordingCspNonceProvider
+    {
+        return new RecordingCspNonceProvider($nonce);
     }
 
     /** SA-L5: a stored id that is no longer a choice is exposed so tom_select keeps it selected. */
