@@ -33,6 +33,7 @@ Options:
 - **icon_sets**: Override the bundle config for this field (optional).
 - **icons_api_path**: Override the API path for this field (optional).
 - **icon_prefixes**: list of icon prefixes (e.g. `['tabler']`) the field accepts. Restricts the server-side choice list and submitted ids, and the browser widgets (Iconify grid/search, Tom Select, legacy grid) only offer those prefixes; a prefix no configured set lists gets its own Iconify set. Explicit `choices` are kept as given. Default `null` (no restriction).
+- **theme** (1.8): look of this widget — `uikit` (UiKit design tokens, no Bootstrap classes, dark mode), `bootstrap` (the 1.7 Bootstrap classes) or `auto`; `null` (default) = the bundle configuration `theme` (see [CONFIGURATION.md](CONFIGURATION.md#theme)).
 - **emoji**: `true` adds an *Emoji* tab (see [Emoji mode](#emoji-mode)). Default `false`.
 - **emoji_data_url**: Override the emoji dataset URL for this field (optional; trusted host configuration, same origin recommended, see CONFIGURATION).
 
@@ -204,4 +205,6 @@ The form type uses the translation domain **`NowoIconSelectorBundle`** by defaul
 - `translations/NowoIconSelectorBundle.es.yaml`
 - etc.
 
-Define the same keys as in the bundle (e.g. `placeholder`, `search_placeholder`, and choice labels such as `home`, `user`). Your values replace the bundle’s for that locale. You can also use `translation_domain` and `search_placeholder` on the form field to point to another domain (e.g. `messages`) or a custom key.
+Define the same keys as in the bundle (e.g. `placeholder`, `search_placeholder`, `no_icons`, `filter.all`, and choice labels such as `home`, `user`). Your values replace the bundle’s for that locale.
+
+Since 1.8 the picker's own texts (trigger, search box, loading shell, empty list, filters, emoji tab) are always read from `NowoIconSelectorBundle`, whatever the field's `translation_domain` (a host form type such as WikiBundle's sets its own domain for the label and help). To use your own text, pass your key in `placeholder` / `search_placeholder`: a value other than the bundle key is translated in the field's `translation_domain` (or printed as is with `translation_domain: false`).

@@ -4,7 +4,11 @@
  * The dataset is a static, versioned JSON file shipped with the bundle (no runtime CDN). Selecting an emoji stores
  * "emoji:<grapheme>" in the same field the icon widgets use (hidden/text input or the Tom Select <select>).
  * No inline scripts, no innerHTML with data: every label is set through textContent / attributes (CSP-safe).
+ * 1.8: no inline styles either — the look comes from classes styled by icon-selector.css (theme tokens), the state
+ * from attributes (aria-selected, aria-pressed, hidden).
  */
+
+import { partClass, themeOf, type WidgetThemeName } from './widget-theme';
 
 /** Container attribute: "1" when the field enables emoji mode. */
 export const ATTR_EMOJI = 'data-icon-selector-emoji-value';
@@ -234,38 +238,6 @@ export function clearEmojiDatasetCache(): void {
 
 let uid = 0;
 
-/**
- * Theme tokens: UiKit (--nowo-ui-*), then Bootstrap (--bs-*), then plain fallbacks. Applied through CSSOM
- * (element.style), which a Content-Security-Policy without 'unsafe-inline' for style attributes still allows.
- */
-const T = {
-  border: 'var(--nowo-ui-border, var(--bs-border-color, #ced4da))',
-  radius: 'var(--nowo-ui-radius, var(--bs-border-radius, .375rem))',
-  surface: 'var(--nowo-ui-surface, var(--bs-body-bg, #fff))',
-  text: 'var(--nowo-ui-text, var(--bs-body-color, inherit))',
-  muted: 'var(--nowo-ui-muted, var(--bs-secondary-color, #6c757d))',
-  primary: 'var(--nowo-ui-primary, var(--bs-primary, #0d6efd))',
-};
-
-/** Sets inline styles via CSSOM. */
-function css(el: HTMLElement, props: Record<string, string>): void {
-  for (const [k, v] of Object.entries(props)) el.style.setProperty(k, v);
-}
-
-/** Shared look of the search box and the two selects. */
-function controlCss(el: HTMLElement, flex: string): void {
-  css(el, {
-    flex,
-    'min-width': '0',
-    padding: '.375rem .5rem',
-    border: `1px solid ${T.border}`,
-    'border-radius': T.radius,
-    background: T.surface,
-    color: T.text,
-    font: 'inherit',
-  });
-}
-
 /** Creates an <option> with text content (no Option constructor: not available in every DOM implementation). */
 function makeOption(text: string, value: string): HTMLOptionElement {
   const option = document.createElement('option');
@@ -284,6 +256,7 @@ export class EmojiPicker {
   private readonly url: string;
   private readonly labels: EmojiLabels;
   private readonly id: string;
+  private readonly theme: WidgetThemeName;
   private readonly cleanups: (() => void)[] = [];
   private tablist: HTMLElement | null = null;
   private tabIcons: HTMLButtonElement | null = null;
@@ -300,7 +273,8 @@ export class EmojiPicker {
   private tone = 0;
   private destroyed = false;
   private restoreInputType: string | null = null;
-  private iconsHidden: { el: HTMLElement; display: string; priority: string }[] = [];
+  /** Icon widget elements hidden by the Emoji tab (hidden attribute; icon-selector.css makes it win). */
+  private iconsHidden: HTMLElement[] = [];
 
   constructor(container: HTMLElement, valueEl: HTMLInputElement | HTMLSelectElement, url: string, labels: EmojiLabels) {
     this.container = container;
@@ -308,6 +282,7 @@ export class EmojiPicker {
     this.url = url;
     this.labels = labels;
     this.id = `${valueEl.id || 'icon-selector'}-emoji-${++uid}`;
+    this.theme = themeOf(container);
     this.render();
   }
 
@@ -349,7 +324,6 @@ export class EmojiPicker {
     tablist.className = 'icon-selector-emoji-tabs';
     tablist.setAttribute('role', 'tablist');
     tablist.setAttribute('aria-label', this.labels.tablist);
-    css(tablist, { display: 'flex', gap: '.25rem', 'margin-bottom': '.5rem', 'border-bottom': `1px solid ${T.border}` });
     this.tabIcons = this.makeTab('icons', this.labels.tab_icons);
     this.tabEmoji = this.makeTab('emoji', this.labels.tab_emoji);
     tablist.append(this.tabIcons, this.tabEmoji);
@@ -366,33 +340,28 @@ export class EmojiPicker {
     const current = document.createElement('div');
     current.className = 'icon-selector-emoji-current';
     current.setAttribute('aria-live', 'polite');
-    css(current, { 'margin-bottom': '.5rem', color: T.muted });
     this.current = current;
 
     const controls = document.createElement('div');
     controls.className = 'icon-selector-emoji-controls';
-    css(controls, { display: 'flex', 'flex-wrap': 'wrap', gap: '.5rem', 'margin-bottom': '.5rem' });
 
     const search = document.createElement('input');
     search.type = 'search';
-    search.className = 'form-control form-control-sm icon-selector-emoji-search';
+    search.className = partClass(this.theme, 'emojiSearch');
     search.placeholder = this.labels.search;
     search.setAttribute('aria-label', this.labels.search);
     search.autocomplete = 'off';
-    controlCss(search, '1 1 12rem');
     this.search = search;
 
     const groupSelect = document.createElement('select');
-    groupSelect.className = 'form-select form-select-sm icon-selector-emoji-group';
+    groupSelect.className = partClass(this.theme, 'emojiSelect', 'icon-selector-emoji-group');
     groupSelect.setAttribute('aria-label', this.labels.group);
-    controlCss(groupSelect, '0 1 auto');
     groupSelect.append(makeOption(this.labels.group_all, '-1'));
     this.groupSelect = groupSelect;
 
     const toneSelect = document.createElement('select');
-    toneSelect.className = 'form-select form-select-sm icon-selector-emoji-tone';
+    toneSelect.className = partClass(this.theme, 'emojiSelect', 'icon-selector-emoji-tone');
     toneSelect.setAttribute('aria-label', this.labels.tone);
-    controlCss(toneSelect, '0 1 auto');
     toneSelect.append(makeOption(this.labels.tone_default, '0'));
     this.labels.tones.forEach((label, i) => toneSelect.append(makeOption(label, String(i + 1))));
     this.toneSelect = toneSelect;
@@ -401,7 +370,6 @@ export class EmojiPicker {
 
     const status = document.createElement('div');
     status.className = 'icon-selector-emoji-status';
-    css(status, { color: T.muted, 'font-size': '.875em' });
     status.setAttribute('role', 'status');
     this.status = status;
 
@@ -409,17 +377,6 @@ export class EmojiPicker {
     grid.className = 'icon-selector-emoji-grid';
     grid.setAttribute('role', 'group');
     grid.setAttribute('aria-label', this.labels.grid);
-    css(grid, {
-      display: 'grid',
-      'grid-template-columns': 'repeat(auto-fill, minmax(2.5rem, 1fr))',
-      gap: '.125rem',
-      'max-height': '16rem',
-      'overflow-y': 'auto',
-      padding: '.25rem',
-      border: `1px solid ${T.border}`,
-      'border-radius': T.radius,
-      background: T.surface,
-    });
     this.grid = grid;
 
     panel.append(current, controls, status, grid);
@@ -449,15 +406,6 @@ export class EmojiPicker {
     tab.type = 'button';
     tab.id = `${this.id}-tab-${kind}`;
     tab.className = `icon-selector-emoji-tab icon-selector-emoji-tab-${kind}`;
-    css(tab, {
-      padding: '.375rem .75rem',
-      'margin-bottom': '-1px',
-      background: 'transparent',
-      border: '0',
-      'border-bottom': '2px solid transparent',
-      font: 'inherit',
-      cursor: 'pointer',
-    });
     tab.setAttribute('role', 'tab');
     tab.dataset.tab = kind;
     tab.textContent = label;
@@ -475,11 +423,7 @@ export class EmojiPicker {
 
   /** Restores the icon widget elements hidden by the Emoji tab. */
   private showIcons(): void {
-    for (const { el, display, priority } of this.iconsHidden) {
-      el.removeAttribute('hidden');
-      if (display) el.style.setProperty('display', display, priority);
-      else el.style.removeProperty('display');
-    }
+    for (const el of this.iconsHidden) el.removeAttribute('hidden');
     this.iconsHidden = [];
   }
 
@@ -499,22 +443,15 @@ export class EmojiPicker {
     this.tabEmoji.tabIndex = emoji ? 0 : -1;
     this.tabIcons.classList.toggle('active', !emoji);
     this.tabEmoji.classList.toggle('active', emoji);
-    for (const [tab, on] of [[this.tabIcons, !emoji], [this.tabEmoji, emoji]] as [HTMLButtonElement, boolean][]) {
-      css(tab, { 'border-bottom-color': on ? T.primary : 'transparent', color: on ? T.text : T.muted, 'font-weight': on ? '600' : '400' });
-    }
     this.container.setAttribute('data-icon-selector-tab', kind);
     this.panel.hidden = !emoji;
 
     this.showIcons();
     if (emoji) {
-      // hidden + display:none: the icon widgets set their own display, which would beat the hidden attribute alone.
-      this.iconsHidden = this.iconElements().map((el) => {
-        const display = el.style.getPropertyValue('display');
-        const priority = el.style.getPropertyPriority('display');
-        el.setAttribute('hidden', '');
-        el.style.setProperty('display', 'none', 'important');
-        return { el, display, priority };
-      });
+      // The hidden attribute alone: icon-selector.css gives [hidden] display:none !important inside the widget, so a
+      // display class of the icon widget (Bootstrap d-flex, Tom Select) cannot show it again.
+      this.iconsHidden = this.iconElements().filter((el) => !el.hasAttribute('hidden'));
+      this.iconsHidden.forEach((el) => el.setAttribute('hidden', ''));
       void this.ensureLoaded();
     } else {
       const picker = this.container.querySelector<HTMLElement>('[data-icon-selector-target="picker"], .icon-selector-picker, .ts-wrapper');
@@ -571,16 +508,6 @@ export class EmojiPicker {
       btn.setAttribute('aria-pressed', String(isSelected));
       if (isSelected) focusIndex = i;
       btn.tabIndex = -1;
-      css(btn, {
-        'font-size': '1.5rem',
-        'line-height': '1',
-        padding: '.25rem',
-        background: 'transparent',
-        border: `2px solid ${isSelected ? T.primary : 'transparent'}`,
-        'border-radius': T.radius,
-        cursor: 'pointer',
-        'font-family': '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla",sans-serif',
-      });
       frag.appendChild(btn);
     });
     this.grid.replaceChildren(frag);
@@ -654,7 +581,6 @@ export class EmojiPicker {
     this.items().forEach((btn) => {
       const on = btn.dataset.emoji === emoji;
       btn.setAttribute('aria-pressed', String(on));
-      btn.style.setProperty('border', `2px solid ${on ? T.primary : 'transparent'}`);
     });
   }
 

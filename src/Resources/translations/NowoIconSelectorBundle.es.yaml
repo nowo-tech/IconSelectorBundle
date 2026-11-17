@@ -2,6 +2,12 @@
 placeholder: 'Elegir icono...'
 search_placeholder: 'Buscar iconos...'
 no_icons: 'No hay iconos disponibles.'
+# 1.8: filters of the icon panel (set and category buttons)
+filter:
+    all: 'Todos'
+    category: 'Categoría:'
+    sets: 'Conjuntos de iconos'
+    categories: 'Categorías'
 
 # Etiquetas de opciones (nombres de iconos como claves)
 home: Inicio

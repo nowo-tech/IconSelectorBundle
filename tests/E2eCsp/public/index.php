@@ -29,12 +29,20 @@ if (str_starts_with($path, '/bundles/nowoiconselector/')) {
     return true;
 }
 
+// 1.8 dark-mode checks: a UiKit-like token stylesheet (same origin, so style-src 'self' allows it).
+if ($path === '/e2e-assets/uikit-tokens.css') {
+    header('Content-Type: text/css');
+    readfile(__DIR__ . '/uikit-tokens.css');
+
+    return true;
+}
+
 require $root . '/vendor/autoload.php';
 
 $environment = explode('/', trim($path, '/'))[0];
 if (!in_array($environment, CspKernel::ENVIRONMENTS, true)) {
     http_response_code(404);
-    echo 'Use /bundle/form, /local/form or /bs5/form';
+    echo 'Use /bundle/form, /local/form, /bs5/form or /uikit/form';
 
     return true;
 }

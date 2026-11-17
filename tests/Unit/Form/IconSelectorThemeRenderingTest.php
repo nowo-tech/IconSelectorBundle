@@ -87,7 +87,8 @@ final class IconSelectorThemeRenderingTest extends TestCase
         self::assertSame('form_icon_direct', $select->getAttribute('id'));
         self::assertFalse($select->hasAttribute('data-controller'));
         self::assertSame('icon-selector', $this->single($xpath, '//div[@id="form_icon_direct_icon_selector"]')->getAttribute('data-controller'));
-        self::assertSame('no_icons', $this->single($xpath, '//*[@data-icon-selector-empty-text]')->getAttribute('data-icon-selector-empty-text'));
+        // 1.8: the picker's own texts never reach the page as raw keys (English without a translator).
+        self::assertSame('No icons available.', $this->single($xpath, '//*[@data-icon-selector-empty-text]')->getAttribute('data-icon-selector-empty-text'));
     }
 
     public function testTomSelectKeepsAStoredEmojiAsTheSelectedOption(): void
@@ -149,6 +150,44 @@ final class IconSelectorThemeRenderingTest extends TestCase
         self::assertSame('heroicons-outline:gone', $option->getAttribute('value'));
     }
 
+    /**
+     * 1.8 (Beacon): the "uikit" theme renders the default form theme without a Bootstrap class; "bootstrap" keeps them.
+     */
+    public function testUiKitThemeRendersNoBootstrapClasses(): void
+    {
+        foreach (['direct', 'search', 'tom_select'] as $mode) {
+            $html = $this->renderHtml('icon_selector_theme.html.twig', ['mode' => $mode, 'emoji' => true], 'heroicons-outline:home', true, 'uikit');
+            self::assertStringContainsString('data-icon-selector-theme-value="uikit"', $html, $mode);
+            self::assertDoesNotMatchRegularExpression('/class="[^"]*\b(form-control|form-select|mt-2|mb-2|d-flex|flex-wrap|gap-2)\b/', $html, $mode);
+            self::assertDoesNotMatchRegularExpression('/(>|=")\s*search_placeholder\s*(<|")/', $html, $mode);
+        }
+
+        $bootstrap = $this->renderHtml('icon_selector_theme.html.twig', ['mode' => 'search', 'emoji' => true], null, true, 'bootstrap');
+        self::assertStringContainsString('data-icon-selector-theme-value="bootstrap"', $bootstrap);
+        self::assertStringContainsString('class="icon-selector-picker mt-2"', $bootstrap);
+        self::assertStringContainsString('class="form-control mb-2 icon-selector-search"', $bootstrap);
+
+        // The field option wins over the configured theme.
+        $field = $this->renderHtml('icon_selector_theme.html.twig', ['mode' => 'search', 'theme' => 'bootstrap'], null, true, 'uikit');
+        self::assertStringContainsString('data-icon-selector-theme-value="bootstrap"', $field);
+    }
+
+    /**
+     * 1.8 (Beacon): a field whose translation_domain is the host's (WikiIconPickerType) still shows the picker's own
+     * texts from the bundle domain in every template part (skeleton, search box, data attributes).
+     */
+    #[DataProvider('themeProvider')]
+    public function testHostTranslationDomainNeverLeaksRawKeys(string $theme): void
+    {
+        foreach (['direct', 'search', 'tom_select'] as $mode) {
+            $html = $this->renderHtml($theme, ['mode' => $mode, 'emoji' => true, 'translation_domain' => 'HostDomain']);
+            // A raw key as text or as an attribute value (the labels JSON names its keys, which is fine).
+            self::assertDoesNotMatchRegularExpression('/(>|=")\s*(search_placeholder|placeholder|no_icons)\s*(<|")/', $html, $theme . ' ' . $mode);
+            self::assertStringContainsString('data-icon-selector-search-placeholder="Search icons..."', $html, $theme . ' ' . $mode);
+            self::assertStringContainsString('data-icon-selector-labels=', $html, $theme . ' ' . $mode);
+        }
+    }
+
     public function testEmojiSkeletonIsHiddenWithoutScripting(): void
     {
         $xpath = $this->render('icon_selector_theme.html.twig', ['mode' => 'direct', 'emoji' => true]);
@@ -175,7 +214,7 @@ final class IconSelectorThemeRenderingTest extends TestCase
     /**
      * @param array<string, mixed> $options IconSelectorType options
      */
-    private function renderHtml(string $theme, array $options, ?string $data = null, bool $includeStylesheet = true): string
+    private function renderHtml(string $theme, array $options, ?string $data = null, bool $includeStylesheet = true, string $widgetTheme = 'bootstrap'): string
     {
         $vendorDir = dirname((new ReflectionClass(FormExtension::class))->getFileName() ?: '', 2);
         $loader    = new FilesystemLoader([$vendorDir . '/Resources/views/Form', dirname(__DIR__, 3) . '/src/Resources/views/Form']);
@@ -185,7 +224,7 @@ final class IconSelectorThemeRenderingTest extends TestCase
         $renderer = new FormRenderer(new TwigRendererEngine([$theme], $twig));
         $twig->addRuntimeLoader(new FactoryRuntimeLoader([FormRenderer::class => static fn (): FormRenderer => $renderer]));
 
-        $type    = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', null, null, false, new EmojiCatalog(), includeStylesheet: $includeStylesheet);
+        $type    = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', null, null, false, new EmojiCatalog(), includeStylesheet: $includeStylesheet, theme: $widgetTheme);
         $factory = Forms::createFormFactoryBuilder()->addType($type)->getFormFactory();
         $form    = $factory->createNamedBuilder('form', FormType::class)
             ->add('icon_direct', IconSelectorType::class, $options + ['data' => $data])

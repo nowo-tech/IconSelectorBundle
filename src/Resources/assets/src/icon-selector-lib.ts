@@ -7,6 +7,7 @@ import TomSelect from 'tom-select';
 import { createBundleLogger, type BundleLogger } from './logger';
 import { sanitizeSvg, toSvgNumber } from './svg-sanitizer';
 import { attachEmojiPicker } from './emoji-picker';
+import { labelsOf, partClass, themeOf, type WidgetLabels, type WidgetThemeName } from './widget-theme';
 
 let bundleLogger: BundleLogger | null = null;
 
@@ -463,6 +464,38 @@ export async function fetchIconifySvgsForIds(
 }
 
 /**
+ * Fills the trigger button: the selected icon (SVG + id) or the placeholder text. Classes only (no inline style).
+ *
+ * @param trigger - Trigger button.
+ * @param theme - Widget theme.
+ * @param value - Selected icon id (may be empty).
+ * @param svg - Sanitized SVG markup of the selected icon, when loaded.
+ * @param placeholder - Text shown when nothing is selected.
+ */
+function renderTriggerContent(trigger: HTMLElement, theme: WidgetThemeName, value: string, svg: string | undefined, placeholder: string): void {
+  trigger.innerHTML = '';
+  if (value && svg) {
+    const wrap = document.createElement('span');
+    // icon-selector-svg-wrap kept for host CSS written for the 1.7 legacy widget.
+    wrap.className = partClass(theme, 'triggerSvg', 'icon-selector-svg-wrap');
+    wrap.setAttribute('aria-hidden', 'true');
+    wrap.innerHTML = svg;
+    trigger.appendChild(wrap);
+    const label = document.createElement('span');
+    label.className = partClass(theme, 'triggerLabel');
+    label.textContent = value;
+    trigger.appendChild(label);
+  } else {
+    // An emoji value belongs to the Emoji tab: the icon trigger then shows its placeholder, not "emoji:…".
+    const shown = value.startsWith('emoji:') ? '' : value;
+    const span = document.createElement('span');
+    span.className = partClass(theme, shown ? 'triggerLabel' : 'triggerPlaceholder');
+    span.textContent = shown || placeholder;
+    trigger.appendChild(span);
+  }
+}
+
+/**
  * Widget that loads config from the bundle and all icon data from Iconify (100% front).
  * Provides search, filter by library, optional categories, and grid with SVG; value = prefix:name in hidden input.
  */
@@ -475,6 +508,9 @@ export class IconSelectorIconifyWidget {
   private readonly iconsUrl: string;
   private readonly searchPlaceholder: string;
   private readonly emptyText: string;
+  /** 1.8: translated texts (data-icon-selector-labels) and the widget theme (data-icon-selector-theme-value). */
+  private readonly labels: WidgetLabels;
+  private readonly theme: WidgetThemeName;
   private config: IconSelectorConfig | null = null;
   private entries: IconifyIconEntry[] = [];
   private svgCache: Record<string, string> = {};
@@ -487,6 +523,8 @@ export class IconSelectorIconifyWidget {
   private categoryFilter: string = '';
   /** Number of icons to show; increases on scroll (lazy load). */
   private visibleCount: number = 80;
+  /** Latest panel render: an older render whose SVG fetch resolves later must not overwrite a newer search. */
+  private renderSeq = 0;
   private static readonly PAGE_SIZE = 80;
   private readonly onReady?: () => void;
   private destroyed = false;
@@ -519,14 +557,22 @@ export class IconSelectorIconifyWidget {
     this.configUrl = configUrl;
     this.iconsUrl = iconsUrl ?? configUrl.replace(/\/config\/?$/, '/icons');
     this.onReady = onReady;
-    this.searchPlaceholder = searchPlaceholder ?? container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ?? 'Search icons...';
-    this.emptyText = container.getAttribute(ATTR_EMPTY_TEXT) ?? 'No icons available.';
-    this.load().then(async () => {
-      if (this.destroyed) return;
-      await this.render();
-      if (this.destroyed) return;
-      this.onReady?.();
-    });
+    this.labels = labelsOf(container, searchPlaceholder);
+    this.theme = themeOf(container);
+    this.searchPlaceholder = this.labels.search_placeholder;
+    this.emptyText = this.labels.empty;
+    this.load()
+      .then(async () => {
+        if (this.destroyed) return;
+        await this.render();
+      })
+      .catch((e) => {
+        // A failed set-up must not hold the form: the field keeps its value and the form can be sent.
+        getLogger().warn('IconSelectorIconifyWidget: set-up failed', e);
+      })
+      .finally(() => {
+        if (!this.destroyed) this.onReady?.();
+      });
   }
 
   /** Removes global listeners and generated DOM so the container can be initialized again later. */
@@ -687,8 +733,10 @@ export class IconSelectorIconifyWidget {
   private buildTrigger(): HTMLElement {
     const trigger = document.createElement('button');
     trigger.type = 'button';
-    trigger.className = 'icon-selector-trigger form-control form-control-sm d-flex align-items-center gap-2 text-start';
+    trigger.className = partClass(this.theme, 'trigger');
     trigger.setAttribute('data-icon-selector-target', 'trigger');
+    trigger.setAttribute('aria-haspopup', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
     const value = this.input.value || '';
     this.updateTriggerContent(trigger, value);
     trigger.addEventListener('click', () => this.togglePanel());
@@ -707,35 +755,27 @@ export class IconSelectorIconifyWidget {
    * @param value - Current selected icon ID (prefix:name).
    */
   private updateTriggerContent(trigger: HTMLElement, value: string): void {
-    trigger.innerHTML = '';
-    if (value && this.svgCache[value]) {
-      const wrap = document.createElement('span');
-      wrap.className = 'icon-selector-trigger-svg';
-      wrap.setAttribute('aria-hidden', 'true');
-      wrap.style.cssText = 'width:1.25rem;height:1.25rem;display:inline-flex;flex-shrink:0;';
-      wrap.innerHTML = this.svgCache[value];
-      trigger.appendChild(wrap);
-      const label = document.createElement('span');
-      label.className = 'text-truncate';
-      label.textContent = value;
-      trigger.appendChild(label);
-    } else {
-      const span = document.createElement('span');
-      span.className = 'text-muted';
-      span.textContent = value || this.searchPlaceholder;
-      trigger.appendChild(span);
-    }
+    renderTriggerContent(trigger, this.theme, value, this.svgCache[value], this.labels.placeholder);
   }
 
-  /** Toggles the panel visibility; calls renderPanelContent when opening. */
+  /** Shows or hides the panel (hidden attribute, no inline style) and mirrors it on the trigger's aria-expanded. */
+  private setPanelOpen(open: boolean): void {
+    if (!this.panelEl) return;
+    this.panelEl.hidden = !open;
+    this.triggerEl?.setAttribute('aria-expanded', String(open));
+  }
+
+  /**
+   * Toggles the panel visibility; calls renderPanelContent when opening. The grid is empty until the first open
+   * (lazy load: the icon SVGs are fetched for the visible page only).
+   */
   private togglePanel(): void {
     if (!this.panelEl) return;
-    const isOpen = this.panelEl.style.display !== 'none';
-    if (isOpen) {
-      this.panelEl.style.display = 'none';
+    if (!this.panelEl.hidden) {
+      this.setPanelOpen(false);
       getLogger().debug('IconSelectorIconifyWidget (grid): panel closed');
     } else {
-      this.panelEl.style.display = 'block';
+      this.setPanelOpen(true);
       getLogger().debug('IconSelectorIconifyWidget (grid): panel opened');
       this.renderPanelContent();
     }
@@ -776,7 +816,9 @@ export class IconSelectorIconifyWidget {
     if (!this.panelEl || this.entries.length === 0) return Promise.resolve();
     const filtered = this.getFilteredEntries();
     const toShow = filtered.slice(0, this.visibleCount);
+    const seq = ++this.renderSeq;
     return this.ensureSvgForEntries(toShow, this.visibleCount).then(() => {
+      if (seq !== this.renderSeq) return;
       const container = this.panelEl!.querySelector('.icon-selector-iconify-grid-container');
       if (!container) return;
       container.innerHTML = '';
@@ -786,13 +828,14 @@ export class IconSelectorIconifyWidget {
       const addButton = (parent: HTMLElement, e: IconifyIconEntry): void => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'btn btn-sm btn-outline-secondary icon-selector-item d-inline-flex align-items-center justify-content-center' + (e.id === value ? ' active' : '');
+        btn.className = partClass(this.theme, 'tile') + (e.id === value ? ' active' : '');
         btn.title = e.name;
+        btn.setAttribute('aria-label', e.id);
+        btn.setAttribute('aria-pressed', String(e.id === value));
         btn.dataset.iconId = e.id;
-        btn.style.cssText = 'width:3.5rem;height:3.5rem;min-width:3.5rem;min-height:3.5rem;padding:0.25rem;';
         const svgWrap = document.createElement('span');
-        svgWrap.className = 'icon-selector-svg-wrap';
-        svgWrap.style.cssText = 'width:1.5rem;height:1.5rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;';
+        svgWrap.className = partClass(this.theme, 'svgWrap');
+        svgWrap.setAttribute('aria-hidden', 'true');
         const cached = this.svgCache[e.id];
         svgWrap.innerHTML = cached || this.placeholderSvg();
         if (!cached) svgWrap.classList.add('icon-selector-svg-placeholder');
@@ -803,15 +846,15 @@ export class IconSelectorIconifyWidget {
 
       for (const [categoryLabel, list] of byCategory) {
         const section = document.createElement('div');
-        section.className = 'icon-selector-category-section mb-2';
+        section.className = partClass(this.theme, 'categorySection');
         if (categoryLabel) {
           const heading = document.createElement('div');
-          heading.className = 'small fw-bold text-muted mb-1';
+          heading.className = partClass(this.theme, 'categoryHeading');
           heading.textContent = categoryLabel;
           section.appendChild(heading);
         }
         const grid = document.createElement('div');
-        grid.className = 'icon-selector-iconify-grid d-flex flex-wrap gap-1';
+        grid.className = partClass(this.theme, 'grid', 'icon-selector-iconify-grid');
         for (const e of list) addButton(grid, e);
         section.appendChild(grid);
         container.appendChild(section);
@@ -848,16 +891,26 @@ export class IconSelectorIconifyWidget {
    */
   private select(id: string): void {
     this.input.value = id;
+    this.input.dispatchEvent(new Event('input', { bubbles: true }));
     this.input.dispatchEvent(new Event('change', { bubbles: true }));
     if (this.triggerEl) this.updateTriggerContent(this.triggerEl, id);
-    if (this.panelEl) this.panelEl.style.display = 'none';
+    this.picker.querySelectorAll<HTMLElement>('.icon-selector-item').forEach((el) => {
+      const on = el.dataset.iconId === id;
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-pressed', String(on));
+    });
+    this.setPanelOpen(false);
+    this.triggerEl?.focus();
   }
 
   /** Builds the full widget DOM: trigger and dropdown panel with search, tabs, category filter and grid. */
   private async render(): Promise<void> {
     if (this.destroyed) return;
     this.picker.innerHTML = '';
-    this.picker.className = 'icon-selector-iconify-widget position-relative';
+    // icon-selector-picker-widget is the neutral class (1.8, any source); icon-selector-iconify-widget stays as an
+    // alias for host CSS written for 1.7 and earlier.
+    // icon-selector-picker (the template's class) stays so host CSS and the emoji tab keep finding the picker.
+    this.picker.className = partClass(this.theme, 'pickerWidget', 'icon-selector-picker', 'icon-selector-iconify-widget');
     // The picker now holds the interactive trigger and panel: it must stay exposed to assistive technology.
     this.picker.removeAttribute('aria-hidden');
     const isEmpty = this.entries.length === 0;
@@ -888,22 +941,18 @@ export class IconSelectorIconifyWidget {
     this.picker.appendChild(this.triggerEl);
 
     const panel = document.createElement('div');
-    panel.className = 'icon-selector-panel border rounded shadow-sm p-2 bg-white';
-    panel.style.display = 'none';
-    panel.style.position = 'absolute';
-    panel.style.top = '100%';
-    panel.style.left = '0';
-    panel.style.minWidth = '100%';
-    panel.style.zIndex = '1050';
-    panel.style.marginTop = '0.25rem';
+    panel.className = partClass(this.theme, 'panel');
+    panel.hidden = true;
     panel.setAttribute('data-icon-selector-target', 'panel');
 
     const searchRow = document.createElement('div');
-    searchRow.className = 'mb-2';
+    searchRow.className = partClass(this.theme, 'searchRow');
     this.searchInput = document.createElement('input');
     this.searchInput.type = 'text';
     this.searchInput.placeholder = this.searchPlaceholder;
-    this.searchInput.className = 'form-control form-control-sm';
+    this.searchInput.setAttribute('aria-label', this.searchPlaceholder);
+    this.searchInput.autocomplete = 'off';
+    this.searchInput.className = partClass(this.theme, 'search');
     this.searchInput.addEventListener('input', () => {
       this.searchQuery = this.searchInput!.value;
       this.visibleCount = IconSelectorIconifyWidget.PAGE_SIZE;
@@ -914,11 +963,13 @@ export class IconSelectorIconifyWidget {
 
     if (!isEmpty && this.config && this.config.sets.length > 1) {
       const tabs = document.createElement('div');
-      tabs.className = 'd-flex flex-wrap gap-1 mb-2';
+      tabs.className = partClass(this.theme, 'setFilters');
+      tabs.setAttribute('role', 'group');
+      tabs.setAttribute('aria-label', this.labels.sets);
       const allBtn = document.createElement('button');
       allBtn.type = 'button';
-      allBtn.className = 'btn btn-sm btn-outline-secondary' + (!this.setFilter ? ' active' : '');
-      allBtn.textContent = 'All';
+      allBtn.className = partClass(this.theme, 'filterButton') + (!this.setFilter ? ' active' : '');
+      allBtn.textContent = this.labels.all;
       allBtn.addEventListener('click', () => {
         this.setFilter = '';
         this.categoryFilter = '';
@@ -931,7 +982,7 @@ export class IconSelectorIconifyWidget {
       for (const set of this.config.sets) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'btn btn-sm btn-outline-secondary' + (this.setFilter === set.key ? ' active' : '');
+        btn.className = partClass(this.theme, 'filterButton') + (this.setFilter === set.key ? ' active' : '');
         btn.textContent = set.label;
         btn.addEventListener('click', () => {
           this.setFilter = set.key;
@@ -949,15 +1000,17 @@ export class IconSelectorIconifyWidget {
     const categoryLabels = this.getCategoryLabels();
     if (categoryLabels.length > 0) {
       const categoryRow = document.createElement('div');
-      categoryRow.className = 'd-flex flex-wrap align-items-center gap-1 mb-2';
+      categoryRow.className = partClass(this.theme, 'categoryFilters');
+      categoryRow.setAttribute('role', 'group');
+      categoryRow.setAttribute('aria-label', this.labels.categories);
       const categoryLabel = document.createElement('span');
-      categoryLabel.className = 'small text-muted me-1';
-      categoryLabel.textContent = 'Category:';
+      categoryLabel.className = partClass(this.theme, 'filterLabel');
+      categoryLabel.textContent = this.labels.category;
       categoryRow.appendChild(categoryLabel);
       const allCatBtn = document.createElement('button');
       allCatBtn.type = 'button';
-      allCatBtn.className = 'btn btn-sm btn-outline-secondary' + (!this.categoryFilter ? ' active' : '');
-      allCatBtn.textContent = 'All';
+      allCatBtn.className = partClass(this.theme, 'filterButton') + (!this.categoryFilter ? ' active' : '');
+      allCatBtn.textContent = this.labels.all;
       allCatBtn.addEventListener('click', () => {
         this.categoryFilter = '';
         this.visibleCount = IconSelectorIconifyWidget.PAGE_SIZE;
@@ -969,7 +1022,7 @@ export class IconSelectorIconifyWidget {
       for (const cat of categoryLabels) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'btn btn-sm btn-outline-secondary' + (this.categoryFilter === cat ? ' active' : '');
+        btn.className = partClass(this.theme, 'filterButton') + (this.categoryFilter === cat ? ' active' : '');
         btn.textContent = cat;
         btn.addEventListener('click', () => {
           this.categoryFilter = cat;
@@ -984,13 +1037,11 @@ export class IconSelectorIconifyWidget {
     }
 
     const gridContainer = document.createElement('div');
-    gridContainer.className = 'icon-selector-iconify-grid-container';
-    gridContainer.style.maxHeight = '16rem';
-    gridContainer.style.overflowY = 'scroll';
+    gridContainer.className = partClass(this.theme, 'gridContainer', 'icon-selector-iconify-grid-container');
     if (isEmpty) {
-      gridContainer.style.overflowY = 'auto';
+      gridContainer.classList.add('icon-selector-grid-container--empty');
       const emptyEl = document.createElement('div');
-      emptyEl.className = 'icon-selector-empty text-muted small p-2';
+      emptyEl.className = partClass(this.theme, 'empty');
       emptyEl.setAttribute('role', 'status');
       emptyEl.textContent = this.emptyText;
       gridContainer.appendChild(emptyEl);
@@ -1001,10 +1052,16 @@ export class IconSelectorIconifyWidget {
 
     this.documentClickHandler = (ev: Event): void => {
       if (this.panelEl && this.triggerEl && !this.picker.contains(ev.target as Node)) {
-        this.panelEl.style.display = 'none';
+        this.setPanelOpen(false);
       }
     };
     document.addEventListener('click', this.documentClickHandler);
+    panel.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Escape') return;
+      ev.stopPropagation();
+      this.setPanelOpen(false);
+      this.triggerEl?.focus();
+    });
 
     await initialValuePromise;
   }
@@ -1036,9 +1093,14 @@ export class IconSelectorWidget {
   private searchInputEl: HTMLInputElement | null = null;
   /** Number of icons to show in grid; increases on scroll (lazy load). */
   private visibleCount: number = 0;
+  /** Latest grid render (see IconSelectorIconifyWidget.renderSeq). */
+  private renderSeq = 0;
   private readonly onReady?: () => void;
 
   private readonly searchPlaceholder: string;
+  /** 1.8: translated texts and widget theme from the container attributes. */
+  private readonly labels: WidgetLabels;
+  private readonly theme: WidgetThemeName;
   private destroyed = false;
   private serverRenderedMode = false;
   private documentClickHandler: ((event: Event) => void) | null = null;
@@ -1070,16 +1132,21 @@ export class IconSelectorWidget {
     this.svgUrl = url.replace(/\/$/, '') + '/svg';
     this.mode = mode;
     this.onReady = onReady;
-    this.searchPlaceholder =
-      searchPlaceholder ??
-      container.getAttribute(ATTR_SEARCH_PLACEHOLDER) ??
-      'Search icons...';
-    this.loadIcons().then(async () => {
-      if (this.destroyed) return;
-      await this.render();
-      if (this.destroyed) return;
-      this.onReady?.();
-    });
+    this.labels = labelsOf(container, searchPlaceholder);
+    this.theme = themeOf(container);
+    this.searchPlaceholder = this.labels.search_placeholder;
+    this.loadIcons()
+      .then(async () => {
+        if (this.destroyed) return;
+        await this.render();
+      })
+      .catch((e) => {
+        // A failed set-up must not hold the form: the field keeps its value and the form can be sent.
+        getLogger().warn('IconSelectorWidget: set-up failed', e);
+      })
+      .finally(() => {
+        if (!this.destroyed) this.onReady?.();
+      });
   }
 
   /** Removes listeners and generated DOM so the container can be initialized again later. */
@@ -1136,30 +1203,21 @@ export class IconSelectorWidget {
 
   /** Builds trigger button content (selected icon + label or placeholder). */
   private updateTriggerContent(trigger: HTMLElement, value: string): void {
-    trigger.innerHTML = '';
-    if (value && this.svgMap[value]) {
-      const wrap = document.createElement('span');
-      wrap.className = 'icon-selector-svg-wrap';
-      wrap.setAttribute('aria-hidden', 'true');
-      wrap.style.cssText = 'width:1.25rem;height:1.25rem;display:inline-flex;flex-shrink:0;';
-      wrap.innerHTML = this.svgMap[value];
-      trigger.appendChild(wrap);
-      const label = document.createElement('span');
-      label.className = 'text-truncate';
-      label.textContent = value;
-      trigger.appendChild(label);
-    } else {
-      const span = document.createElement('span');
-      span.className = 'text-muted';
-      span.textContent = value || this.searchPlaceholder;
-      trigger.appendChild(span);
-    }
+    renderTriggerContent(trigger, this.theme, value, this.svgMap[value], this.labels.placeholder);
+  }
+
+  /** Shows or hides the panel (hidden attribute, no inline style) and mirrors it on the trigger's aria-expanded. */
+  private setPanelOpen(open: boolean): void {
+    if (!this.panelEl) return;
+    this.panelEl.hidden = !open;
+    this.triggerEl?.setAttribute('aria-expanded', String(open));
   }
 
   /** Loads first batch of SVGs for current filter and renders grid; attaches scroll listener. Returns a promise. */
   private loadFirstBatchAndRender(): Promise<void> {
     const filtered = this.getFilteredIcons();
     if (filtered.length === 0) {
+      ++this.renderSeq;
       this.renderGridContent();
       return Promise.resolve();
     }
@@ -1169,7 +1227,9 @@ export class IconSelectorWidget {
     const includeSelected = value && !firstIds.includes(value) && this.icons.includes(value);
     const idsToLoad = includeSelected ? [value, ...firstIds] : firstIds;
     getLogger().debug('IconSelectorWidget (grid): loading first batch', idsToLoad.length);
+    const seq = ++this.renderSeq;
     return this.loadSvgBatch(idsToLoad).then(() => {
+      if (seq !== this.renderSeq) return;
       this.renderGridContent();
       this.attachGridScrollListener();
       getLogger().debug('IconSelectorWidget (grid): first batch loaded, scroll listener attached');
@@ -1182,25 +1242,22 @@ export class IconSelectorWidget {
     getLogger().debug('IconSelectorWidget (grid): panel opening');
     const filtered = this.getFilteredIcons();
     if (filtered.length === 0) {
-      this.panelEl.style.display = 'block';
+      this.setPanelOpen(true);
       return;
     }
     const needFirstBatch = this.visibleCount === 0;
     if (needFirstBatch) {
-      this.loadFirstBatchAndRender().then(() => {
-        if (this.panelEl) this.panelEl.style.display = 'block';
-      });
+      this.loadFirstBatchAndRender().then(() => this.setPanelOpen(true));
     } else {
-      this.panelEl.style.display = 'block';
+      this.setPanelOpen(true);
     }
   }
 
   /** Toggles the dropdown panel open/closed state for the legacy grid/search widget. */
   private togglePanel(): void {
     if (!this.panelEl) return;
-    const isOpen = this.panelEl.style.display !== 'none';
-    if (isOpen) {
-      this.panelEl.style.display = 'none';
+    if (!this.panelEl.hidden) {
+      this.setPanelOpen(false);
       getLogger().debug('IconSelectorWidget (grid): panel closed');
     } else {
       this.openPanel();
@@ -1270,7 +1327,12 @@ export class IconSelectorWidget {
     }
 
     this.picker.innerHTML = '';
-    this.picker.className = (this.picker.className || '').replace(/\bmt-2\b/, '').trim() + ' icon-selector-widget-dropdown position-relative';
+    // icon-selector-picker-widget: the neutral class shared with the Iconify widget (1.8); icon-selector-widget-dropdown
+    // stays for host CSS written for 1.7.
+    this.picker.className = [
+      (this.picker.className || '').replace(/\bmt-2\b/, '').trim(),
+      partClass(this.theme, 'pickerWidget', 'icon-selector-widget-dropdown'),
+    ].filter((c) => c !== '').join(' ');
 
     const value = this.input.value || '';
     getLogger().debug('IconSelectorWidget (grid): render initial value', {
@@ -1281,33 +1343,31 @@ export class IconSelectorWidget {
     });
     this.triggerEl = document.createElement('button');
     this.triggerEl.type = 'button';
-    this.triggerEl.className = 'icon-selector-trigger form-control form-control-sm d-flex align-items-center gap-2 text-start';
+    this.triggerEl.className = partClass(this.theme, 'trigger');
     this.triggerEl.setAttribute('data-icon-selector-target', 'trigger');
+    this.triggerEl.setAttribute('aria-haspopup', 'true');
+    this.triggerEl.setAttribute('aria-expanded', 'false');
     this.updateTriggerContent(this.triggerEl, value);
     this.triggerEl.addEventListener('click', () => this.togglePanel());
     this.picker.appendChild(this.triggerEl);
 
     this.panelEl = document.createElement('div');
-    this.panelEl.className = 'icon-selector-panel border rounded shadow-sm p-2 bg-white';
-    this.panelEl.style.display = 'none';
-    this.panelEl.style.position = 'absolute';
-    this.panelEl.style.top = '100%';
-    this.panelEl.style.left = '0';
-    this.panelEl.style.minWidth = '100%';
-    this.panelEl.style.zIndex = '1050';
-    this.panelEl.style.marginTop = '0.25rem';
+    this.panelEl.className = partClass(this.theme, 'panel');
+    this.panelEl.hidden = true;
     this.panelEl.setAttribute('data-icon-selector-target', 'panel');
 
     if (this.mode === 'search') {
       const searchRow = document.createElement('div');
-      searchRow.className = 'mb-2';
+      searchRow.className = partClass(this.theme, 'searchRow');
       this.searchInputEl = document.createElement('input');
       this.searchInputEl.type = 'text';
       this.searchInputEl.placeholder = this.searchPlaceholder;
-      this.searchInputEl.className = 'form-control form-control-sm icon-selector-search';
+      this.searchInputEl.setAttribute('aria-label', this.searchPlaceholder);
+      this.searchInputEl.autocomplete = 'off';
+      this.searchInputEl.className = partClass(this.theme, 'search', 'icon-selector-search');
       this.searchInputEl.addEventListener('input', () => {
         this.visibleCount = 0;
-        if (this.panelEl?.style.display !== 'none') {
+        if (this.panelEl && !this.panelEl.hidden) {
           this.loadFirstBatchAndRender();
         }
       });
@@ -1316,21 +1376,25 @@ export class IconSelectorWidget {
     }
 
     this.gridContainer = document.createElement('div');
-    this.gridContainer.className = 'icon-selector-grid-container';
-    this.gridContainer.style.maxHeight = '16rem';
-    this.gridContainer.style.overflowY = 'scroll';
+    this.gridContainer.className = partClass(this.theme, 'gridContainer');
     this.grid = document.createElement('div');
-    this.grid.className = 'icon-selector-grid d-flex flex-wrap gap-1';
+    this.grid.className = partClass(this.theme, 'grid');
     this.gridContainer.appendChild(this.grid);
     this.panelEl.appendChild(this.gridContainer);
     this.picker.appendChild(this.panelEl);
 
     this.documentClickHandler = (ev: Event): void => {
       if (this.panelEl && this.triggerEl && !this.picker.contains(ev.target as Node)) {
-        this.panelEl.style.display = 'none';
+        this.setPanelOpen(false);
       }
     };
     document.addEventListener('click', this.documentClickHandler);
+    this.panelEl.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Escape') return;
+      ev.stopPropagation();
+      this.setPanelOpen(false);
+      this.triggerEl?.focus();
+    });
 
     let initialValuePromise: Promise<void> = Promise.resolve();
     if (value) {
@@ -1373,7 +1437,7 @@ export class IconSelectorWidget {
     const q = (query || '').toLowerCase();
     this.picker.querySelectorAll<HTMLElement>('.icon-selector-item').forEach((el) => {
       const id = (el.dataset.iconId ?? '').toLowerCase();
-      el.style.display = !q || id.includes(q) ? '' : 'none';
+      el.hidden = !(!q || id.includes(q));
     });
   }
 
@@ -1386,15 +1450,15 @@ export class IconSelectorWidget {
   ): void {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className =
-      'btn btn-sm btn-outline-secondary icon-selector-item d-inline-flex align-items-center justify-content-center' +
-      (iconId === currentValue ? ' active' : '');
+    btn.className = partClass(this.theme, 'item') + (iconId === currentValue ? ' active' : '');
     btn.title = iconId;
+    btn.setAttribute('aria-label', iconId);
+    btn.setAttribute('aria-pressed', String(iconId === currentValue));
     btn.dataset.iconId = iconId;
     if (svgHtml) {
       const wrap = document.createElement('span');
-      wrap.className = 'icon-selector-svg-wrap';
-      wrap.style.cssText = 'width:1.25rem;height:1.25rem;display:inline-flex;align-items:center;justify-content:center;';
+      wrap.className = partClass(this.theme, 'svgWrap', 'icon-selector-svg-wrap--compact');
+      wrap.setAttribute('aria-hidden', 'true');
       wrap.innerHTML = svgHtml;
       btn.appendChild(wrap);
     } else {
@@ -1407,12 +1471,16 @@ export class IconSelectorWidget {
   /** Sets the input value to the selected icon, updates trigger and active state, closes panel. */
   private select(iconId: string): void {
     this.input.value = iconId;
+    this.input.dispatchEvent(new Event('input', { bubbles: true }));
     this.input.dispatchEvent(new Event('change', { bubbles: true }));
     if (this.triggerEl) this.updateTriggerContent(this.triggerEl, iconId);
-    if (this.panelEl) this.panelEl.style.display = 'none';
+    this.setPanelOpen(false);
     this.picker.querySelectorAll<HTMLElement>('.icon-selector-item').forEach((el) => {
-      el.classList.toggle('active', el.dataset.iconId === iconId);
+      const on = el.dataset.iconId === iconId;
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-pressed', String(on));
     });
+    this.triggerEl?.focus();
   }
 }
 
@@ -1607,9 +1675,9 @@ const TOM_SELECT_SVG_PLACEHOLDER = '<span class="icon-selector-option-svg icon-s
 function tomSelectRenderOption(data: IconOption): string {
   const label = (data.text ?? data.value ?? '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   if (data.svg) {
-    return `<div class="d-flex align-items-center gap-2"><span class="icon-selector-option-svg">${data.svg}</span><span>${label}</span></div>`;
+    return `<div class="icon-selector-option-row d-flex align-items-center gap-2"><span class="icon-selector-option-svg">${data.svg}</span><span>${label}</span></div>`;
   }
-  return `<div class="d-flex align-items-center gap-2">${TOM_SELECT_SVG_PLACEHOLDER}<span>${label}</span></div>`;
+  return `<div class="icon-selector-option-row d-flex align-items-center gap-2">${TOM_SELECT_SVG_PLACEHOLDER}<span>${label}</span></div>`;
 }
 
 /**
@@ -1621,9 +1689,9 @@ function tomSelectRenderOption(data: IconOption): string {
 function tomSelectRenderItem(data: IconOption): string {
   const label = (data.text ?? data.value ?? '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   if (data.svg) {
-    return `<div class="d-flex align-items-center gap-2"><span class="icon-selector-item-svg">${data.svg}</span><span>${label}</span></div>`;
+    return `<div class="icon-selector-option-row d-flex align-items-center gap-2"><span class="icon-selector-item-svg">${data.svg}</span><span>${label}</span></div>`;
   }
-  return `<div class="d-flex align-items-center gap-2">${TOM_SELECT_SVG_PLACEHOLDER}<span>${label}</span></div>`;
+  return `<div class="icon-selector-option-row d-flex align-items-center gap-2">${TOM_SELECT_SVG_PLACEHOLDER}<span>${label}</span></div>`;
 }
 
 /**
@@ -2167,10 +2235,46 @@ let observerStarted = false;
 let observeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 const OBSERVE_DEBOUNCE_MS = 100;
 
+/** Longest wait (ms) for a widget before a held submit goes ahead anyway (the field then posts its current value). */
+export const FORM_READY_TIMEOUT_MS = 10_000;
+
+/** Submit held per form while one of its widgets loads (shared by every widget of that form). */
+const heldSubmits = new WeakMap<HTMLFormElement, { submitter: HTMLElement | null }>();
+
+/** Whether another icon-selector widget of the form is still loading. */
+function otherWidgetPending(form: HTMLFormElement, container: HTMLElement): boolean {
+  return Array.from(form.querySelectorAll('[data-icon-selector-ready="0"]')).some((el) => el !== container);
+}
+
+/**
+ * Submit buttons of a form, including the ones outside it that name it with the `form` attribute (form.elements
+ * lists both; querySelectorAll inside the form only finds the inner ones).
+ */
+function formSubmitters(form: HTMLFormElement): (HTMLButtonElement | HTMLInputElement)[] {
+  const out: (HTMLButtonElement | HTMLInputElement)[] = [];
+  const elements = new Set<Element>(form.elements ? Array.from(form.elements) : Array.from(form.querySelectorAll('button, input')));
+  // Belt and braces for DOM implementations whose form.elements misses form-associated controls outside the form.
+  if (form.id) {
+    document.querySelectorAll('button[form], input[form]').forEach((el) => {
+      if (el.getAttribute('form') === form.id) elements.add(el);
+    });
+  }
+  for (const el of elements) {
+    if ((el instanceof HTMLButtonElement && el.type === 'submit') || (el instanceof HTMLInputElement && (el.type === 'submit' || el.type === 'image'))) {
+      out.push(el);
+    }
+  }
+  return out;
+}
+
 /**
  * Creates a "not-ready" guard for the form that contains the icon selector.
- * While pending, submit is prevented and submit buttons are disabled.
- * When markReady() is called, normal submit flow is restored.
+ *
+ * While the widget loads, its submit buttons are disabled — also the ones outside the form that point at it with
+ * the `form` attribute (1.8: a host toolbar's Save) — and a submit that still happens (Enter in a text field, a
+ * script calling requestSubmit()) is held, not lost: it is replayed with the same submitter once the widget is
+ * ready. markReady() runs when the widget is set up, when its set-up fails, and at the latest after
+ * {@link FORM_READY_TIMEOUT_MS}, so a broken widget never blocks the form.
  */
 function createFormReadyGuard(container: HTMLElement): { markReady: () => void; cleanup: IconSelectorDisposer } {
   container.setAttribute('data-icon-selector-ready', '0');
@@ -2186,40 +2290,75 @@ function createFormReadyGuard(container: HTMLElement): { markReady: () => void; 
     };
   }
 
-  const submitSelector = 'button[type="submit"], input[type="submit"]';
-  const submitButtons = Array.from(form.querySelectorAll<HTMLElement>(submitSelector));
+  const submitButtons = formSubmitters(form);
+  let released = false;
 
   const onSubmit = (event: Event): void => {
-    if (container.getAttribute('data-icon-selector-ready') === '1') return;
+    if (released || container.getAttribute('data-icon-selector-ready') === '1') return;
     event.preventDefault();
-    event.stopPropagation();
+    event.stopImmediatePropagation();
+    const submitter = (event as SubmitEvent).submitter ?? null;
+    heldSubmits.set(form, { submitter: submitter instanceof HTMLElement ? submitter : null });
+    getLogger().debug('icon-selector: submit held until the widget is ready');
   };
 
   form.addEventListener('submit', onSubmit, true);
   for (const btn of submitButtons) {
-    if ((btn as HTMLButtonElement | HTMLInputElement).disabled) continue;
+    if (btn.disabled) continue;
     btn.setAttribute('data-icon-selector-disabled-by-bundle', '1');
-    (btn as HTMLButtonElement | HTMLInputElement).disabled = true;
+    btn.disabled = true;
   }
+
+  const restoreButtons = (): void => {
+    // Another widget of the same form may still be loading: the last one to be ready re-enables the buttons.
+    if (otherWidgetPending(form, container)) return;
+    for (const btn of formSubmitters(form)) {
+      if (btn.getAttribute('data-icon-selector-disabled-by-bundle') !== '1') continue;
+      btn.disabled = false;
+      btn.removeAttribute('data-icon-selector-disabled-by-bundle');
+    }
+  };
+
+  const release = (): void => {
+    if (released) return;
+    released = true;
+    clearTimeout(timer);
+    form.removeEventListener('submit', onSubmit, true);
+    restoreButtons();
+  };
+
+  const timer = setTimeout(() => {
+    if (released) return;
+    getLogger().warn('icon-selector: widget not ready after', FORM_READY_TIMEOUT_MS, 'ms; the form is no longer held');
+    container.setAttribute('data-icon-selector-ready', '1');
+    replay();
+  }, FORM_READY_TIMEOUT_MS);
+
+  /** Releases the form and submits it again when a submit was held meanwhile. */
+  const replay = (): void => {
+    release();
+    // The last widget of the form to be ready submits what was held (once).
+    if (otherWidgetPending(form, container)) return;
+    const pending = heldSubmits.get(form);
+    heldSubmits.delete(form);
+    if (!pending || !form.isConnected) return;
+    const submitter = pending.submitter;
+    if (typeof form.requestSubmit === 'function') {
+      const usable = submitter && (submitter as HTMLButtonElement).form === form && !(submitter as HTMLButtonElement).disabled ? submitter : undefined;
+      form.requestSubmit(usable as HTMLButtonElement | undefined);
+    } else {
+      form.submit();
+    }
+  };
 
   return {
     markReady: () => {
       container.setAttribute('data-icon-selector-ready', '1');
-      form.removeEventListener('submit', onSubmit, true);
-      for (const btn of submitButtons) {
-        if (btn.getAttribute('data-icon-selector-disabled-by-bundle') !== '1') continue;
-        (btn as HTMLButtonElement | HTMLInputElement).disabled = false;
-        btn.removeAttribute('data-icon-selector-disabled-by-bundle');
-      }
+      replay();
     },
     cleanup: () => {
-      form.removeEventListener('submit', onSubmit, true);
       container.removeAttribute('data-icon-selector-ready');
-      for (const btn of submitButtons) {
-        if (btn.getAttribute('data-icon-selector-disabled-by-bundle') !== '1') continue;
-        (btn as HTMLButtonElement | HTMLInputElement).disabled = false;
-        btn.removeAttribute('data-icon-selector-disabled-by-bundle');
-      }
+      release();
     },
   };
 }

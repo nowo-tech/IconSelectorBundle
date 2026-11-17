@@ -2,6 +2,12 @@
 placeholder: 'Choose icon...'
 search_placeholder: 'Search icons...'
 no_icons: 'No icons available.'
+# 1.8: filters of the icon panel (set and category buttons)
+filter:
+    all: 'All'
+    category: 'Category:'
+    sets: 'Icon sets'
+    categories: 'Categories'
 
 # Choice labels (icon names used as keys when choice_translation_domain is set)
 home: Home

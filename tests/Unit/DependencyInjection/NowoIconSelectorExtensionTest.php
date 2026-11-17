@@ -48,6 +48,28 @@ final class NowoIconSelectorExtensionTest extends TestCase
         self::assertTrue($container->hasDefinition(IconRenderTwigExtension::class));
     }
 
+    /** 1.8: theme auto resolves to uikit when NowoUiKitBundle is registered, else bootstrap; explicit values win. */
+    public function testThemeResolution(): void
+    {
+        $plain = new ContainerBuilder();
+        (new NowoIconSelectorExtension())->load([], $plain);
+        self::assertSame('bootstrap', $plain->getParameter('nowo_icon_selector.theme'));
+
+        $withUiKit = new ContainerBuilder();
+        $withUiKit->setParameter('kernel.bundles', ['NowoUiKitBundle' => 'Nowo\\UiKitBundle\\NowoUiKitBundle']);
+        (new NowoIconSelectorExtension())->load([], $withUiKit);
+        self::assertSame('uikit', $withUiKit->getParameter('nowo_icon_selector.theme'));
+
+        $forced = new ContainerBuilder();
+        $forced->setParameter('kernel.bundles', ['NowoUiKitBundle' => 'Nowo\\UiKitBundle\\NowoUiKitBundle']);
+        (new NowoIconSelectorExtension())->load([['theme' => 'bootstrap']], $forced);
+        self::assertSame('bootstrap', $forced->getParameter('nowo_icon_selector.theme'));
+
+        $explicit = new ContainerBuilder();
+        (new NowoIconSelectorExtension())->load([['theme' => 'uikit']], $explicit);
+        self::assertSame('uikit', $explicit->getParameter('nowo_icon_selector.theme'));
+    }
+
     public function testCustomEmojiDataUrl(): void
     {
         $container = new ContainerBuilder();

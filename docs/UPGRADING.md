@@ -48,6 +48,25 @@
 
 ## Unreleased
 
+Target: 1.8.0. No breaking change; check these if you styled or scripted the picker.
+
+- **Theme**: with `NowoUiKitBundle` registered the picker now uses the `uikit` theme (no Bootstrap classes, UiKit
+  tokens, dark mode). To keep the 1.7 Bootstrap markup set `theme: bootstrap` (bundle configuration) or the field option
+  `theme: bootstrap`. Hosts without UiKit keep `bootstrap`.
+- **Inline styles removed**: the panel is shown and hidden with the `hidden` attribute (not `style.display`), and the
+  sizes / colours that were set through `element.style` moved to `icon-selector.css`. Load `icon-selector.css`
+  (`include_stylesheet: true`, the default, or your own pipeline); without it the panel is not positioned. Host CSS or
+  scripts that read `panel.style.display` must use `panel.hidden`.
+- **Class names**: target `.icon-selector-picker-widget` (any source); `.icon-selector-iconify-widget` and
+  `.icon-selector-widget-dropdown` stay as aliases. The Iconify widget now keeps the template's `icon-selector-picker`
+  class.
+- **Texts**: the picker's own texts always use the `NowoIconSelectorBundle` domain. To change them, override that
+  domain (`translations/NowoIconSelectorBundle.<locale>.yaml`) or pass your own key in `placeholder` /
+  `search_placeholder` (translated in the field's `translation_domain`). New keys: `filter.all`, `filter.category`,
+  `filter.sets`, `filter.categories`. The empty-selection trigger shows `placeholder` ("Choose icon...").
+- **Form guard**: submit buttons outside the form (`form="…"`) are disabled while the widget loads, like the inner
+  ones; a submit made meanwhile is sent once the widget is ready (at the latest after 10 s).
+
 ## To 1.7.0
 
 From **1.6.0**:

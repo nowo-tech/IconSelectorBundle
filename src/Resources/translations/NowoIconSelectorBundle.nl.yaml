@@ -2,6 +2,12 @@
 placeholder: 'Pictogram kiezen...'
 search_placeholder: 'Pictogrammen zoeken...'
 no_icons: 'Geen pictogrammen beschikbaar.'
+# 1.8: filters of the icon panel (set and category buttons)
+filter:
+    all: 'Alle'
+    category: 'Categorie:'
+    sets: 'Pictogramsets'
+    categories: 'Categorieën'
 
 home: Start
 user: Gebruiker

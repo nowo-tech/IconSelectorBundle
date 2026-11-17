@@ -7,12 +7,16 @@
 
 {% block icon_selector_widget %}
 {% set mode = form.vars.mode|default('direct') %}
-{% set trans_domain = form.vars.translation_domain|default('NowoIconSelectorBundle') %}
+{#
+  1.8: the picker's own texts are translated by IconSelectorType in the NowoIconSelectorBundle domain (a host
+  placeholder in the field's domain), so a field with another translation_domain (e.g. a host form type) never shows a
+  raw key. The fallbacks below only serve views built without the type.
+#}
 {% set choice_domain = form.vars.choice_translation_domain|default(false) %}
-{% set placeholder_key = form.vars.placeholder|default('placeholder') %}
-{% set placeholder_text = placeholder_key|trans({}, trans_domain) %}
-{% set search_placeholder_key = form.vars.search_placeholder|default('search_placeholder') %}
-{% set search_placeholder_text = search_placeholder_key|trans({}, trans_domain) %}
+{% set placeholder_text = form.vars.placeholder_text|default('placeholder'|trans({}, 'NowoIconSelectorBundle')) %}
+{% set search_placeholder_text = form.vars.search_placeholder_text|default('search_placeholder'|trans({}, 'NowoIconSelectorBundle')) %}
+{# 1.8 theme (config / field option `theme`): "uikit" renders no Bootstrap class; "bootstrap" keeps the 1.7 markup. #}
+{% set bs = form.vars.icon_selector_theme|default('bootstrap') == 'bootstrap' %}
 {% set controllers = attr['data-controller']|default('')|split(' ')|filter(c => c is not empty) %}
 {% set attr = attr|merge({
     'data-controller': ('icon-selector' in controllers ? controllers : controllers|merge(['icon-selector']))|join(' '),
@@ -21,7 +25,7 @@
     'data-icon-selector-icons-url-value': form.vars.icons_api_path|default('/api/icon-selector/icons'),
     'data-icon-selector-config-url-value': form.vars.config_path|default(form.vars.icons_api_path|default('/api/icon-selector/icons')|replace({'/icons': '/config'})),
     'data-icon-selector-search-placeholder': search_placeholder_text,
-    'data-icon-selector-empty-text': 'no_icons'|trans({}, 'NowoIconSelectorBundle'),
+    'data-icon-selector-empty-text': form.vars.empty_text|default('no_icons'|trans({}, 'NowoIconSelectorBundle')),
     class: ('icon-selector-widget' in (attr.class|default('')|split(' ')) ? attr.class : (attr.class|default('') ~ ' icon-selector-widget'))|trim,
 }) %}
 {# Styles live in icon-selector.css (no inline <style>/style= : strict CSP). Linked here unless include_stylesheet: false. #}
@@ -40,7 +44,7 @@
                     {%- if disabled %} disabled="disabled"{% endif %}
                     {%- if required %} required="required"{% endif %}
                     data-icon-selector-target="select"
-                    class="form-select icon-selector-select">
+                    class="{{ bs ? 'form-select ' : '' }}icon-selector-select">
                 <option value="">{{ placeholder_text }}</option>
                 {% for choice in form.vars.choices %}
                     <option value="{{ choice.value }}" {% if choice.value == value %}selected="selected"{% endif %}>{{ choice_domain ? choice.label|trans({}, choice_domain) : choice.label }}</option>
@@ -59,7 +63,7 @@
             {% endif %}
             <div class="icon-selector-skeleton" aria-live="polite" aria-busy="true">
                 <span class="icon-selector-loading-spinner" aria-hidden="true"></span>
-                <span>{{ 'search_placeholder'|trans({}, trans_domain) }}</span>
+                <span>{{ search_placeholder_text }}</span>
             </div>
         </div>
     {% else %}
@@ -70,19 +74,23 @@
                    id="{{ id }}"
                    {% if value is not empty %}value="{{ value }}"{% endif %}
                    {%- if disabled %} disabled="disabled"{% endif %}
-                   {%- if form.vars.emoji|default(false) %} data-icon-selector-emoji-fallback="1" autocomplete="off" class="icon-selector-input form-control"{% else %} class="icon-selector-input"{% endif %}
+                   {%- if form.vars.emoji|default(false) %} data-icon-selector-emoji-fallback="1" autocomplete="off" class="icon-selector-input {{ bs ? 'form-control' : 'icon-selector-control' }}"{% else %} class="icon-selector-input"{% endif %}
                    data-icon-selector-target="input" />
             {# Hidden until the widget is set up (icon-selector.css); the script never leaves aria-hidden on the interactive picker. #}
-            <div data-icon-selector-target="picker" class="icon-selector-picker mt-2">
+            {#
+              The grid stays empty until the picker is opened (lazy load): the script builds the trigger and fills the
+              grid with the first page of icons on the first open, then more on scroll.
+            #}
+            <div data-icon-selector-target="picker" class="icon-selector-picker{{ bs ? ' mt-2' : '' }}">
                 {% if mode == 'search' %}
-                    <input type="text" class="form-control mb-2 icon-selector-search" placeholder="{{ search_placeholder_text }}" data-icon-selector-target="search" autocomplete="off" />
+                    <input type="text" class="{{ bs ? 'form-control mb-2' : 'icon-selector-control' }} icon-selector-search" placeholder="{{ search_placeholder_text }}" aria-label="{{ search_placeholder_text }}" data-icon-selector-target="search" autocomplete="off" />
                 {% endif %}
-                <div class="icon-selector-grid d-flex flex-wrap gap-2"></div>
+                <div class="icon-selector-grid{{ bs ? ' d-flex flex-wrap gap-2' : '' }}"></div>
             </div>
             {# Emoji mode without JavaScript keeps the text input only (@media (scripting: none) in icon-selector.css). #}
             <div class="icon-selector-skeleton{{ form.vars.emoji|default(false) ? ' icon-selector-skeleton--noscript-hidden' : '' }}" aria-live="polite" aria-busy="true">
                 <span class="icon-selector-loading-spinner" aria-hidden="true"></span>
-                <span>{{ 'search_placeholder'|trans({}, trans_domain) }}</span>
+                <span>{{ search_placeholder_text }}</span>
             </div>
         </div>
     {% endif %}

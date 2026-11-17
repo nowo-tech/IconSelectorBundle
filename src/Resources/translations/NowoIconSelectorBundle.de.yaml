@@ -2,6 +2,12 @@
 placeholder: 'Symbol wählen...'
 search_placeholder: 'Symbole suchen...'
 no_icons: 'Keine Symbole verfügbar.'
+# 1.8: filters of the icon panel (set and category buttons)
+filter:
+    all: 'Alle'
+    category: 'Kategorie:'
+    sets: 'Icon-Sets'
+    categories: 'Kategorien'
 
 home: Startseite
 user: Benutzer
