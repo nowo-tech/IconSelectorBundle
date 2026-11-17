@@ -6,10 +6,13 @@ namespace Nowo\IconSelectorBundle\Tests\Unit\Service;
 
 use Nowo\IconSelectorBundle\Service\IconifyCollectionLoader;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
+use Nowo\IconSelectorBundle\Service\LocalUxIconsScanner;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+use function dirname;
 
 /**
  * Unit tests for IconListProvider (getIcons, getIconsBySet, getIconsForSets, isValidIcon).
@@ -113,5 +116,43 @@ final class IconListProviderTest extends TestCase
 
         self::assertContains('heroicons-outline:home', $icons);
         self::assertContains('bi:house', $icons);
+    }
+
+    /** Source ux_icons_local: only committed SVG files, within the prefixes of the requested sets; no static list. */
+    public function testUxIconsLocalListsOnlyCommittedIconsOfTheConfiguredSets(): void
+    {
+        $scanner  = new LocalUxIconsScanner(dirname(__DIR__, 2) . '/Fixtures/ux-icons');
+        $provider = new IconListProvider(['tabler', 'bootstrap-icons'], false, null, 'ux_icons_local', $scanner);
+
+        self::assertSame(['bi:house', 'tabler:home', 'tabler:star', 'tabler:user-circle'], $provider->getIcons());
+        self::assertSame(['tabler' => ['tabler:home', 'tabler:star', 'tabler:user-circle'], 'bootstrap-icons' => ['bi:house']], $provider->getIconsBySet());
+        self::assertSame(['heroicons-outline:home'], $provider->getIconsForSets(['heroicons']));
+        self::assertTrue($provider->isValidIcon('tabler:home'));
+        self::assertFalse($provider->isValidIcon('tabler:settings'), 'An icon of the static list that is not committed is not offered.');
+    }
+
+    public function testUxIconsLocalWithoutScannerListsNothing(): void
+    {
+        $provider = new IconListProvider(['tabler'], false, null, 'ux_icons_local');
+
+        self::assertSame([], $provider->getIcons());
+    }
+
+    public function testStaticListSets(): void
+    {
+        self::assertSame(['heroicons', 'bootstrap-icons', 'lucide', 'tabler'], IconListProvider::staticListSets());
+        self::assertSame([], (new IconListProvider(['mdi']))->getIcons());
+    }
+
+    public function testUxIconsLocalGroupsBySetWithOneWalk(): void
+    {
+        $provider = new IconListProvider(['heroicons', 'tabler', 'mdi'], false, null, 'ux_icons_local', new LocalUxIconsScanner(dirname(__DIR__, 2) . '/Fixtures/ux-icons'));
+
+        self::assertSame([
+            'heroicons' => ['heroicons-outline:home'],
+            'tabler'    => ['tabler:home', 'tabler:star', 'tabler:user-circle'],
+            'mdi'       => [],
+        ], $provider->getIconsBySet());
+        self::assertSame(['heroicons' => [], 'tabler' => [], 'mdi' => []], (new IconListProvider(['heroicons', 'tabler', 'mdi'], false, null, 'ux_icons_local'))->getIconsBySet());
     }
 }

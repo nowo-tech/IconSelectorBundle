@@ -6,7 +6,9 @@ namespace Nowo\IconSelectorBundle\DependencyInjection;
 
 use Nowo\IconSelectorBundle\Emoji\EmojiCatalog;
 use Nowo\IconSelectorBundle\Emoji\EmojiCatalogInterface;
+use Nowo\IconSelectorBundle\Service\IconSource;
 use Nowo\IconSelectorBundle\Validator\Constraints\EmojiIconValidator;
+use Symfony\Component\Asset\Package;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -16,6 +18,7 @@ use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Validator\ConstraintValidator;
 
 use function class_exists;
+use function is_string;
 use function rawurlencode;
 
 /**
@@ -61,6 +64,11 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
         $container->setParameter(Configuration::ALIAS . '.icons_api_path', $config['icons_api_path'] ?? '/api/icon-selector/icons');
         $container->setParameter(Configuration::ALIAS . '.form_theme', $config['form_theme'] ?? 'form_div_layout.html.twig');
         $container->setParameter(Configuration::ALIAS . '.debug', $config['debug'] ?? false);
+        $source = IconSource::resolve($config['source'] ?? null, (bool) ($config['use_iconify_collection'] ?? false));
+        $container->setParameter(Configuration::ALIAS . '.source', $source->value);
+        $container->setParameter(Configuration::ALIAS . '.ux_icons_dir', $config['ux_icons_dir'] ?? $this->defaultUxIconsDir($container));
+        $container->setParameter(Configuration::ALIAS . '.include_stylesheet', $config['include_stylesheet'] ?? true);
+        $container->setParameter(Configuration::ALIAS . '.stylesheet_nonce', $config['stylesheet_nonce'] ?? false);
         $container->setParameter(
             Configuration::ALIAS . '.emoji_data_url',
             $config['emoji_data_url'] ?? '/bundles/nowoiconselector/emoji-data.json?v=' . rawurlencode((new EmojiCatalog())->getVersion()),
@@ -73,9 +81,24 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
                 ->addTag('validator.constraint_validator');
         }
 
-        if (!empty($config['use_iconify_collection'])) {
+        // ux_icons_local never uses the Iconify collections: the list is the committed SVG files only.
+        if (!empty($config['use_iconify_collection']) && $source !== IconSource::UxIconsLocal) {
             $loader->load('services_iconify.yaml');
         }
+    }
+
+    /**
+     * Default directory for source ux_icons_local when neither ux_icons_dir nor ux_icons.icon_dir is set (the
+     * ux_icons.icon_dir case is handled in prepend(): load() only sees this extension's configuration).
+     *
+     * @param ContainerBuilder $container Container builder
+     *
+     * @return string %kernel.project_dir%/assets/icons (the UX Icons default); empty without a kernel
+     */
+    private function defaultUxIconsDir(ContainerBuilder $container): string
+    {
+        // Outside a kernel (bare container) there is no project dir: no local directory, the scanner lists nothing.
+        return $container->hasParameter('kernel.project_dir') ? '%kernel.project_dir%/assets/icons' : '';
     }
 
     /**
@@ -92,13 +115,27 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
         $formTheme = $config['form_theme'] ?? 'form_div_layout.html.twig';
         $themePath = self::FORM_THEME_MAP[$formTheme] ?? self::FORM_THEME_MAP['form_div_layout.html.twig'];
 
+        // Source ux_icons_local scans the same directory as UX Icons: copy ux_icons.icon_dir unless ux_icons_dir is set.
+        if ($config['ux_icons_dir'] === null) {
+            $iconDir = null;
+            foreach ($container->getExtensionConfig('ux_icons') as $uxConfig) {
+                if (isset($uxConfig['icon_dir']) && is_string($uxConfig['icon_dir']) && $uxConfig['icon_dir'] !== '') {
+                    $iconDir = $uxConfig['icon_dir'];
+                }
+            }
+            if ($iconDir !== null) {
+                $container->prependExtensionConfig(Configuration::ALIAS, ['ux_icons_dir' => $iconDir]);
+            }
+        }
+
         if ($container->hasExtension('twig')) {
             $container->prependExtensionConfig('twig', [
                 'form_themes' => [$themePath],
             ]);
         }
 
-        if ($container->hasExtension('framework')) {
+        // The asset package needs symfony/asset (optional): without it FrameworkBundle would reject assets config.
+        if ($container->hasExtension('framework') && class_exists(Package::class)) {
             $container->prependExtensionConfig('framework', [
                 'assets' => [
                     'packages' => [

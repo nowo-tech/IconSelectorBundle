@@ -7,11 +7,16 @@ namespace Nowo\IconSelectorBundle\Tests\Unit\Form;
 use Nowo\IconSelectorBundle\Emoji\EmojiCatalog;
 use Nowo\IconSelectorBundle\Form\IconSelectorType;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
+use Nowo\IconSelectorBundle\Service\LocalUxIconsScanner;
 use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use ReflectionProperty;
 use RuntimeException;
+use stdClass;
+use Symfony\Component\Asset\Packages;
+use Symfony\Component\Asset\PathPackage;
+use Symfony\Component\Asset\VersionStrategy\EmptyVersionStrategy;
 use Symfony\Component\Form\ChoiceList\ChoiceListInterface;
 use Symfony\Component\Form\ChoiceList\Factory\CachingFactoryDecorator;
 use Symfony\Component\Form\ChoiceList\Factory\DefaultChoiceListFactory;
@@ -22,12 +27,15 @@ use Symfony\Component\Form\FormFactoryBuilder;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Icons\IconRendererInterface;
 
 use function count;
+use function dirname;
 
 /**
  * Unit tests for IconSelectorType (options, buildView, choices from icons).
@@ -711,5 +719,118 @@ final class IconSelectorTypeTest extends TestCase
         self::assertIsArray($entries);
 
         return $entries;
+    }
+
+    /** Source ux_icons_local: the picker offers the committed icons only and refuses any other submitted id. */
+    public function testUxIconsLocalOffersAndAcceptsOnlyCommittedIcons(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->expects(self::never())->method('renderIcon');
+        $provider = new IconListProvider(['tabler'], false, null, 'ux_icons_local', new LocalUxIconsScanner(dirname(__DIR__, 2) . '/Fixtures/ux-icons'));
+        $factory  = (new FormFactoryBuilder())
+            ->addExtension(new CoreExtension())
+            ->addType(new IconSelectorType($provider, ['tabler'], '/api/icon-selector/icons', $renderer, new SvgSanitizer(), source: 'ux_icons_local'))
+            ->getFormFactory();
+
+        $view = $factory->create(IconSelectorType::class)->createView();
+        self::assertSame(['tabler:home', 'tabler:star', 'tabler:user-circle'], array_map(static fn (ChoiceView $c): string => $c->value, $view->vars['choices']));
+
+        $ok = $factory->create(IconSelectorType::class);
+        $ok->submit('tabler:star');
+        self::assertSame('tabler:star', $ok->getData());
+
+        $bad = $factory->create(IconSelectorType::class);
+        $bad->submit('tabler:settings');
+        self::assertFalse($bad->isSynchronized(), 'A well-formed id that is not committed must be refused without asking the renderer.');
+    }
+
+    public function testStylesheetUrlUsesTheAssetPackageAndCanBeDisabled(): void
+    {
+        $packages = new Packages(new PathPackage('/', new EmptyVersionStrategy()), ['nowo_icon_selector' => new PathPackage('/sub/bundles/nowoiconselector', new EmptyVersionStrategy())]);
+        $type     = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', packages: $packages);
+        $view     = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertSame('/sub/bundles/nowoiconselector/icon-selector.css', $view->vars['stylesheet_url']);
+
+        // Asset package not registered: the fixed bundle path is used.
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', packages: new Packages());
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertSame('/bundles/nowoiconselector/icon-selector.css', $view->vars['stylesheet_url']);
+
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', includeStylesheet: false);
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertNull($view->vars['stylesheet_url']);
+    }
+
+    public function testFallbackStylesheetUrlKeepsTheRequestBasePath(): void
+    {
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('http://localhost/sub/app/index.php/page', 'GET', [], [], [], ['SCRIPT_NAME' => '/sub/app/index.php', 'SCRIPT_FILENAME' => '/srv/sub/app/index.php']));
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', requestStack: $requestStack);
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+
+        self::assertSame('/sub/app/bundles/nowoiconselector/icon-selector.css', $view->vars['stylesheet_url']);
+    }
+
+    /** SA-D1: by default Nelmio is never asked for a style nonce (that would disable 'unsafe-inline' page-wide). */
+    public function testStylesheetNonceIsNotRequestedByDefault(): void
+    {
+        $provider = $this->nonceProvider('nelmio-nonce');
+        $type     = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', cspNonceProvider: $provider);
+        $view     = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+
+        self::assertNull($view->vars['stylesheet_nonce']);
+        self::assertSame(0, $provider->calls);
+    }
+
+    public function testStylesheetNonceOptInPrefersTheRequestAttribute(): void
+    {
+        $request = Request::create('/');
+        $request->attributes->set('csp_nonce', 'from-request');
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+        $provider = $this->nonceProvider('nelmio-nonce');
+
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', requestStack: $requestStack, cspNonceProvider: $provider, stylesheetNonce: true);
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertSame('from-request', $view->vars['stylesheet_nonce']);
+        self::assertSame(0, $provider->calls);
+
+        // No request attribute: fall back to the Nelmio listener.
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', cspNonceProvider: $provider, stylesheetNonce: true);
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertSame('nelmio-nonce', $view->vars['stylesheet_nonce']);
+        self::assertSame(1, $provider->calls);
+
+        $failing = new class {
+            public function getNonce(string $usage): string
+            {
+                throw new RuntimeException('no request');
+            }
+        };
+        foreach ([null, new stdClass(), $failing] as $candidate) {
+            $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', cspNonceProvider: $candidate, stylesheetNonce: true);
+            $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+            self::assertNull($view->vars['stylesheet_nonce']);
+        }
+    }
+
+    private function nonceProvider(string $nonce): RecordingCspNonceProvider
+    {
+        return new RecordingCspNonceProvider($nonce);
+    }
+
+    /** SA-L5: a stored id that is no longer a choice is exposed so tom_select keeps it selected. */
+    public function testStoredValueOutsideTheChoicesIsKeptForTheView(): void
+    {
+        $factory = (new FormFactoryBuilder())->addType(new IconSelectorType(new IconListProvider(['tabler']), ['tabler']))->getFormFactory();
+
+        $gone = $factory->create(IconSelectorType::class, 'tabler:gone-icon', ['mode' => 'tom_select'])->createView();
+        self::assertSame('tabler:gone-icon', $gone->vars['stored_value_option']);
+
+        $listed = $factory->create(IconSelectorType::class, 'tabler:home', ['mode' => 'tom_select'])->createView();
+        self::assertNull($listed->vars['stored_value_option']);
+
+        $emoji = $factory->create(IconSelectorType::class, 'emoji:🚀', ['mode' => 'tom_select'])->createView();
+        self::assertNull($emoji->vars['stored_value_option']);
     }
 }

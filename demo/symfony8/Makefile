@@ -99,7 +99,7 @@ BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 -include $(BUNDLE_ROOT)/../.scripts/Makefile.demo-update-deps.mk
 
 # REQ-DEMO-013: Playwright e2e + README screenshots (official Playwright image).
-PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v1.63.0-jammy
+PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v1.65.0-jammy
 
 test-e2e: ensure-up
 	@mkdir -p e2e/node_modules

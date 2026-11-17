@@ -23,6 +23,27 @@ describe('sanitizeSvg', () => {
     expect(out).toContain('xmlns="http://www.w3.org/2000/svg"');
   });
 
+  it('paint attributes follow the allowlist grammar (no CSS escapes, no other functions)', () => {
+    const out = sanitizeSvg(
+      wrap(
+        '<path d="M0 0" fill="#fff" stroke="rgb(1, 2, 3)"/>' +
+          '<path d="M1 1" fill="\\75 rl(https://evil.example/a)" stroke="image-set(\'https://evil.example/b\' 1x)"/>' +
+          '<path d="M2 2" fill="url(#ok) red" mask="NONE" clip-path="url(#c)"/>' +
+          '<path d="M3 3" fill="hsla(10, 20%, 30%, .5)" stroke="currentColor"/>',
+      ),
+    );
+
+    expect(out).toContain('fill="#fff"');
+    expect(out).toContain('stroke="rgb(1, 2, 3)"');
+    expect(out).not.toContain('evil.example');
+    expect(out).not.toContain('image-set');
+    expect(out).not.toContain('url(#ok) red');
+    expect(out).toContain('mask="NONE"');
+    expect(out).toContain('clip-path="url(#c)"');
+    expect(out).toContain('fill="hsla(10, 20%, 30%, .5)"');
+    expect(out).toContain('stroke="currentColor"');
+  });
+
   it('removes script, foreignObject, animate and other non-allowlisted elements', () => {
     const out = sanitizeSvg(
       wrap(

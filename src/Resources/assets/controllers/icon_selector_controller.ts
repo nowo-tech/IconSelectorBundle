@@ -5,8 +5,8 @@
  * (e.g. in Turbo frames or when HTML is injected).
  *
  * The controller imports the lib directly; you do not need to load icon-selector.js
- * if your app bundle includes this controller. Ensure Tom Select CSS is loaded
- * when using tom_select mode (e.g. import 'tom-select/dist/css/tom-select.css').
+ * if your app bundle includes this controller. Load icon-selector.css (linked by the form themes unless
+ * include_stylesheet: false); it contains the Tom Select and widget styles (the lib injects no <style>).
  *
  * Register: application.register('icon-selector', IconSelectorController);
  */

@@ -175,4 +175,60 @@ final class NowoIconSelectorExtensionTest extends TestCase
         self::assertFalse($container->hasExtension('twig'));
         self::assertFalse($container->hasExtension('framework'));
     }
+
+    public function testSourceDefaultsToBundleAndFollowsUseIconifyCollection(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoIconSelectorExtension())->load([], $container);
+        self::assertSame('bundle', $container->getParameter('nowo_icon_selector.source'));
+        self::assertTrue($container->getParameter('nowo_icon_selector.include_stylesheet'));
+        self::assertSame('', $container->getParameter('nowo_icon_selector.ux_icons_dir'));
+
+        $container = new ContainerBuilder();
+        (new NowoIconSelectorExtension())->load([['use_iconify_collection' => true]], $container);
+        self::assertSame('iconify', $container->getParameter('nowo_icon_selector.source'));
+    }
+
+    /** ux_icons_local never loads the Iconify collection services, even with use_iconify_collection: true. */
+    public function testUxIconsLocalSkipsIconifyServicesAndUsesTheUxIconsDir(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.project_dir', '/app');
+        $container->prependExtensionConfig('ux_icons', ['icon_dir' => '%kernel.project_dir%/resources/icons']);
+        $container->prependExtensionConfig('nowo_icon_selector', ['use_iconify_collection' => true, 'source' => 'ux_icons_local', 'include_stylesheet' => false]);
+        $extension = new NowoIconSelectorExtension();
+        $extension->prepend($container);
+        $extension->load($container->getExtensionConfig('nowo_icon_selector'), $container);
+
+        self::assertSame('ux_icons_local', $container->getParameter('nowo_icon_selector.source'));
+        self::assertFalse($container->has(IconifyCollectionLoader::class));
+        self::assertSame('%kernel.project_dir%/resources/icons', $container->getParameter('nowo_icon_selector.ux_icons_dir'));
+        self::assertFalse($container->getParameter('nowo_icon_selector.include_stylesheet'));
+    }
+
+    public function testUxIconsDirDefaultsToAssetsIconsAndCanBeConfigured(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.project_dir', '/app');
+        (new NowoIconSelectorExtension())->load([['source' => 'ux_icons_local']], $container);
+        self::assertSame('%kernel.project_dir%/assets/icons', $container->getParameter('nowo_icon_selector.ux_icons_dir'));
+
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.project_dir', '/app');
+        (new NowoIconSelectorExtension())->load([['source' => 'ux_icons_local', 'ux_icons_dir' => '/srv/icons']], $container);
+        self::assertSame('/srv/icons', $container->getParameter('nowo_icon_selector.ux_icons_dir'));
+    }
+
+    /** An explicit ux_icons_dir wins over ux_icons.icon_dir (prepend adds nothing). */
+    public function testPrependKeepsAnExplicitUxIconsDir(): void
+    {
+        $container = new ContainerBuilder();
+        $container->prependExtensionConfig('ux_icons', ['icon_dir' => '/from/ux']);
+        $container->prependExtensionConfig('nowo_icon_selector', ['ux_icons_dir' => '/explicit']);
+        $extension = new NowoIconSelectorExtension();
+        $extension->prepend($container);
+        $extension->load($container->getExtensionConfig('nowo_icon_selector'), $container);
+
+        self::assertSame('/explicit', $container->getParameter('nowo_icon_selector.ux_icons_dir'));
+    }
 }

@@ -256,3 +256,55 @@ jobs:
 
       - name: Igor worker-state audit (REQ-CS-008)
         run: composer igor
+
+  e2e-csp:
+    name: E2E strict CSP (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        working-directory: tests/E2eCsp/playwright
+        run: |
+          npm ci --no-fund --no-audit
+          npx playwright install --with-deps chromium
+
+      - name: Start the test host (PHP built-in server)
+        run: |
+          php -S 127.0.0.1:8765 tests/E2eCsp/public/index.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
+          for i in $(seq 1 20); do curl -fs -o /dev/null http://127.0.0.1:8765/local/form && break; sleep 1; done
+
+      - name: Nonce-only CSP, zero violations, zero third-party requests
+        working-directory: tests/E2eCsp/playwright
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8765
+        run: npx playwright test
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-csp-traces
+          path: tests/E2eCsp/playwright/test-results
+          retention-days: 7
+
+      - name: PHP server log
+        if: failure()
+        run: cat "$RUNNER_TEMP/php-server.log"

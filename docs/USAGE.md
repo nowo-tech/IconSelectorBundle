@@ -138,7 +138,11 @@ For classic Symfony apps or when you want to drop in one script.
 
 Or with the helper: `{{ asset(nowo_icon_selector_asset_path('icon-selector.js'), 'nowo_icon_selector') }}`.
 
-The script (single file; Tom Select styles are inlined) runs on load, finds all `data-controller*="icon-selector"` elements and initializes them. It also starts a **MutationObserver**, so icon selectors injected later (e.g. from an API or Turbo frame) are initialized automatically.
+The form themes link the stylesheet `icon-selector.css` (Tom Select styles included) next to each widget unless
+`include_stylesheet: false`; in that case add `<link rel="stylesheet" href="{{ asset('icon-selector.css', 'nowo_icon_selector') }}">`
+to your layout. The script injects no inline styles, so a nonce-only CSP needs no extra configuration.
+
+The script runs on load, finds all `data-controller*="icon-selector"` elements and initializes them. It also starts a **MutationObserver**, so icon selectors injected later (e.g. from an API or Turbo frame) are initialized automatically.
 
 ### Option B: Use as Stimulus controller
 
@@ -148,7 +152,7 @@ For projects that already use Stimulus. The controller imports the lib directly,
    - Add the bundle's `Resources/assets/controllers` path to your Stimulus loaders, or copy the controller into your app.
    - Register it as `icon-selector`: `application.register('icon-selector', IconSelectorController)` (or the equivalent in your setup).
 
-2. **Tom Select mode**: If you use `mode: 'tom_select'`, ensure Tom Select CSS is loaded in your app (e.g. `import 'tom-select/dist/css/tom-select.css'` in your entry).
+2. **Styles**: load `icon-selector.css` (linked by the form themes by default, or imported from `Resources/public/icon-selector.css`). It contains the Tom Select styles and the widget styles; the lib never injects a `<style>` element.
 
 The form theme already outputs `data-controller="icon-selector"` on the wrapper. When Stimulus connects that element, it initializes the widget. No script tag for the bundle is needed.
 

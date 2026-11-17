@@ -1,6 +1,6 @@
 /**
  * Icon selector bundle entry point.
- * Imports Tom Select styles and runs runInitAndObserve when the DOM is ready (or immediately if already loaded).
+ * Imports the styles (extracted to icon-selector.css by the build) and runs runInitAndObserve when the DOM is ready (or immediately if already loaded).
  * runInitAndObserve discovers all [data-controller*="icon-selector"] elements, initializes them, and starts a
  * MutationObserver so that icon selectors injected later (e.g. from an API response) are initialized automatically.
  *
@@ -19,7 +19,9 @@ const log = createBundleLogger('icon-selector', {
 log.scriptLoaded();
 setBundleLogger(log);
 
+// Styles are extracted to icon-selector.css at build time (no inline <style> injection: strict CSP).
 import 'tom-select/dist/css/tom-select.css';
+import './icon-selector.css';
 
 if (typeof window !== 'undefined') {
   (window as unknown as { NowoIconSelector?: { initIconSelectorContainer: typeof initIconSelectorContainer; runInit: typeof runInit; runInitAndObserve: typeof runInitAndObserve } }).NowoIconSelector = {

@@ -124,12 +124,26 @@ readonly class IconListProvider implements IconCatalogInterface
      * @param list<string> $iconSets Enabled icon set names (e.g. heroicons, bootstrap-icons)
      * @param bool $useIconifyCollection When true, use IconifyCollectionLoader to fetch full list from api.iconify.design (requires loader and symfony/http-client)
      * @param IconifyCollectionLoader|null $collectionLoader Loader for Iconify API collections (injected when use_iconify_collection is true)
+     * @param string $source Effective icon source (nowo_icon_selector.source, see {@see IconSource}); with ux_icons_local the list is read from $localScanner only
+     * @param LocalUxIconsScanner|null $localScanner Lists the icons committed under the UX Icons directory (used with source ux_icons_local)
      */
     public function __construct(
         private array $iconSets,
         private bool $useIconifyCollection = false,
         private ?IconifyCollectionLoader $collectionLoader = null,
+        private string $source = 'bundle',
+        private ?LocalUxIconsScanner $localScanner = null,
     ) {
+    }
+
+    /**
+     * Icon sets that ship a bundled static list (used by source bundle without use_iconify_collection).
+     *
+     * @return list<string>
+     */
+    public static function staticListSets(): array
+    {
+        return array_keys(self::DEFAULT_ICONS);
     }
 
     /**
@@ -147,6 +161,8 @@ readonly class IconListProvider implements IconCatalogInterface
      * Use this to override which libraries a specific field uses (e.g. only heroicons).
      * When use_iconify_collection is true and the loader is available, returns the full list from the Iconify API; otherwise uses the static default list.
      * The static list is also used for a set whose Iconify collection fails or comes back empty.
+     * With source ux_icons_local, returns only the icons committed under the UX Icons directory whose prefix belongs
+     * to one of the sets (see {@see IconSetPrefixes}).
      *
      * @param list<string> $sets Icon set names (e.g. heroicons, bootstrap-icons)
      *
@@ -154,6 +170,13 @@ readonly class IconListProvider implements IconCatalogInterface
      */
     public function getIconsForSets(array $sets): array
     {
+        if (IconSource::tryFrom($this->source) === IconSource::UxIconsLocal) {
+            // Only the icons committed under the UX Icons directory, within the prefixes of the requested sets.
+            return $this->localScanner instanceof LocalUxIconsScanner
+                ? $this->localScanner->listIcons(IconSetPrefixes::forSets($sets))
+                : [];
+        }
+
         $icons = [];
         foreach ($sets as $set) {
             if ($this->useIconifyCollection && $this->collectionLoader instanceof IconifyCollectionLoader) {
@@ -186,6 +209,25 @@ readonly class IconListProvider implements IconCatalogInterface
      */
     public function getIconsBySet(): array
     {
+        if (IconSource::tryFrom($this->source) === IconSource::UxIconsLocal) {
+            // One directory walk for every set (not one per set).
+            $byPrefix = $this->localScanner instanceof LocalUxIconsScanner
+                ? $this->localScanner->listIconsByPrefix(IconSetPrefixes::forSets($this->iconSets))
+                : [];
+            $bySet = [];
+            foreach ($this->iconSets as $set) {
+                $icons = [];
+                foreach (IconSetPrefixes::forSet($set) as $prefix) {
+                    foreach ($byPrefix[$prefix] ?? [] as $id) {
+                        $icons[] = $id;
+                    }
+                }
+                $bySet[$set] = array_values(array_unique($icons));
+            }
+
+            return $bySet;
+        }
+
         $bySet = [];
         foreach ($this->iconSets as $set) {
             $bySet[$set] = $this->getIconsForSets([$set]);

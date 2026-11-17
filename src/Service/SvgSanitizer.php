@@ -15,6 +15,8 @@ use function in_array;
 use function is_string;
 use function libxml_clear_errors;
 use function libxml_use_internal_errors;
+use function preg_match;
+use function str_contains;
 use function strtolower;
 use function trim;
 
@@ -62,6 +64,12 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
     private const TEXT_ONLY_TAGS = ['title', 'desc'];
 
     private const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
+    /** Attributes whose url() value may only reference a same-document fragment: url(#id). */
+    private const URL_REFERENCE_ATTRIBUTES = ['fill', 'stroke', 'clip-path', 'mask'];
+
+    /** Allowed values of the attributes above: keyword, hex colour, rgb/hsl colour function, or url(#id). */
+    private const PAINT_VALUE_PATTERN = '/^(?:[a-z]+|#[0-9a-f]{3,8}|(?:rgba?|hsla?)\(\s*[0-9.,%\/\s+-]+\)|url\(\s*#[a-z0-9_.:-]+\s*\))$/Di';
 
     /** @var list<string> */
     private const ALLOWED_ATTRIBUTES = [
@@ -185,7 +193,9 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
                     continue;
                 }
 
-                if (str_starts_with($localName, 'on') || !in_array($localName, self::ALLOWED_ATTRIBUTES, true)) {
+                if (str_starts_with($localName, 'on')
+                    || !in_array($localName, self::ALLOWED_ATTRIBUTES, true)
+                    || !$this->isSafeAttributeValue($localName, $attribute->value)) {
                     $toRemove[] = $attribute;
                 } else {
                     $toKeep[] = [$attribute->namespaceURI, $attribute->nodeName, $attribute->value];
@@ -236,10 +246,29 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
         }
     }
 
+    /**
+     * href / xlink:href: only a strict same-document fragment (#id with id characters [A-Za-z0-9_.:-]).
+     */
     private function isSafeFragmentReference(string $value): bool
     {
-        $value = trim($value);
+        return preg_match('/^#[A-Za-z0-9_.:-]+$/D', trim($value)) === 1;
+    }
 
-        return $value !== '' && str_starts_with($value, '#');
+    /**
+     * Paint / reference attributes (fill, stroke, clip-path, mask) follow an allowlist grammar: none, a colour
+     * keyword (currentColor, red, transparent...), a hex colour, rgb()/rgba()/hsl()/hsla() with numeric arguments,
+     * or url(#id). Any backslash (CSS escape such as "\75 rl(") is refused, and so is every other function
+     * (image-set(), external url()). Mirrors isSafeAttributeValue() in the browser sanitizer.
+     */
+    private function isSafeAttributeValue(string $localName, string $value): bool
+    {
+        if (!in_array($localName, self::URL_REFERENCE_ATTRIBUTES, true)) {
+            return true;
+        }
+        if (str_contains($value, '\\')) {
+            return false;
+        }
+
+        return preg_match(self::PAINT_VALUE_PATTERN, trim($value)) === 1;
     }
 }

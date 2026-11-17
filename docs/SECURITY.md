@@ -15,6 +15,7 @@
   - [4. IconifyCollectionLoader](#4-iconifycollectionloader)
   - [5. Response and Content-Type](#5-response-and-content-type)
   - [6. Iconify icons loaded in the browser](#6-iconify-icons-loaded-in-the-browser)
+  - [7. Content-Security-Policy and third-party requests](#7-content-security-policy-and-third-party-requests)
   - [Summary](#summary)
 - [Preferred Languages](#preferred-languages)
 - [Contact](#contact)
@@ -76,7 +77,7 @@ The following describes the security measures implemented in the bundle and rema
 - **Input:** Icon IDs come from the request (GET query `ids` or POST JSON `ids`). They are trimmed and filtered.
 - **Implemented:**
   - **Whitelist:** Only icon IDs that appear in the configured icon sets (`IconListProvider::getIcons()`) are passed to the renderer. Requests for unknown or disallowed IDs are ignored (omitted from the response).
-  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which parses the markup with a DOM allowlist (permitted SVG elements and attributes only), strips event handlers and unsafe references (e.g. `javascript:` URLs), removes disallowed tags such as `<foreignObject>`, removes every non-element node except text (processing instructions, comments, CDATA, doctype and entity references in text; kept attributes are written back from their expanded, validated value; `<title>`/`<desc>` keep text only), and **fails closed** (returns an empty string) when the markup cannot be parsed as an `<svg>` document. This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
+  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which parses the markup with a DOM allowlist (permitted SVG elements and attributes only), strips event handlers and unsafe references (`href`/`xlink:href` only as a strict `#id` fragment; `fill`, `stroke`, `mask`, `clip-path` only as a keyword, hex colour, numeric `rgb()`/`hsl()` or `url(#id)`, no backslash, like the browser sanitizer), removes disallowed tags such as `<foreignObject>`, removes every non-element node except text (processing instructions, comments, CDATA, doctype and entity references in text; kept attributes are written back from their expanded, validated value; `<title>`/`<desc>` keep text only), and **fails closed** (returns an empty string) when the markup cannot be parsed as an `<svg>` document. This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
   - **DoS mitigation:** Requests are limited to `MAX_IDS = 500` icon IDs per call.
 - **Output:** JSON mapping icon ID → sanitized SVG markup. Unknown or invalid IDs do not appear in the response.
 - **Recommendations for integrators:**
@@ -94,7 +95,7 @@ The following describes the security measures implemented in the bundle and rema
 
 ### 3. Form choice loader (IconChoiceLoader)
 
-- **Behaviour:** Accepts submitted icon IDs that match `prefix:name` and, when a renderer is available, verifies existence via `renderIcon($id)`. No file system or path is built from user input.
+- **Behaviour:** Accepts submitted icon IDs that match `prefix:name` and, when a renderer is available, verifies existence via `renderIcon($id)`. With `source: ux_icons_local` only the listed (committed) icons are accepted and the renderer is never asked about other names. No file system or path is built from user input.
 - **Risk:** Same as (1): the renderer must safely handle any string; invalid IDs throw and are treated as invalid choice. No additional server-side risk identified.
 
 ### 4. IconifyCollectionLoader
@@ -108,8 +109,26 @@ The following describes the security measures implemented in the bundle and rema
 
 ### 6. Iconify icons loaded in the browser
 
-- **Behaviour:** In Iconify mode (`config_url` set) the widget fetches icon bodies directly from `api.iconify.design` (third-party content) and renders them with `innerHTML`.
+- **Behaviour:** With `source: iconify` only (the config endpoint returns `source: iconify` and a non-empty `iconify_base`) the widget fetches icon bodies directly from `api.iconify.design` (third-party content) and renders them with `innerHTML`.
 - **Implemented:** Every icon is sanitized client-side before it is cached or rendered (`svg-sanitizer.ts`): the markup is parsed as XML with `DOMParser` (`image/svg+xml`), only the same element/attribute allowlist as the server `SvgSanitizer` is kept (no `script`, `foreignObject`, `animate`/`set`, `image`, `a`, `style`, no `on*` attributes; `href`/`url()` only to `#fragment`), processing instructions, comments, CDATA and doctypes are dropped, the output is rebuilt from the sanitized tree with explicit escaping (not `XMLSerializer`), and malformed or non-SVG markup is dropped (fail closed). Width/height/viewBox numbers from the API are coerced to finite numbers.
+
+### 7. Content-Security-Policy and third-party requests
+
+- **Same-origin sources (browser guarantee):** with `source: bundle` or `source: ux_icons_local` (the default `bundle`
+  when `use_iconify_collection` is `false`) the config endpoint returns `iconify_base: null` and the browser only
+  requests the bundle endpoints. This covers the browser only: with `bundle` and `ux_icons.iconify.on_demand: true`
+  the server still calls Iconify for icons that are not on disk. Every Iconify request in the script is gated by `usesBrowserIconify(config)` (`source ===
+  'iconify'` and a non-empty base URL); a config without `source` never enables Iconify. The data attributes only
+  carry same-origin URLs (icons, config, emoji dataset from `emoji_data_url`).
+- **Strict CSP:** no inline `<style>` element, no `style=` attribute and no inline script with code; styles come from
+  `icon-selector.css` (`style-src 'self'`), the preloaded Tom Select options are a non-executable
+  `<script type="application/json">`, and dynamic styles use the CSSOM (allowed by CSP). Verified by `tests/E2eCsp`
+  (Playwright, nonce-only policy, zero violations, zero third-party requests) in CI.
+- **Server side:** `bundle` with icons that are not on disk lets Symfony UX Icons fetch them from Iconify on the
+  server (no browser request). Use `ux_icons_local` or `ux_icons.iconify.enabled: false` to avoid it.
+- **Affected releases:** 1.0.0–1.6.0 made browser requests to `api.iconify.design` (collections, search, SVG bodies)
+  whenever the widget was rendered and the config endpoint was reachable, even with `use_iconify_collection: false`;
+  1.1.0–1.6.0 also emitted inline `<style>` blocks, and the built script injected a `<style>` element.
 
 ### Summary
 
@@ -121,6 +140,7 @@ The following describes the security measures implemented in the bundle and rema
 | assetPath         | Implemented | Path traversal and invalid chars rejected; safe default used. |
 | Iconify API       | No SSRF | Keep config (e.g. icon_sets) non-user-controlled. |
 | Iconify SVG → DOM | Implemented | Client-side DOM allowlist sanitizer (fail closed) before innerHTML. |
+| Third-party / CSP | Implemented | Browser Iconify only with `source: iconify`; no inline styles; e2e under a nonce-only CSP. |
 | DoS               | MAX_IDS=500 | Consider rate limiting on public endpoints. |
 
 ## Preferred Languages

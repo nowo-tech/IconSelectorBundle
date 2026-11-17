@@ -11,6 +11,10 @@
     'data-icon-selector-icons-url-value': form.vars.icons_api_path|default('/api/icon-selector/icons'),
     class: ('icon-selector-widget' in (attr.class|default('')|split(' ')) ? attr.class : (attr.class|default('') ~ ' icon-selector-widget'))|trim,
 }) %}
+{# Styles live in icon-selector.css (no inline <style>/style= : strict CSP). Linked here unless include_stylesheet: false. #}
+{% if form.vars.stylesheet_url|default(null) %}
+<link rel="stylesheet" href="{{ form.vars.stylesheet_url }}"{% if form.vars.stylesheet_nonce|default(null) %} nonce="{{ form.vars.stylesheet_nonce }}"{% endif %} data-nowo-icon-selector-stylesheet>
+{% endif %}
 {# Wrapper id is suffixed so the field id stays unique (it belongs to the input targeted by the label). #}
 <div id="{{ id }}_icon_selector"{{ block('attributes') }}>
     <input type="text"

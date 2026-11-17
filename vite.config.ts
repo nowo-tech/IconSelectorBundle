@@ -34,6 +34,9 @@ export default defineConfig({
   build: {
     outDir: 'src/Resources/public',
     emptyOutDir: false,
+    // Emit the CSS as icon-selector.css instead of injecting a <style> element from the script: a nonce-only
+    // Content-Security-Policy blocks injected styles. The form themes link the file (include_stylesheet).
+    cssCodeSplit: false,
     rollupOptions: {
       input: 'src/Resources/assets/src/icon-selector.ts',
       output: {

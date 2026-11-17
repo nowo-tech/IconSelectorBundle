@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\IconSelectorBundle\Tests\Unit\Service;
 
 use Nowo\IconSelectorBundle\Service\IconSelectorConfigProvider;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,9 +17,10 @@ final class IconSelectorConfigProviderTest extends TestCase
 {
     public function testGetConfigReturnsIconifyBaseAndSets(): void
     {
-        $provider = new IconSelectorConfigProvider(['heroicons', 'bootstrap-icons']);
+        $provider = new IconSelectorConfigProvider(['heroicons', 'bootstrap-icons'], false, 'iconify');
         $config   = $provider->getConfig();
 
+        self::assertSame('iconify', $config['source']);
         self::assertSame('https://api.iconify.design', $config['iconify_base']);
         self::assertCount(2, $config['sets']);
         self::assertSame('heroicons', $config['sets'][0]['key']);
@@ -47,5 +49,29 @@ final class IconSelectorConfigProviderTest extends TestCase
         self::assertSame('my-custom-set', $config['sets'][0]['key']);
         self::assertSame('My Custom Set', $config['sets'][0]['label']);
         self::assertSame(['my-custom-set'], $config['sets'][0]['prefixes']);
+    }
+
+    /**
+     * Same-origin sources never expose the Iconify base URL (strict CSP / no third-party requests).
+     *
+     * @return iterable<string, array{string, string}>
+     */
+    public static function sameOriginSources(): iterable
+    {
+        yield 'bundle' => ['bundle', 'bundle'];
+        yield 'ux_icons_local' => ['ux_icons_local', 'ux_icons_local'];
+        yield 'unknown falls back to bundle' => ['nope', 'bundle'];
+    }
+
+    #[DataProvider('sameOriginSources')]
+    public function testSameOriginSourcesServeNoIconifyBase(string $source, string $expected): void
+    {
+        $config = (new IconSelectorConfigProvider(['tabler', 'heroicons'], true, $source))->getConfig();
+
+        self::assertSame($expected, $config['source']);
+        self::assertNull($config['iconify_base']);
+        self::assertTrue($config['debug']);
+        self::assertSame(['tabler'], $config['sets'][0]['prefixes']);
+        self::assertSame(['heroicons-outline', 'heroicons-solid'], $config['sets'][1]['prefixes']);
     }
 }

@@ -186,7 +186,8 @@ final class SvgSanitizerTest extends TestCase
 
         self::assertStringNotContainsString('&Tab;', $output);
         self::assertStringNotContainsString('&frag;', $output);
-        self::assertStringContainsString('<use href="#javascript:alert(1)"/>', $output);
+        // The expanded value "#javascript:alert(1)" is no strict #id fragment: the href is dropped.
+        self::assertStringNotContainsString('javascript', $output);
         self::assertStringContainsString('<use href="#icon"/>', $output);
         self::assertStringContainsString('<path d="M#1 1" fill="red"/>', $output);
     }
@@ -197,5 +198,46 @@ final class SvgSanitizerTest extends TestCase
         $output = $this->sanitizer->sanitize($input);
 
         self::assertSame('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="#icon" x="1"/></svg>', $output);
+    }
+
+    /** Paint/reference attributes keep only url(#id) (mirrors the browser sanitizer). */
+    public function testUrlReferencesAreLimitedToSameDocumentFragments(): void
+    {
+        $input = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0" fill="url(#grad)" stroke="url( #g-2 )"/>'
+            . '<path d="M1 1" fill="url(https://evil.example/x.svg#a)" stroke="url(javascript:alert(1))"/>'
+            . '<path d="M2 2" clip-path="url(data:image/svg+xml,x)" mask="URL(#ok) extra"/>'
+            . '<path d="M3 3" fill="red" stroke="currentColor" mask="none"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertStringContainsString('fill="url(#grad)"', $output);
+        self::assertStringContainsString('stroke="url( #g-2 )"', $output);
+        self::assertStringNotContainsString('evil.example', $output);
+        self::assertStringNotContainsString('javascript', $output);
+        self::assertStringNotContainsString('data:', $output);
+        self::assertStringNotContainsString('extra', $output);
+        self::assertStringContainsString('<path d="M3 3" fill="red" stroke="currentColor" mask="none"/>', $output);
+    }
+
+    /** href keeps only a strict #id fragment. */
+    public function testHrefKeepsOnlyStrictFragments(): void
+    {
+        $output = $this->sanitizer->sanitize('<svg xmlns="http://www.w3.org/2000/svg"><use href="# x"/><use href="#a b"/><use href="#"/><use href="#ok.1:2_3-4"/></svg>');
+
+        self::assertSame('<svg xmlns="http://www.w3.org/2000/svg"><use/><use/><use/><use href="#ok.1:2_3-4"/></svg>', $output);
+    }
+
+    /** Allowlist grammar: CSS escapes and functions other than rgb/hsl/url(#id) are refused. */
+    public function testPaintValuesRejectCssEscapesAndOtherFunctions(): void
+    {
+        $input = '<svg xmlns="http://www.w3.org/2000/svg">'
+            . '<path d="M0 0" fill="#fff" stroke="rgb(1, 2, 3)"/>'
+            . '<path d="M1 1" fill="\\75 rl(https://evil.example/a)" stroke="image-set(\'https://evil.example/b\' 1x)"/>'
+            . '<path d="M2 2" fill="hsla(10, 20%, 30%, .5)" clip-path="url(#c) x"/></svg>';
+        $output = $this->sanitizer->sanitize($input);
+
+        self::assertStringContainsString('<path d="M0 0" fill="#fff" stroke="rgb(1, 2, 3)"/>', $output);
+        self::assertStringContainsString('<path d="M1 1"/>', $output);
+        self::assertStringContainsString('<path d="M2 2" fill="hsla(10, 20%, 30%, .5)"/>', $output);
+        self::assertStringNotContainsString('evil.example', $output);
     }
 }

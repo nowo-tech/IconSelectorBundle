@@ -77,6 +77,7 @@ Create `config/packages/nowo_icon_selector.yaml` (or rely on defaults). Options:
 
 - **icon_sets**: list of icon libraries (e.g. `heroicons`, `bootstrap-icons`). Only these are available in the selector.
 - **use_iconify_collection**: when `true`, the selector loads the **full** icon list from [api.iconify.design](https://iconify.design/docs/api/collection.html) for each library (requires `symfony/http-client`). When `false`, a small built-in list is used.
+- **source**: `bundle` (same-origin only, default when `use_iconify_collection` is false), `ux_icons_local` (only the SVGs committed under `assets/icons/`) or `iconify` (the browser calls api.iconify.design). The widget works under a nonce-only CSP: styles ship as `icon-selector.css` (`include_stylesheet`).
 - **icons_api_path**: URL path for the JSON icon list API (default: `/api/icon-selector/icons`). Must match the route the bundle exposes (see [CONFIGURATION.md](docs/CONFIGURATION.md#icons_api_path)).
 - **form_theme**: base form layout so the icon selector theme matches your app (e.g. `form_div_layout.html.twig`, `bootstrap_5_layout.html.twig`). Must match the same value you use in `twig.form_themes`.
 - **debug**: when `true`, the frontend logs detailed messages to the browser console; when `false` (default), only a short “script loaded” line.

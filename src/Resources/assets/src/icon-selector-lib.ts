@@ -26,7 +26,10 @@ export function getLogger(): BundleLogger {
 /** Data attribute holding the icons API URL (e.g. /api/icon-selector/icons). */
 export const ATTR_URL = 'data-icon-selector-icons-url-value';
 
-/** Data attribute for the widget config URL (Iconify-only mode). When set, widget fetches from api.iconify.design. */
+/**
+ * Data attribute for the widget config URL (same-origin bundle endpoint). The config says which icon source the
+ * server allows; the browser only contacts api.iconify.design when that source is "iconify".
+ */
 export const ATTR_CONFIG_URL = 'data-icon-selector-config-url-value';
 
 /** Data attribute holding the widget mode: direct, search, or tom_select. */
@@ -41,10 +44,18 @@ export const ATTR_DEBUG = 'data-icon-selector-debug-value';
 /** Translated text shown in the panel when no icons could be loaded. */
 export const ATTR_EMPTY_TEXT = 'data-icon-selector-empty-text';
 
-/** Widget config from GET /api/icon-selector/config (for 100% front Iconify flow). */
+/** Icon sources the server can announce (nowo_icon_selector.source). */
+export type IconSourceName = 'iconify' | 'bundle' | 'ux_icons_local';
+
+/** Widget config from GET /api/icon-selector/config. */
 export interface IconSelectorConfig {
-  /** Base URL for Iconify API (e.g. https://api.iconify.design). */
-  iconify_base: string;
+  /**
+   * Effective icon source. Only "iconify" lets the browser call the Iconify API; any other value (or a missing one,
+   * e.g. a host config provider written for 1.6) keeps the widget on the bundle's same-origin endpoints.
+   */
+  source?: IconSourceName | string;
+  /** Base URL for Iconify API (e.g. https://api.iconify.design); null unless source is "iconify". */
+  iconify_base: string | null;
   /** List of icon sets, each with key, label, and Iconify API prefixes. */
   sets: Array< { key: string; label: string; prefixes: string[] } >;
   /** When true, frontend shows all console logs; when false, only "script loaded". */
@@ -131,6 +142,25 @@ const ICONIFY_SEARCH_LIMIT = 64;
 const TOM_SELECT_ONDEMAND_PAGE_SIZE = 100;
 
 /**
+ * Adds the SVG namespace to a root <svg> tag that lacks it. Symfony UX Icons renders local icons without xmlns; the
+ * browser sanitizer parses as XML, where such an element is outside the SVG namespace and would be dropped.
+ */
+export function withSvgNamespace(svg: string): string {
+  const m = /^\s*<svg\b[^>]*>/i.exec(svg);
+  if (!m || /\sxmlns\s*=/.test(m[0])) return svg;
+  return svg.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+}
+
+/**
+ * Whether this config allows the browser to call the Iconify API: source "iconify" and a non-empty base URL.
+ * Every Iconify request goes through this check, so with source bundle / ux_icons_local (or an unknown source) the
+ * widget never contacts a third party.
+ */
+export function usesBrowserIconify(config: IconSelectorConfig | null | undefined): config is IconSelectorConfig & { iconify_base: string } {
+  return !!config && config.source === 'iconify' && typeof config.iconify_base === 'string' && config.iconify_base !== '';
+}
+
+/**
  * Fetches widget config from the bundle API.
  *
  * @param configUrl - URL of the config endpoint (e.g. /api/icon-selector/config).
@@ -201,6 +231,17 @@ export function withStoredEmojiOption(options: IconOption[], currentValue: strin
   return [...options, { value: currentValue, text: currentValue.slice(6), svg: '' }];
 }
 
+/**
+ * Keeps the stored value as a Tom Select option when it is not in the list: an emoji (see withStoredEmojiOption)
+ * or an icon id that is no longer offered (catalogue or source changed). Tom Select would otherwise drop the
+ * selection and a re-save would silently clear the field; the server then accepts or refuses it visibly.
+ */
+export function withStoredValueOption(options: IconOption[], currentValue: string): IconOption[] {
+  if (currentValue.startsWith('emoji:')) return withStoredEmojiOption(options, currentValue);
+  if (!currentValue.includes(':') || options.some((o) => o.value === currentValue)) return options;
+  return [...options, { value: currentValue, text: currentValue.split(/[:/]/).pop() || currentValue, svg: '' }];
+}
+
 /** Whether an icon id is allowed by an optional prefix list. */
 export function iconAllowedByPrefixes(id: string, prefixes: string[] | null): boolean {
   return !prefixes || prefixes.includes(id.split(':')[0]);
@@ -232,7 +273,7 @@ export async function fetchIconifySearch(
   limit: number = ICONIFY_SEARCH_LIMIT,
 ): Promise<string[]> {
   const config = await fetchIconifyConfig(configUrl);
-  if (!config?.iconify_base || !query.trim()) return [];
+  if (!usesBrowserIconify(config) || !query.trim()) return [];
   const base = config.iconify_base.replace(/\/$/, '');
   const prefixes: string[] = [];
   for (const set of config.sets) {
@@ -398,7 +439,7 @@ export async function fetchIconifySvgsForIds(
   ids: string[],
 ): Promise<Record<string, string>> {
   const config = await fetchIconifyConfig(configUrl);
-  if (!config?.iconify_base || ids.length === 0) return {};
+  if (!usesBrowserIconify(config) || ids.length === 0) return {};
   const base = config.iconify_base;
   const byPrefix = new Map<string, string[]>();
   for (const id of ids) {
@@ -509,7 +550,13 @@ export class IconSelectorIconifyWidget {
       return;
     }
     this.config = config;
-    getLogger().info('IconSelectorIconifyWidget (grid): config loaded, sets=', config.sets.length);
+    getLogger().info('IconSelectorIconifyWidget (grid): config loaded, sets=', config.sets.length, 'source=', config.source ?? '(none)');
+    if (!usesBrowserIconify(config)) {
+      // Same-origin only (source bundle / ux_icons_local): the list comes from the bundle icons endpoint.
+      this.entries = await this.loadEntriesFromBundle(config, false);
+      getLogger().debug('IconSelectorIconifyWidget (grid): entries loaded from the bundle', this.entries.length);
+      return;
+    }
     const allEntries: IconifyIconEntry[] = [];
     for (const set of config.sets) {
       for (const prefix of set.prefixes) {
@@ -540,8 +587,8 @@ export class IconSelectorIconifyWidget {
    * @param config - Loaded widget config (used to map prefixes to set keys).
    * @returns Entries built from the bundle list (empty when that request fails too).
    */
-  private async loadEntriesFromBundle(config: IconSelectorConfig): Promise<IconifyIconEntry[]> {
-    getLogger().warn('IconSelectorIconifyWidget: Iconify collections unavailable, falling back to', this.iconsUrl);
+  private async loadEntriesFromBundle(config: IconSelectorConfig, isFallback = true): Promise<IconifyIconEntry[]> {
+    if (isFallback) getLogger().warn('IconSelectorIconifyWidget: Iconify collections unavailable, falling back to', this.iconsUrl);
     const prefixToSet: Record<string, string> = {};
     for (const set of config.sets) {
       for (const prefix of set.prefixes) prefixToSet[prefix] = set.key;
@@ -616,7 +663,7 @@ export class IconSelectorIconifyWidget {
       if (++count >= limit) break;
     }
     if (byPrefix.size === 0) return;
-    const base = this.config?.iconify_base ?? '';
+    const base = usesBrowserIconify(this.config) ? this.config.iconify_base : '';
     const missing: string[] = [];
     for (const [prefix, names] of byPrefix) {
       const batch = base ? await fetchIconifyIconsBatch(base, prefix, names) : {};
@@ -630,7 +677,7 @@ export class IconSelectorIconifyWidget {
       const fromBundle = await fetchSvgBatch(this.iconsUrl.replace(/\/$/, '') + '/svg', missing);
       for (const [id, svg] of Object.entries(fromBundle)) {
         if (typeof svg !== 'string' || svg === '') continue;
-        const clean = sanitizeSvg(svg);
+        const clean = sanitizeSvg(withSvgNamespace(svg));
         if (clean) this.svgCache[id] = clean;
       }
     }
@@ -1499,7 +1546,7 @@ async function loadTomSelectOnDemand(
   let state = stateHost[LOAD_MORE_STATE_KEY];
   if (!state) {
     const config = await fetchIconifyConfig(configUrl);
-    if (!config?.iconify_base || !config.sets?.length) {
+    if (!usesBrowserIconify(config) || !config.sets?.length) {
       if (shouldFetchIconSvg(currentValue, configUrl)) {
         const svgMap = await fetchIconifySvgsForIds(configUrl, [currentValue]);
         const text = currentValue.split(/[:/]/).pop() ?? currentValue;
@@ -1549,7 +1596,7 @@ async function loadTomSelectOnDemand(
 }
 
 /** Placeholder HTML when an option has no SVG yet. */
-const TOM_SELECT_SVG_PLACEHOLDER = '<span class="icon-selector-option-svg" style="width:1.25rem;height:1.25rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;background:currentColor;opacity:0.12;border-radius:2px;"></span>';
+const TOM_SELECT_SVG_PLACEHOLDER = '<span class="icon-selector-option-svg icon-selector-option-svg--placeholder"></span>';
 
 /**
  * Renders a single Tom Select dropdown option HTML (icon + label).
@@ -1560,7 +1607,7 @@ const TOM_SELECT_SVG_PLACEHOLDER = '<span class="icon-selector-option-svg" style
 function tomSelectRenderOption(data: IconOption): string {
   const label = (data.text ?? data.value ?? '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   if (data.svg) {
-    return `<div class="d-flex align-items-center gap-2"><span class="icon-selector-option-svg" style="width:1.25rem;height:1.25rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${data.svg}</span><span>${label}</span></div>`;
+    return `<div class="d-flex align-items-center gap-2"><span class="icon-selector-option-svg">${data.svg}</span><span>${label}</span></div>`;
   }
   return `<div class="d-flex align-items-center gap-2">${TOM_SELECT_SVG_PLACEHOLDER}<span>${label}</span></div>`;
 }
@@ -1574,7 +1621,7 @@ function tomSelectRenderOption(data: IconOption): string {
 function tomSelectRenderItem(data: IconOption): string {
   const label = (data.text ?? data.value ?? '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   if (data.svg) {
-    return `<div class="d-flex align-items-center gap-2"><span class="icon-selector-item-svg" style="width:1.25rem;height:1.25rem;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">${data.svg}</span><span>${label}</span></div>`;
+    return `<div class="d-flex align-items-center gap-2"><span class="icon-selector-item-svg">${data.svg}</span><span>${label}</span></div>`;
   }
   return `<div class="d-flex align-items-center gap-2">${TOM_SELECT_SVG_PLACEHOLDER}<span>${label}</span></div>`;
 }
@@ -1611,15 +1658,15 @@ export function initTomSelect(
   // When configUrl is set, try on-demand mode (Iconify search) first
   if (configUrl) {
     return fetchIconifyConfig(configUrl).then((config) => {
-      if (config?.sets?.length) {
+      if (config?.sets?.length && usesBrowserIconify(config)) {
         getLogger().info('using on-demand mode (Iconify), sets:', config.sets.length);
         return initTomSelectOnDemand(el, configUrl, value, preloadedOptions);
       }
-      getLogger().info('config has no sets, using full-list mode');
-      return initTomSelectFullList(el, url, configUrl, value, preloadedOptions);
+      getLogger().info('same-origin source or no sets, using full-list mode');
+      return initTomSelectFullList(el, url, configUrl, value, preloadedOptions, false);
     }).catch((err) => {
       getLogger().warn('config fetch failed, using full-list mode', err);
-      return initTomSelectFullList(el, url, configUrl, value, preloadedOptions);
+      return initTomSelectFullList(el, url, configUrl, value, preloadedOptions, false);
     });
   }
 
@@ -1670,7 +1717,7 @@ function initTomSelectOnDemand(
     valueField: 'value',
     labelField: 'text',
     searchField: ['text', 'value'],
-    options: withStoredEmojiOption(initialOptions, currentValue),
+    options: withStoredValueOption(initialOptions, currentValue),
     items: currentValue ? [currentValue] : [],
     maxOptions: null,
     /** Allow load() to be called with empty query so dropdown opens with first batch of "all" icons. */
@@ -1898,7 +1945,8 @@ function initTomSelectOnDemand(
  *
  * @param el - Select or input element.
  * @param url - Icons API URL (e.g. /api/icon-selector/icons).
- * @param configUrl - Optional config URL for Iconify SVG fallback.
+ * @param configUrl - Optional bundle config URL (prefix restriction in its fragment; Iconify SVGs when useIconify).
+ * @param useIconify - True only when the server announced source "iconify" (see usesBrowserIconify).
  * @param currentValue - Currently selected icon ID.
  */
 function initTomSelectFullList(
@@ -1907,7 +1955,10 @@ function initTomSelectFullList(
   configUrl: string | undefined,
   currentValue: string,
   initialOptions: IconOption[],
+  useIconify = false,
 ): Promise<IconSelectorDisposer> {
+  // SVGs come from Iconify only when the server announced source "iconify"; otherwise from the bundle /svg endpoint.
+  const iconifyConfigUrl = useIconify ? configUrl : undefined;
   return fetch(url)
     .then((res) => res.json())
     .then((data: IconsApiResponse) => {
@@ -1934,7 +1985,7 @@ function initTomSelectFullList(
         valueField: 'value',
         labelField: 'text',
         searchField: ['text', 'value'],
-        options: withStoredEmojiOption(apiOptions, currentValue),
+        options: withStoredValueOption(apiOptions, currentValue),
         items: currentValue ? [currentValue] : [],
         maxOptions: null,
         render: {
@@ -1946,7 +1997,7 @@ function initTomSelectFullList(
       let initialValuePromise: Promise<void> = Promise.resolve();
       if (currentValue && icons.includes(currentValue)) {
         getLogger().debug('Tom Select (full-list): loading SVG for initial value', currentValue);
-        initialValuePromise = loadTomSelectSingleSvg(currentValue, ts, svgUrl, configUrl).then(() => {
+        initialValuePromise = loadTomSelectSingleSvg(currentValue, ts, svgUrl, iconifyConfigUrl).then(() => {
           ts.refreshOptions(false);
           getLogger().debug('Tom Select (full-list): SVG loaded for initial value', currentValue);
         }).catch((err) => {
@@ -1955,7 +2006,7 @@ function initTomSelectFullList(
       } else if (currentValue) {
         getLogger().warn('Tom Select (full-list): initial value not in API icons list', currentValue);
       }
-      setupTomSelectSvgsLazy(icons, ts, svgUrl, configUrl, currentValue);
+      setupTomSelectSvgsLazy(icons, ts, svgUrl, iconifyConfigUrl, currentValue);
       return initialValuePromise.then(() => () => {
         ts.destroy();
       });

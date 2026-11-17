@@ -71,10 +71,8 @@ final readonly class IconSvgController
                 continue;
             }
             try {
-                $raw = $this->iconRenderer->renderIcon($id, [
-                    'class' => 'icon-selector-svg',
-                    'style' => 'width:1.25rem;height:1.25rem;fill:currentColor;',
-                ]);
+                // No style attribute (strict CSP); the sanitizer always dropped it, so the rendered icon is unchanged.
+                $raw       = $this->iconRenderer->renderIcon($id, ['class' => 'icon-selector-svg']);
                 $svgs[$id] = $this->svgSanitizer->sanitize($raw);
             } catch (Throwable) {
                 $svgs[$id] = '';

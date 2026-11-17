@@ -5,27 +5,17 @@ declare(strict_types=1);
 namespace Nowo\IconSelectorBundle\Service;
 
 /**
- * Provides widget config for the icon selector when using Iconify from the frontend.
+ * Provides the widget config served by GET /api/icon-selector/config.
  *
- * Returns iconify_base URL and a list of "sets" (key, label, prefixes) so the browser
- * can fetch collection and icon data directly from api.iconify.design.
+ * Returns the effective icon source, the enabled "sets" (key, label, prefixes) and the Iconify base URL. The base
+ * URL is only returned with source iconify: with bundle or ux_icons_local it is null, and the browser widget then
+ * reads the icon list and the SVGs from the bundle's same-origin endpoints only (no third-party request).
  *
  * @author Héctor Franco Aceituno <hectorfranco@nowo.tech>
  */
 final readonly class IconSelectorConfigProvider implements IconSelectorConfigProviderInterface
 {
     private const ICONIFY_BASE = 'https://api.iconify.design';
-
-    /**
-     * Default mapping: bundle set key => Iconify API prefixes.
-     * Same as IconifyCollectionLoader so the frontend and backend stay in sync.
-     *
-     * @var array<string, list<string>>
-     */
-    private const DEFAULT_SET_PREFIXES = [
-        'heroicons'       => ['heroicons-outline', 'heroicons-solid'],
-        'bootstrap-icons' => ['bi'],
-    ];
 
     /**
      * Optional display labels per set key (fallback: humanized key).
@@ -40,23 +30,26 @@ final readonly class IconSelectorConfigProvider implements IconSelectorConfigPro
     /**
      * @param list<string> $iconSets Configured icon set keys (e.g. heroicons, bootstrap-icons)
      * @param bool $debug When true, frontend shows all console logs; when false, only "script loaded"
+     * @param string $source Effective icon source (see {@see IconSource}); only iconify exposes the Iconify base URL
      */
     public function __construct(
         private array $iconSets = [],
         private bool $debug = false,
+        private string $source = 'bundle',
     ) {
     }
 
     /**
-     * Returns config for the frontend widget: iconify base URL and sets (key, label, prefixes).
+     * Returns config for the frontend widget: source, Iconify base URL (null unless source is iconify) and sets.
      *
-     * @return array{iconify_base: string, sets: list<array{key: string, label: string, prefixes: list<string>}>, debug: bool}
+     * @return array{source: string, iconify_base: string|null, sets: list<array{key: string, label: string, prefixes: list<string>}>, debug: bool}
      */
     public function getConfig(): array
     {
-        $sets = [];
+        $source = IconSource::tryFrom($this->source) ?? IconSource::Bundle;
+        $sets   = [];
         foreach ($this->iconSets as $key) {
-            $prefixes = self::DEFAULT_SET_PREFIXES[$key] ?? [$key];
+            $prefixes = IconSetPrefixes::forSet($key);
             $sets[]   = [
                 'key'      => $key,
                 'label'    => self::SET_LABELS[$key] ?? $this->humanize($key),
@@ -65,7 +58,8 @@ final readonly class IconSelectorConfigProvider implements IconSelectorConfigPro
         }
 
         return [
-            'iconify_base' => self::ICONIFY_BASE,
+            'source'       => $source->value,
+            'iconify_base' => $source->usesBrowserIconify() ? self::ICONIFY_BASE : null,
             'sets'         => $sets,
             'debug'        => $this->debug,
         ];

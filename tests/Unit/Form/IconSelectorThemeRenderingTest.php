@@ -117,9 +117,65 @@ final class IconSelectorThemeRenderingTest extends TestCase
     }
 
     /**
+     * Strict CSP (nonce-only style-src): no theme emits an inline <style> element or a style attribute; the styles
+     * come from the linked bundle stylesheet.
+     */
+    #[DataProvider('themeProvider')]
+    public function testThemesEmitNoInlineStylesAndLinkTheStylesheet(string $theme): void
+    {
+        foreach (['direct', 'search', 'tom_select'] as $mode) {
+            foreach ([false, true] as $emoji) {
+                $html = $this->renderHtml($theme, ['mode' => $mode, 'emoji' => $emoji], 'heroicons-outline:home');
+                self::assertDoesNotMatchRegularExpression('/<style\b/i', $html, $theme . ' ' . $mode);
+                self::assertDoesNotMatchRegularExpression('/\sstyle\s*=/i', $html, $theme . ' ' . $mode);
+                self::assertStringContainsString('<link rel="stylesheet" href="/bundles/nowoiconselector/icon-selector.css" data-nowo-icon-selector-stylesheet>', $html);
+            }
+        }
+    }
+
+    #[DataProvider('themeProvider')]
+    public function testThemesOmitTheStylesheetLinkWhenDisabled(string $theme): void
+    {
+        $html = $this->renderHtml($theme, ['mode' => 'direct'], null, false);
+
+        self::assertStringNotContainsString('<link', $html);
+    }
+
+    public function testTomSelectKeepsAStoredIconThatIsNoLongerAChoice(): void
+    {
+        $xpath  = $this->render('icon_selector_theme.html.twig', ['mode' => 'tom_select'], 'heroicons-outline:gone');
+        $option = $this->single($xpath, '//select[@name="form[icon_direct]"]/option[@selected]');
+
+        self::assertSame('heroicons-outline:gone', $option->getAttribute('value'));
+    }
+
+    public function testEmojiSkeletonIsHiddenWithoutScripting(): void
+    {
+        $xpath = $this->render('icon_selector_theme.html.twig', ['mode' => 'direct', 'emoji' => true]);
+
+        self::assertSame(1, $this->countNodes($xpath, '//div[contains(@class, "icon-selector-skeleton--noscript-hidden")]'));
+        self::assertSame(0, $this->countNodes($xpath, '//noscript'));
+    }
+
+    /**
      * @param array<string, mixed> $options IconSelectorType options
      */
     private function render(string $theme, array $options, ?string $data = null): DOMXPath
+    {
+        $html = $this->renderHtml($theme, $options, $data);
+
+        $dom      = new DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $dom->loadHTML('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . $html . '</body></html>');
+        libxml_use_internal_errors($previous);
+
+        return new DOMXPath($dom);
+    }
+
+    /**
+     * @param array<string, mixed> $options IconSelectorType options
+     */
+    private function renderHtml(string $theme, array $options, ?string $data = null, bool $includeStylesheet = true): string
     {
         $vendorDir = dirname((new ReflectionClass(FormExtension::class))->getFileName() ?: '', 2);
         $loader    = new FilesystemLoader([$vendorDir . '/Resources/views/Form', dirname(__DIR__, 3) . '/src/Resources/views/Form']);
@@ -129,20 +185,13 @@ final class IconSelectorThemeRenderingTest extends TestCase
         $renderer = new FormRenderer(new TwigRendererEngine([$theme], $twig));
         $twig->addRuntimeLoader(new FactoryRuntimeLoader([FormRenderer::class => static fn (): FormRenderer => $renderer]));
 
-        $type    = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', null, null, false, new EmojiCatalog());
+        $type    = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', null, null, false, new EmojiCatalog(), includeStylesheet: $includeStylesheet);
         $factory = Forms::createFormFactoryBuilder()->addType($type)->getFormFactory();
         $form    = $factory->createNamedBuilder('form', FormType::class)
             ->add('icon_direct', IconSelectorType::class, $options + ['data' => $data])
             ->getForm();
 
-        $html = $twig->createTemplate('{{ form_widget(form.icon_direct) }}')->render(['form' => $form->createView()]);
-
-        $dom      = new DOMDocument();
-        $previous = libxml_use_internal_errors(true);
-        $dom->loadHTML('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' . $html . '</body></html>');
-        libxml_use_internal_errors($previous);
-
-        return new DOMXPath($dom);
+        return $twig->createTemplate('{{ form_widget(form.icon_direct) }}')->render(['form' => $form->createView()]);
     }
 
     private function single(DOMXPath $xpath, string $query): DOMElement
