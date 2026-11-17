@@ -182,6 +182,40 @@ nowo_icon_selector:
 
 If you use a custom or third-party form theme not listed, set `form_theme` to the closest match (e.g. `form_div_layout.html.twig`); the widget will still work although the row/label markup may not match your framework exactly.
 
+### `theme`
+
+1.8. Look of the picker widget.
+
+| Value | Look |
+|-------|------|
+| `auto` (default) | `uikit` when `NowoUiKitBundle` (nowo-tech/ui-kit-bundle) is registered, else `bootstrap` |
+| `uikit` | Neutral markup without Bootstrap classes, drawn by `icon-selector.css` from the UiKit design tokens (`--nowo-ui-surface`, `--nowo-ui-surface-muted`, `--nowo-ui-text`, `--nowo-ui-muted`, `--nowo-ui-border`, `--nowo-ui-border-strong`, `--nowo-ui-primary`, `--nowo-ui-primary-contrast`, `--nowo-ui-radius`), falling back to CSS system colours (`Canvas`, `CanvasText`, `GrayText`, `LinkText`) and `currentColor`. Follows dark mode through `prefers-color-scheme` and UiKit's `data-theme="dark"` / `"light"` on an ancestor. |
+| `bootstrap` | The Bootstrap utility classes of 1.7 (`form-control`, `border rounded shadow-sm p-2 bg-white`, `btn btn-sm btn-outline-secondary` ...), unchanged |
+
+The `theme` is independent of `form_theme` (the Symfony form layout of the row). A field can override it with its
+`theme` option (`null` = this setting). The widget never sets inline styles with either theme (strict CSP); hosts can
+restyle it through the semantic `icon-selector-*` classes and the `--icon-selector-*` custom properties on
+`.icon-selector-widget` (`--icon-selector-surface`, `--icon-selector-text`, `--icon-selector-muted`,
+`--icon-selector-border`, `--icon-selector-primary`, `--icon-selector-radius`, `--icon-selector-panel-z` ...).
+
+```yaml
+# config/packages/nowo_icon_selector.yaml — Symfony Beacon (UiKit host, strict CSP, committed icons only)
+nowo_icon_selector:
+    source: ux_icons_local
+    icon_sets: [tabler]
+    include_stylesheet: true
+    theme: auto          # = uikit, NowoUiKitBundle is registered
+```
+
+```php
+// One field with the 1.7 Bootstrap look on a UiKit host
+$builder->add('icon', IconSelectorType::class, ['mode' => 'search', 'theme' => 'bootstrap']);
+```
+
+**Grid and search modes load lazily**: the picker's grid stays empty until the panel is opened for the first time;
+then the first page of icons is fetched (SVGs included) and more pages follow on scroll. This is intended: a form with
+the field never downloads icon SVGs unless someone opens the picker.
+
 ### `emoji_data_url`
 
 URL of the emoji dataset used by fields with `emoji: true`. Default `null` =

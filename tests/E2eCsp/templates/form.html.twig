@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en"{% if data_theme|default(null) %} data-theme="{{ data_theme }}"{% endif %}>
 <head>
     <meta charset="utf-8">
     <title>IconSelector strict CSP ({{ source }})</title>
     {# No inline style anywhere on the page; the widget links its own stylesheet. #}
+    {% if tokens|default(false) %}<link rel="stylesheet" href="/e2e-assets/uikit-tokens.css">{% endif %}
     <script src="{{ asset('icon-selector.js', 'nowo_icon_selector') }}" nonce="{{ nonce }}" defer></script>
 </head>
 <body>
@@ -11,11 +12,15 @@
     {% if saved is not null %}
         <output id="saved">{{ saved|json_encode }}</output>
     {% endif %}
-    {{ form_start(form) }}
+    {% if source == 'uikit' %}
+        {# A host toolbar: the Save button sits outside the form and names it with the form attribute (Beacon). #}
+        <div class="toolbar"><button type="submit" form="icons-form">Save outside</button></div>
+    {% endif %}
+    {{ form_start(form, {attr: {id: 'icons-form'}}) }}
         {{ form_row(form.direct) }}
         {{ form_row(form.search) }}
         {% if form.tom is defined %}{{ form_row(form.tom) }}{% endif %}
-        <button type="submit">Save</button>
+        {% if source != 'uikit' %}<button type="submit">Save</button>{% endif %}
     {{ form_end(form) }}
 </body>
 </html>

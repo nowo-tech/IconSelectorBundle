@@ -2,6 +2,12 @@
 placeholder: 'Scegli icona...'
 search_placeholder: 'Cerca icone...'
 no_icons: 'Nessuna icona disponibile.'
+# 1.8: filters of the icon panel (set and category buttons)
+filter:
+    all: 'Tutti'
+    category: 'Categoria:'
+    sets: 'Set di icone'
+    categories: 'Categorie'
 
 home: Inizio
 user: Utente

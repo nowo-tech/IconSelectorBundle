@@ -7,6 +7,7 @@ namespace Nowo\IconSelectorBundle\DependencyInjection;
 use Nowo\IconSelectorBundle\Emoji\EmojiCatalog;
 use Nowo\IconSelectorBundle\Emoji\EmojiCatalogInterface;
 use Nowo\IconSelectorBundle\Service\IconSource;
+use Nowo\IconSelectorBundle\Service\WidgetTheme;
 use Nowo\IconSelectorBundle\Validator\Constraints\EmojiIconValidator;
 use Symfony\Component\Asset\Package;
 use Symfony\Component\Config\FileLocator;
@@ -18,6 +19,7 @@ use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Validator\ConstraintValidator;
 
 use function class_exists;
+use function is_array;
 use function is_string;
 use function rawurlencode;
 
@@ -69,6 +71,12 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
         $container->setParameter(Configuration::ALIAS . '.ux_icons_dir', $config['ux_icons_dir'] ?? $this->defaultUxIconsDir($container));
         $container->setParameter(Configuration::ALIAS . '.include_stylesheet', $config['include_stylesheet'] ?? true);
         $container->setParameter(Configuration::ALIAS . '.stylesheet_nonce', $config['stylesheet_nonce'] ?? false);
+        // kernel.bundles is a kernel parameter, so it is readable here (unlike the other extensions).
+        $bundles = $container->hasParameter('kernel.bundles') ? $container->getParameter('kernel.bundles') : [];
+        $container->setParameter(
+            Configuration::ALIAS . '.theme',
+            WidgetTheme::resolve($config['theme'] ?? null, is_array($bundles) && WidgetTheme::uiKitIn($bundles))->value,
+        );
         $container->setParameter(
             Configuration::ALIAS . '.emoji_data_url',
             $config['emoji_data_url'] ?? '/bundles/nowoiconselector/emoji-data.json?v=' . rawurlencode((new EmojiCatalog())->getVersion()),

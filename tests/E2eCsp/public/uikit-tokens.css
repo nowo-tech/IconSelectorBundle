@@ -1,0 +1,17 @@
+/* UiKit-like design tokens (a subset of nowo-ui.css: light on :root, dark under [data-theme="dark"]). */
+:root {
+  --nowo-ui-surface: rgb(255 255 255);
+  --nowo-ui-text: rgb(17 24 39);
+  --nowo-ui-muted: rgb(107 114 128);
+  --nowo-ui-border: rgb(229 231 235);
+  --nowo-ui-primary: rgb(37 99 235);
+  --nowo-ui-radius: .5rem;
+}
+
+[data-theme="dark"] {
+  --nowo-ui-surface: rgb(17 24 39);
+  --nowo-ui-text: rgb(243 244 246);
+  --nowo-ui-muted: rgb(156 163 175);
+  --nowo-ui-border: rgb(55 65 81);
+  --nowo-ui-primary: rgb(96 165 250);
+}

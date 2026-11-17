@@ -83,5 +83,6 @@ services:
       $requestStack: '@?request_stack'
       $cspNonceProvider: '@?nelmio_security.csp_listener'
       $stylesheetNonce: '%nowo_icon_selector.stylesheet_nonce%'
+      $theme: '%nowo_icon_selector.theme%'
     # Tagged form.type by autoconfigure (REQ-SF-003).
     public: false

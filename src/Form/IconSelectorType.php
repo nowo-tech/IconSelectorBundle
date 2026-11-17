@@ -10,6 +10,7 @@ use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use Nowo\IconSelectorBundle\Service\IconCatalogInterface;
 use Nowo\IconSelectorBundle\Service\IconSource;
 use Nowo\IconSelectorBundle\Service\SvgSanitizerInterface;
+use Nowo\IconSelectorBundle\Service\WidgetTheme;
 use Symfony\Component\Asset\Packages;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\ChoiceList\ChoiceList;
@@ -68,6 +69,24 @@ final class IconSelectorType extends AbstractType
     /** Bundle stylesheet (built next to icon-selector.js); linked by the form themes when include_stylesheet is true. */
     private const STYLESHEET = 'icon-selector.css';
 
+    /** Translation domain of the picker's own texts (placeholder, search box, empty list, filters, emoji tab). */
+    public const TRANSLATION_DOMAIN = 'NowoIconSelectorBundle';
+
+    /** Default keys of the placeholder options: kept in the bundle domain whatever the field's translation_domain. */
+    private const DEFAULT_PLACEHOLDER        = 'placeholder';
+    private const DEFAULT_SEARCH_PLACEHOLDER = 'search_placeholder';
+
+    /** English texts used when no translator is available (same as the en catalogue). */
+    private const FALLBACK_TEXTS = [
+        'placeholder'        => 'Choose icon...',
+        'search_placeholder' => 'Search icons...',
+        'no_icons'           => 'No icons available.',
+        'filter.all'         => 'All',
+        'filter.category'    => 'Category:',
+        'filter.sets'        => 'Icon sets',
+        'filter.categories'  => 'Categories',
+    ];
+
     /** Request attribute holding the per-request CSP nonce (nowo-tech HttpHardening convention). */
     private const CSP_NONCE_ATTRIBUTE = 'csp_nonce';
 
@@ -86,6 +105,8 @@ final class IconSelectorType extends AbstractType
      *                                      nelmio_security.csp_listener); asked only when $stylesheetNonce is true and
      *                                      the request carries no "csp_nonce" attribute
      * @param bool $stylesheetNonce Opt-in (stylesheet_nonce): add a CSP nonce to the stylesheet <link>
+     * @param string $theme 1.8: resolved widget look ("uikit" or "bootstrap", see {@see WidgetTheme}); a field's "theme"
+     *                      option overrides it
      */
     public function __construct(
         private readonly IconCatalogInterface $iconListProvider,
@@ -103,6 +124,7 @@ final class IconSelectorType extends AbstractType
         private readonly ?RequestStack $requestStack = null,
         private readonly ?object $cspNonceProvider = null,
         private readonly bool $stylesheetNonce = false,
+        private readonly string $theme = 'bootstrap',
     ) {
     }
 
@@ -118,6 +140,9 @@ final class IconSelectorType extends AbstractType
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
         $view->vars['attr'] ??= [];
+        // The field's own domain as FormType resolved it (null option = the parent form's domain): only the texts the
+        // host passes (a custom placeholder) are translated there; the picker's own texts use the bundle domain.
+        $hostDomain    = $view->vars['translation_domain'] ?? $options['translation_domain'];
         $effectiveSets = $options['icon_sets'] ?? $this->iconSets;
         $iconsRaw      = is_array($options['icons']) && $options['icons'] !== [] ? $options['icons'] : $this->iconListProvider->getIconsForSets($effectiveSets);
         /** @var list<string>|null $prefixes */
@@ -148,6 +173,25 @@ final class IconSelectorType extends AbstractType
         $view->vars['attr']['data-icon-selector-debug-value']      = $this->debug ? '1' : '0';
         $view->vars['stylesheet_url']                              = $this->includeStylesheet ? $this->stylesheetUrl() : null;
         $view->vars['stylesheet_nonce']                            = $this->includeStylesheet ? $this->styleNonce() : null;
+        $theme                                                     = $this->resolveTheme($options['theme'] ?? null);
+        $view->vars['icon_selector_theme']                         = $theme->value;
+        $view->vars['attr']['data-icon-selector-theme-value']      = $theme->value;
+        $view->vars['placeholder_text']                            = $this->hostText($options['placeholder'] ?? null, self::DEFAULT_PLACEHOLDER, $hostDomain);
+        $view->vars['search_placeholder_text']                     = $this->hostText($options['search_placeholder'] ?? null, self::DEFAULT_SEARCH_PLACEHOLDER, $hostDomain);
+        $view->vars['empty_text']                                  = $this->ownText('no_icons');
+        // Every form theme renders `attributes`, so the browser widgets get their texts from here (never English
+        // defaults, never a raw key).
+        $view->vars['attr']['data-icon-selector-search-placeholder'] = $view->vars['search_placeholder_text'];
+        $view->vars['attr']['data-icon-selector-empty-text']         = $view->vars['empty_text'];
+        $view->vars['attr']['data-icon-selector-labels']             = json_encode([
+            'placeholder'        => $view->vars['placeholder_text'],
+            'search_placeholder' => $view->vars['search_placeholder_text'],
+            'empty'              => $view->vars['empty_text'],
+            'all'                => $this->ownText('filter.all'),
+            'category'           => $this->ownText('filter.category'),
+            'sets'               => $this->ownText('filter.sets'),
+            'categories'         => $this->ownText('filter.categories'),
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         if ($prefixes !== null) {
             // The browser widgets read the restriction from the attribute and from the config URL fragment (never sent).
             $view->vars['config_path'] .= '#prefixes=' . rawurlencode(implode(',', $prefixes));
@@ -171,7 +215,7 @@ final class IconSelectorType extends AbstractType
         if ($emoji) {
             $view->vars['attr']['data-icon-selector-emoji-value']     = '1';
             $view->vars['attr']['data-icon-selector-emoji-url-value'] = $options['emoji_data_url'] ?? $this->emojiDataUrl;
-            $view->vars['attr']['data-icon-selector-emoji-labels']    = $this->emojiLabels($options['translation_domain']);
+            $view->vars['attr']['data-icon-selector-emoji-labels']    = $this->emojiLabels();
             $grapheme                                                 = IconValue::emojiOf($currentValue);
             if ($grapheme !== null && $this->emojiCatalog->isValid($grapheme)) {
                 $view->vars['emoji_value'] = $grapheme;
@@ -270,37 +314,78 @@ final class IconSelectorType extends AbstractType
 
     /**
      * JSON object with the translated emoji picker labels (the frontend falls back to English per missing key).
-     *
-     * @param mixed $translationDomain Field translation domain option
+     * 1.8: always the bundle domain (the picker's own texts), whatever the field's translation_domain.
      */
-    private function emojiLabels(mixed $translationDomain): string
+    private function emojiLabels(): string
     {
         if (!$this->translator instanceof TranslatorInterface) {
             return '{}';
         }
-        $domain = is_string($translationDomain) ? $translationDomain : 'NowoIconSelectorBundle';
         $labels = [];
         foreach (self::EMOJI_LABEL_KEYS as $key => $id) {
-            $labels[$key] = $this->translateWithFallback($id, $domain);
+            $labels[$key] = $this->translateOwn($id);
         }
-        $labels['tones'] = array_map(fn (string $id): string => $this->translateWithFallback($id, $domain), self::EMOJI_TONE_KEYS);
+        $labels['tones'] = array_map($this->translateOwn(...), self::EMOJI_TONE_KEYS);
 
         return json_encode($labels, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }
 
     /**
-     * Translates $id in $domain, then in the bundle domain; returns '' when untranslated (frontend default wins).
+     * Translates $id in the bundle domain; returns '' when untranslated (frontend default wins).
      */
-    private function translateWithFallback(string $id, string $domain): string
+    private function translateOwn(string $id): string
     {
-        foreach (array_unique([$domain, 'NowoIconSelectorBundle']) as $d) {
-            $text = $this->translator?->trans($id, [], $d) ?? $id;
-            if ($text !== $id) {
-                return $text;
-            }
+        $text = $this->translator?->trans($id, [], self::TRANSLATION_DOMAIN) ?? $id;
+
+        return $text !== $id ? $text : '';
+    }
+
+    /**
+     * One of the picker's own texts (bundle domain), with the English text when it is not translated.
+     *
+     * @param key-of<self::FALLBACK_TEXTS> $key Translation key
+     */
+    private function ownText(string $key): string
+    {
+        $text = $this->translateOwn($key);
+
+        return $text !== '' ? $text : self::FALLBACK_TEXTS[$key];
+    }
+
+    /**
+     * Text of a placeholder option: the bundle default key (or no value) is the picker's own text (bundle domain);
+     * a value passed by the host is translated in the field's domain (as Symfony does for labels), or printed as is
+     * with translation_domain false.
+     *
+     * @param mixed $value Option value (placeholder / search_placeholder)
+     * @param key-of<self::FALLBACK_TEXTS> $defaultKey Bundle key of that option
+     * @param mixed $domain Field translation domain (false = no translation, null = default domain)
+     */
+    private function hostText(mixed $value, string $defaultKey, mixed $domain): string
+    {
+        if (!is_string($value) || $value === '' || $value === $defaultKey) {
+            return $this->ownText($defaultKey);
+        }
+        if ($domain === false || !$this->translator instanceof TranslatorInterface) {
+            return $value;
         }
 
-        return '';
+        return $this->translator->trans($value, [], is_string($domain) ? $domain : null);
+    }
+
+    /**
+     * Concrete look of this field: its "theme" option ("auto" or null = the configured theme).
+     *
+     * @param mixed $option Field option theme
+     */
+    private function resolveTheme(mixed $option): WidgetTheme
+    {
+        $theme = is_string($option) ? WidgetTheme::tryFrom($option) : null;
+        if ($theme === null || $theme === WidgetTheme::Auto) {
+            return WidgetTheme::tryFrom($this->theme) ?? WidgetTheme::Bootstrap;
+        }
+
+        return $theme;
     }
 
     /**
@@ -488,7 +573,10 @@ final class IconSelectorType extends AbstractType
             'emoji'                     => false,
             'emoji_data_url'            => null,
             'icon_prefixes'             => null,
+            'theme'                     => null,
         ]);
+        $resolver->setAllowedValues('theme', [null, WidgetTheme::Auto->value, WidgetTheme::UiKit->value, WidgetTheme::Bootstrap->value]);
+        $resolver->setInfo('theme', '1.8: look of this widget: "uikit" (UiKit design tokens, no Bootstrap classes), "bootstrap" (the 1.7 Bootstrap classes) or "auto"; null = the bundle configuration "theme".');
         $resolver->setAllowedTypes('icon_prefixes', ['null', 'string[]']);
         $resolver->setNormalizer('icon_prefixes', static function (Options $options, ?array $value): ?array {
             if ($value === null) {

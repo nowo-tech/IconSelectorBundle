@@ -476,7 +476,8 @@ describe('IconSelectorIconifyWidget fallback', () => {
     expect(trigger!.getAttribute('data-icon-selector-state')).toBe('empty');
     trigger!.click();
     const panel = picker.querySelector<HTMLElement>('.icon-selector-panel')!;
-    expect(panel.style.display).toBe('block');
+    expect(panel.hidden).toBe(false);
+    expect(trigger!.getAttribute('aria-expanded')).toBe('true');
     const empty = panel.querySelector('[role="status"]');
     expect(empty?.textContent).toBe('Sin iconos');
     expect(panel.querySelectorAll('.icon-selector-item')).toHaveLength(0);

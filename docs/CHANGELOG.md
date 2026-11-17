@@ -47,6 +47,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+Target: 1.8.0 (Beacon / WikiBundle feedback on the page icon picker).
+
+### Added
+
+- **`theme` option** (bundle configuration and per field): `uikit` draws the picker from the UiKit design tokens
+  (`--nowo-ui-surface`, `--nowo-ui-text`, `--nowo-ui-muted`, `--nowo-ui-border`, `--nowo-ui-primary`, `--nowo-ui-radius`
+  ...) with CSS system colours (`Canvas`, `CanvasText`, `GrayText`) as fallbacks and no Bootstrap class; `bootstrap`
+  keeps the 1.7 markup; `auto` (default) is `uikit` when `NowoUiKitBundle` is registered, else `bootstrap`. The UiKit
+  theme follows dark mode through `prefers-color-scheme` and UiKit's `data-theme="dark|light"`. The widget carries
+  `data-icon-selector-theme-value`; every part has a semantic `icon-selector-*` class and `--icon-selector-*` custom
+  properties hosts can override.
+- **Neutral picker class** `icon-selector-picker-widget` on the set-up picker of both widgets, whatever the icon
+  source; `icon-selector-iconify-widget` and `icon-selector-widget-dropdown` stay as aliases for host CSS.
+- **Translated filter texts**: "All", "Category:", and the accessible names of the set / category button groups
+  (`filter.*` keys, 7 locales) instead of hard-coded English; the server passes every picker text to the browser in
+  `data-icon-selector-labels`.
+- Trigger `aria-haspopup` / `aria-expanded`, icon buttons `aria-pressed` and an accessible name, Escape closes the panel
+  and gives the focus back to the trigger; the panel search box has an accessible name.
+
+### Fixed
+
+- **Raw translation keys with a host `translation_domain`** (Beacon, WikiIconPickerType): the trigger, the search box,
+  the loading skeleton and the emoji labels were looked up in the field's domain and showed `search_placeholder`. The
+  picker's own texts now always come from `NowoIconSelectorBundle`; only a `placeholder` / `search_placeholder` the host
+  passes (a value other than the bundle key) is translated in the field's domain (or printed as is with
+  `translation_domain: false`). The texts are resolved in `IconSelectorType`, so every shipped form theme gets them.
+- **A submit while the picker loads was lost** (Beacon: the page form's Save button sits outside the `<form>` and names
+  it with `form="…"`): the form guard disabled only the buttons inside the form and silently cancelled any other
+  submit. It now disables every button of the form (`form.elements`, including outer ones), holds a submit made
+  meanwhile and sends it again with the same submitter once the widget is ready; a widget whose set-up fails, or that
+  is not ready after 10 s, no longer holds the form.
+- **Search results overwritten by the first page of icons**: when the search box was used before the first SVG batch
+  arrived, the older render could replace the filtered grid; each render now discards results of an older one.
+- **No inline styles at all**: the widgets no longer set `element.style` (panel position and visibility, icon box
+  sizes, emoji tab colours, emoji grid layout); everything is in `icon-selector.css` and the state is carried by the
+  `hidden`, `aria-selected` and `aria-pressed` attributes. The JavaScript no longer contains Bootstrap fallback colours
+  (`#ced4da`, `#6c757d`).
+- The icon trigger shows the placeholder (not `emoji:…`) when the stored value is an emoji.
+
+### Changed
+
+- The trigger of the grid / search picker shows the `placeholder` text ("Choose icon...") instead of the search
+  placeholder when nothing is selected.
+- The loading spinner uses `currentColor` instead of fixed grey borders.
+
 ## [1.7.0] - 2026-11-17
 
 ### Added

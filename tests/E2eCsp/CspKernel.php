@@ -22,7 +22,7 @@ use Symfony\UX\Icons\UXIconsBundle;
 use Twig\Environment;
 
 use function base64_encode;
-use function dirname;
+use function in_array;
 use function is_string;
 use function random_bytes;
 use function sprintf;
@@ -32,9 +32,10 @@ use function sys_get_temp_dir;
  * Minimal host app for the strict-CSP browser test (tests/E2eCsp/playwright).
  *
  * The kernel environment is the scenario under test: "bundle" (source: bundle), "local" (source: ux_icons_local,
- * icons from tests/Fixtures/ux-icons through ux_icons.icon_dir) or "bs5" (ux_icons_local with the Bootstrap 5 form
- * theme, emoji: true and icon_prefixes). Every route lives under /<environment>/ so one
- * `php -S` process serves both. Each HTML response carries a nonce-only Content-Security-Policy; the nonce is a
+ * icons from tests/Fixtures/ux-icons through ux_icons.icon_dir), "bs5" (ux_icons_local with the Bootstrap 5 form
+ * theme, emoji: true and icon_prefixes) or "uikit" (1.8: ux_icons_local, theme uikit, emoji: true, a host
+ * translation_domain on the fields as WikiIconPickerType has, and the Save button outside the form). Every route
+ * lives under /<environment>/ so one `php -S` process serves them all. Each HTML response carries a nonce-only Content-Security-Policy; the nonce is a
  * request attribute (no state on the kernel or on services). UX Icons on-demand Iconify fetching is disabled, so
  * neither the browser nor the server talks to a third party.
  */
@@ -42,7 +43,7 @@ final class CspKernel extends Kernel implements EventSubscriberInterface
 {
     use MicroKernelTrait;
 
-    public const ENVIRONMENTS = ['bundle', 'local', 'bs5'];
+    public const ENVIRONMENTS = ['bundle', 'local', 'bs5', 'uikit'];
 
     private const NONCE_ATTRIBUTE = '_e2e_csp_nonce';
 
@@ -106,7 +107,12 @@ final class CspKernel extends Kernel implements EventSubscriberInterface
         $twig = $this->getContainer()->get('e2e.twig');
 
         $builder = $formFactory->createNamedBuilder('icons');
-        if ($this->environment === 'bs5') {
+        if ($this->environment === 'uikit') {
+            // The Wiki situation: the field's translation_domain is the host's, which has none of the picker's keys.
+            $builder
+                ->add('direct', IconSelectorType::class, ['mode' => IconSelectorType::MODE_DIRECT, 'required' => false, 'translation_domain' => 'HostForm'])
+                ->add('search', IconSelectorType::class, ['mode' => IconSelectorType::MODE_SEARCH, 'required' => false, 'emoji' => true, 'translation_domain' => 'HostForm']);
+        } elseif ($this->environment === 'bs5') {
             $builder
                 ->add('direct', IconSelectorType::class, ['mode' => IconSelectorType::MODE_DIRECT, 'required' => false, 'emoji' => true, 'icon_prefixes' => ['tabler']])
                 ->add('search', IconSelectorType::class, ['mode' => IconSelectorType::MODE_SEARCH, 'required' => false, 'icon_prefixes' => ['bi']]);
@@ -129,6 +135,9 @@ final class CspKernel extends Kernel implements EventSubscriberInterface
             'nonce'  => $nonce,
             'source' => $this->environment,
             'saved'  => $saved,
+            // 1.8 dark-mode checks: <html data-theme> (UiKit's switch) and an optional UiKit-like token stylesheet.
+            'data_theme' => in_array($request->query->get('theme'), ['dark', 'light'], true) ? $request->query->get('theme') : null,
+            'tokens'     => $request->query->getBoolean('tokens'),
         ]));
     }
 
@@ -148,7 +157,7 @@ final class CspKernel extends Kernel implements EventSubscriberInterface
         $bootstrap = $this->environment === 'bs5';
         $container->extension('twig', ['default_path' => __DIR__ . '/templates', 'form_themes' => [$bootstrap ? 'bootstrap_5_layout.html.twig' : 'form_div_layout.html.twig']]);
         $container->extension('ux_icons', [
-            'icon_dir' => dirname(__DIR__) . '/Fixtures/ux-icons',
+            'icon_dir' => __DIR__ . '/../Fixtures/ux-icons',
             'iconify'  => ['enabled' => false],
         ]);
         $container->extension('nowo_icon_selector', [
@@ -156,6 +165,8 @@ final class CspKernel extends Kernel implements EventSubscriberInterface
             'source'         => $this->environment === 'bundle' ? 'bundle' : 'ux_icons_local',
             'icons_api_path' => '/' . $this->environment . '/api/icon-selector/icons',
             'form_theme'     => $bootstrap ? 'bootstrap_5_layout.html.twig' : 'form_div_layout.html.twig',
+            // No UiKit in this kernel, so "auto" would be bootstrap: the uikit scenario sets it.
+            'theme' => $this->environment === 'uikit' ? 'uikit' : 'auto',
         ]);
         $services = $container->services();
         $services->alias('e2e.form_factory', 'form.factory')->public();
@@ -165,6 +176,6 @@ final class CspKernel extends Kernel implements EventSubscriberInterface
     private function configureRoutes(RoutingConfigurator $routes): void
     {
         $routes->import('@NowoIconSelectorBundle/Resources/config/routes.yaml')->prefix('/' . $this->environment);
-        $routes->add('e2e_form', '/' . $this->environment . '/form')->controller([$this, 'formAction'])->methods(['GET', 'POST']);
+        $routes->add('e2e_form', '/' . $this->environment . '/form')->controller($this->formAction(...))->methods(['GET', 'POST']);
     }
 }

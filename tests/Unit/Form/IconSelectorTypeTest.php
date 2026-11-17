@@ -605,6 +605,90 @@ final class IconSelectorTypeTest extends TestCase
         self::assertNull($custom->vars['emoji_value']);
     }
 
+    /**
+     * 1.8 (Beacon / WikiBundle): the picker's own texts always come from the bundle domain, whatever the field's
+     * translation_domain; a placeholder passed by the host is translated in the field's domain.
+     */
+    public function testOwnTextsUseTheBundleDomainAndHostTextsTheFieldDomain(): void
+    {
+        $translator = new class implements TranslatorInterface {
+            /** @var list<string> */
+            public array $calls = [];
+
+            /**
+             * @param array<string, mixed> $parameters
+             */
+            public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
+            {
+                $this->calls[] = ($domain ?? 'messages') . ':' . $id;
+                $catalogue     = [
+                    'NowoIconSelectorBundle' => [
+                        'placeholder'        => 'Elegir icono...',
+                        'search_placeholder' => 'Buscar iconos...',
+                        'no_icons'           => 'No hay iconos disponibles.',
+                        'filter.all'         => 'Todos',
+                        'filter.category'    => 'Categoría:',
+                        'filter.sets'        => 'Conjuntos de iconos',
+                        'filter.categories'  => 'Categorías',
+                        'emoji.tab_emoji'    => 'Emoji',
+                    ],
+                    'HostDomain' => ['host.pick' => 'Elige un icono de página'],
+                ];
+
+                return $catalogue[$domain ?? 'messages'][$id] ?? $id;
+            }
+
+            public function getLocale(): string
+            {
+                return 'es';
+            }
+        };
+        $factory = $this->createEmojiFormFactory($translator);
+
+        $view = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'mode' => 'search', 'emoji' => true, 'translation_domain' => 'HostDomain'])->createView();
+        self::assertSame('Elegir icono...', $view->vars['placeholder_text']);
+        self::assertSame('Buscar iconos...', $view->vars['search_placeholder_text']);
+        self::assertSame('Buscar iconos...', $view->vars['attr']['data-icon-selector-search-placeholder']);
+        self::assertSame('No hay iconos disponibles.', $view->vars['attr']['data-icon-selector-empty-text']);
+        $labels = json_decode($view->vars['attr']['data-icon-selector-labels'], true);
+        self::assertSame([
+            'placeholder'        => 'Elegir icono...',
+            'search_placeholder' => 'Buscar iconos...',
+            'empty'              => 'No hay iconos disponibles.',
+            'all'                => 'Todos',
+            'category'           => 'Categoría:',
+            'sets'               => 'Conjuntos de iconos',
+            'categories'         => 'Categorías',
+        ], $labels);
+        $emoji = json_decode($view->vars['attr']['data-icon-selector-emoji-labels'], true);
+        self::assertIsArray($emoji);
+        self::assertSame('Emoji', $emoji['tab_emoji']);
+        foreach ($translator->calls as $call) {
+            self::assertStringStartsNotWith('HostDomain:emoji.', $call, 'Emoji labels are looked up in the bundle domain only.');
+            self::assertNotSame('HostDomain:search_placeholder', $call);
+        }
+
+        $host = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'translation_domain' => 'HostDomain', 'search_placeholder' => 'host.pick', 'placeholder' => 'host.pick'])->createView();
+        self::assertSame('Elige un icono de página', $host->vars['search_placeholder_text']);
+        self::assertSame('Elige un icono de página', $host->vars['placeholder_text']);
+
+        $raw = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'translation_domain' => false, 'search_placeholder' => 'Literal text'])->createView();
+        self::assertSame('Literal text', $raw->vars['search_placeholder_text']);
+    }
+
+    public function testThemeOptionOverridesTheConfiguredTheme(): void
+    {
+        $factory = $this->createEmojiFormFactory();
+        self::assertSame('bootstrap', $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons']])->createView()->vars['icon_selector_theme']);
+        $uikit = $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'theme' => 'uikit'])->createView();
+        self::assertSame('uikit', $uikit->vars['icon_selector_theme']);
+        self::assertSame('uikit', $uikit->vars['attr']['data-icon-selector-theme-value']);
+        self::assertSame('bootstrap', $factory->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'theme' => 'auto'])->createView()->vars['icon_selector_theme']);
+
+        $this->expectException(InvalidOptionsException::class);
+        $factory->create(IconSelectorType::class, null, ['theme' => 'material']);
+    }
+
     public function testEmojiLabelsAreEmptyWithoutTranslator(): void
     {
         $view = $this->createEmojiFormFactory()->create(IconSelectorType::class, null, ['icon_sets' => ['heroicons'], 'emoji' => true])->createView();

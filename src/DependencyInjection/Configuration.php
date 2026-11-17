@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\IconSelectorBundle\DependencyInjection;
 
 use Nowo\IconSelectorBundle\Service\IconSource;
+use Nowo\IconSelectorBundle\Service\WidgetTheme;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -22,7 +23,7 @@ final class Configuration implements ConfigurationInterface
     public const ALIAS = 'nowo_icon_selector';
 
     /**
-     * Builds the configuration tree (icon_sets, use_iconify_collection, source, ux_icons_dir, include_stylesheet, icons_api_path, form_theme, ...).
+     * Builds the configuration tree (icon_sets, use_iconify_collection, source, ux_icons_dir, include_stylesheet, icons_api_path, form_theme, theme, ...).
      *
      * @return TreeBuilder Configuration tree builder
      */
@@ -71,6 +72,11 @@ final class Configuration implements ConfigurationInterface
                 ->scalarNode('form_theme')
                     ->info('Base form layout so the icon selector theme matches your app (e.g. form_div_layout.html.twig, bootstrap_5_layout.html.twig). Must match twig.form_themes.')
                     ->defaultValue('form_div_layout.html.twig')
+                ->end()
+                ->enumNode('theme')
+                    ->info('1.8: look of the picker widget. "uikit": neutral markup styled from the UiKit design tokens (--nowo-ui-*, CSS system colours as fallbacks; follows prefers-color-scheme and UiKit data-theme), no Bootstrap classes. "bootstrap": the Bootstrap utility classes of 1.7 (unchanged). "auto" (default): "uikit" when NowoUiKitBundle is registered, else "bootstrap". A field can override it with its "theme" option.')
+                    ->values([WidgetTheme::Auto->value, WidgetTheme::UiKit->value, WidgetTheme::Bootstrap->value])
+                    ->defaultValue(WidgetTheme::Auto->value)
                 ->end()
                 ->scalarNode('emoji_data_url')
                     ->info('URL of the bundled emoji dataset used by the picker when a field sets emoji: true. Null = /bundles/nowoiconselector/emoji-data.json?v=<emoji version> (after assets:install).')
