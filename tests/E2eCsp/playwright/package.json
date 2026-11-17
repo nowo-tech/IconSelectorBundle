@@ -1,0 +1,12 @@
+{
+  "name": "nowo-icon-selector-e2e-csp",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Strict CSP browser test for IconSelectorBundle: nonce-only policy, zero violations, zero third-party requests",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
+  }
+}

@@ -369,6 +369,7 @@ describe('fetchIconifyIconsBatch', () => {
 /** Iconify mode must survive a failing Iconify collection API (429, network error, CORS). */
 describe('IconSelectorIconifyWidget fallback', () => {
   const config = {
+    source: 'iconify',
     iconify_base: 'https://api.iconify.design',
     sets: [{ key: 'heroicons', label: 'Heroicons', prefixes: ['heroicons-outline'] }],
   };
@@ -581,5 +582,145 @@ describe('Tom Select initial value (audit RO-2)', () => {
     expect(lib.withStoredEmojiOption(base, 'emoji:')).toBe(base);
     const withEmoji = [{ value: 'emoji:🚀', text: '🚀', svg: '' }];
     expect(lib.withStoredEmojiOption(withEmoji, 'emoji:🚀')).toBe(withEmoji);
+  });
+});
+
+/**
+ * Strict CSP / privacy (Beacon report): with source bundle or ux_icons_local the browser must never contact
+ * api.iconify.design or any other third party; only same-origin bundle endpoints are fetched.
+ */
+describe('same-origin icon sources', () => {
+  const sets = [{ key: 'tabler', label: 'Tabler', prefixes: ['tabler'] }];
+  const json = (body: unknown, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => body });
+
+  /** Records every fetched URL; answers the bundle endpoints, rejects anything else. */
+  function stubFetch(config: unknown): string[] {
+    const urls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        urls.push(String(url));
+        if (String(url).startsWith('/api/icon-selector/config')) return json(config);
+        if (String(url).startsWith('/api/icon-selector/icons/svg')) {
+          // UX Icons renders local icons without xmlns.
+          return json({ 'tabler:home': '<svg viewBox="0 0 24 24" class="icon-selector-svg"><path d="M1 1h22v22H1z"/></svg>' });
+        }
+        if (String(url).startsWith('/api/icon-selector/icons')) return json({ icons_by_set: { tabler: ['tabler:home', 'tabler:star'] } });
+        return Promise.reject(new TypeError('blocked by test: ' + String(url)));
+      }),
+    );
+    return urls;
+  }
+
+  function setup(): { container: HTMLElement; input: HTMLInputElement; picker: HTMLElement } {
+    const container = document.createElement('div');
+    container.setAttribute('data-controller', 'icon-selector');
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    const picker = document.createElement('div');
+    container.append(input, picker);
+    document.body.appendChild(container);
+    return { container, input, picker };
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.innerHTML = '';
+  });
+
+  it('withSvgNamespace adds xmlns only to a root svg without it', async () => {
+    const lib = await import('./icon-selector-lib');
+    expect(lib.withSvgNamespace('<svg viewBox="0 0 1 1"></svg>')).toBe('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"></svg>');
+    expect(lib.withSvgNamespace('<svg xmlns="http://www.w3.org/2000/svg"></svg>')).toBe('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+    expect(lib.withSvgNamespace('<div></div>')).toBe('<div></div>');
+  });
+
+  it('usesBrowserIconify only accepts source iconify with a base URL', async () => {
+    const lib = await import('./icon-selector-lib');
+    expect(lib.usesBrowserIconify({ source: 'iconify', iconify_base: 'https://api.iconify.design', sets })).toBe(true);
+    expect(lib.usesBrowserIconify({ source: 'iconify', iconify_base: '', sets })).toBe(false);
+    expect(lib.usesBrowserIconify({ source: 'iconify', iconify_base: null, sets })).toBe(false);
+    expect(lib.usesBrowserIconify({ source: 'bundle', iconify_base: 'https://api.iconify.design', sets })).toBe(false);
+    expect(lib.usesBrowserIconify({ source: 'ux_icons_local', iconify_base: null, sets })).toBe(false);
+    // A 1.6-shaped config (no source) never enables third-party requests.
+    expect(lib.usesBrowserIconify({ iconify_base: 'https://api.iconify.design', sets })).toBe(false);
+    expect(lib.usesBrowserIconify(null)).toBe(false);
+    expect(lib.usesBrowserIconify(undefined)).toBe(false);
+  });
+
+  for (const source of ['bundle', 'ux_icons_local']) {
+    it(`grid widget with source ${source} only fetches same-origin bundle endpoints`, async () => {
+      const urls = stubFetch({ source, iconify_base: null, sets, debug: false });
+      const { container, input, picker } = setup();
+      input.value = 'tabler:home';
+      const onReady = vi.fn();
+
+      new IconSelectorIconifyWidget(container, input, picker, '/api/icon-selector/config', undefined, onReady, '/api/icon-selector/icons');
+
+      await vi.waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
+      picker.querySelector<HTMLElement>('.icon-selector-trigger')!.click();
+      await vi.waitFor(() => {
+        const items = picker.querySelectorAll<HTMLElement>('.icon-selector-item');
+        expect(Array.from(items).map((b) => b.dataset.iconId)).toEqual(['tabler:home', 'tabler:star']);
+        expect(items[0].innerHTML).toContain('M1 1h22v22H1z');
+      });
+      expect(urls.length).toBeGreaterThan(0);
+      for (const url of urls) {
+        expect(url.startsWith('/api/icon-selector/')).toBe(true);
+      }
+      expect(urls.some((u) => u.includes('/collection'))).toBe(false);
+    });
+  }
+
+  it('ignores an Iconify base URL when the config has no source (host provider written for 1.6)', async () => {
+    const urls = stubFetch({ iconify_base: 'https://api.iconify.design', sets });
+    const { container, input, picker } = setup();
+    const onReady = vi.fn();
+
+    new IconSelectorIconifyWidget(container, input, picker, '/api/icon-selector/config', undefined, onReady, '/api/icon-selector/icons');
+
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
+    expect(urls.every((u) => u.startsWith('/api/icon-selector/'))).toBe(true);
+  });
+
+  it('search and SVG helpers never call Iconify with a same-origin source', async () => {
+    const lib = await import('./icon-selector-lib');
+    const urls = stubFetch({ source: 'bundle', iconify_base: null, sets });
+    expect(await lib.fetchIconifySearch('/api/icon-selector/config', 'home')).toEqual([]);
+    expect(await lib.fetchIconifySvgsForIds('/api/icon-selector/config', ['tabler:home'])).toEqual({});
+    expect(urls.every((u) => u.startsWith('/api/icon-selector/config'))).toBe(true);
+  });
+
+  it('tom_select with a same-origin source uses the bundle list, not the Iconify on-demand search', async () => {
+    const urls = stubFetch({ source: 'ux_icons_local', iconify_base: null, sets });
+    const select = document.createElement('select');
+    document.body.appendChild(select);
+    const lib = await import('./icon-selector-lib');
+
+    await lib.initTomSelect(select, '/api/icon-selector/icons', null, '/api/icon-selector/config');
+
+    expect(urls).toContain('/api/icon-selector/icons');
+    expect(urls.every((u) => u.startsWith('/api/icon-selector/'))).toBe(true);
+  });
+
+  it('Tom Select option markup carries no style attribute (strict CSP)', async () => {
+    const lib = await import('./icon-selector-lib');
+    const TomSelect = (await import('tom-select')).default as unknown as ReturnType<typeof vi.fn>;
+    TomSelect.mockClear();
+    stubFetch({ source: 'bundle', iconify_base: null, sets });
+    const select = document.createElement('select');
+    document.body.appendChild(select);
+
+    await lib.initTomSelect(select, '/api/icon-selector/icons', null, '/api/icon-selector/config');
+
+    const options = TomSelect.mock.calls[0][1] as { render: { option: (d: unknown) => string; item: (d: unknown) => string } };
+    for (const html of [
+      options.render.option({ value: 'tabler:home', text: 'home', svg: '<svg></svg>' }),
+      options.render.option({ value: 'tabler:home', text: 'home', svg: '' }),
+      options.render.item({ value: 'tabler:home', text: 'home', svg: '<svg></svg>' }),
+      options.render.item({ value: 'tabler:home', text: 'home' }),
+    ]) {
+      expect(html).not.toMatch(/style=/);
+    }
   });
 });

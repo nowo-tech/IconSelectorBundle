@@ -19,12 +19,13 @@ final class IconConfigControllerTest extends TestCase
 {
     public function testReturnsConfigWithIconifyBaseAndSets(): void
     {
-        $provider   = new IconSelectorConfigProvider(['heroicons', 'bootstrap-icons']);
+        $provider   = new IconSelectorConfigProvider(['heroicons', 'bootstrap-icons'], false, 'iconify');
         $controller = new IconConfigController($provider);
         $response   = $controller->__invoke();
 
         self::assertSame(200, $response->getStatusCode());
         $data = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('iconify', $data['source']);
         self::assertSame('https://api.iconify.design', $data['iconify_base']);
         self::assertIsArray($data['sets']);
         self::assertCount(2, $data['sets']);
@@ -34,6 +35,17 @@ final class IconConfigControllerTest extends TestCase
         self::assertSame('bootstrap-icons', $data['sets'][1]['key']);
         self::assertSame('Bootstrap Icons', $data['sets'][1]['label']);
         self::assertSame(['bi'], $data['sets'][1]['prefixes']);
+    }
+
+    /** Default source (bundle): no third-party URL reaches the browser. */
+    public function testDefaultSourceServesNoIconifyBase(): void
+    {
+        $controller = new IconConfigController(new IconSelectorConfigProvider(['tabler']));
+        $data       = json_decode((string) $controller->__invoke()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertSame('bundle', $data['source']);
+        self::assertNull($data['iconify_base']);
+        self::assertStringNotContainsString('iconify.design', (string) $controller->__invoke()->getContent());
     }
 
     public function testReturnsEmptySetsWhenNoIconSetsConfigured(): void

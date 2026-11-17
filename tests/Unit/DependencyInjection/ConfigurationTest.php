@@ -6,6 +6,7 @@ namespace Nowo\IconSelectorBundle\Tests\Unit\DependencyInjection;
 
 use Nowo\IconSelectorBundle\DependencyInjection\Configuration;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
 /**
@@ -58,5 +59,29 @@ final class ConfigurationTest extends TestCase
         self::assertSame(['heroicons', 'tabler'], $config['icon_sets']);
         self::assertSame('/custom/icons', $config['icons_api_path']);
         self::assertSame('bootstrap_5_layout.html.twig', $config['form_theme']);
+    }
+
+    public function testSourceDefaultsAndValues(): void
+    {
+        $processor = new Processor();
+        $defaults  = $processor->processConfiguration(new Configuration(), []);
+        self::assertNull($defaults['source']);
+        self::assertNull($defaults['ux_icons_dir']);
+        self::assertTrue($defaults['include_stylesheet']);
+
+        $config = $processor->processConfiguration(new Configuration(), [[
+            'source'             => 'ux_icons_local',
+            'ux_icons_dir'       => '/srv/icons',
+            'include_stylesheet' => false,
+        ]]);
+        self::assertSame('ux_icons_local', $config['source']);
+        self::assertSame('/srv/icons', $config['ux_icons_dir']);
+        self::assertFalse($config['include_stylesheet']);
+    }
+
+    public function testUnknownSourceIsRejected(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        (new Processor())->processConfiguration(new Configuration(), [['source' => 'cdn']]);
     }
 }

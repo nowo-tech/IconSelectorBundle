@@ -8,7 +8,9 @@ use Nowo\IconSelectorBundle\Emoji\EmojiCatalogInterface;
 use Nowo\IconSelectorBundle\Emoji\IconValue;
 use Nowo\IconSelectorBundle\Form\ChoiceLoader\IconChoiceLoader;
 use Nowo\IconSelectorBundle\Service\IconCatalogInterface;
+use Nowo\IconSelectorBundle\Service\IconSource;
 use Nowo\IconSelectorBundle\Service\SvgSanitizerInterface;
+use Symfony\Component\Asset\Packages;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\ChoiceList\ChoiceList;
 use Symfony\Component\Form\ChoiceList\Loader\ChoiceLoaderInterface;
@@ -61,6 +63,9 @@ final class IconSelectorType extends AbstractType
     public const MODE_SEARCH     = 'search';
     public const MODE_TOM_SELECT = 'tom_select';
 
+    /** Bundle stylesheet (built next to icon-selector.js); linked by the form themes when include_stylesheet is true. */
+    private const STYLESHEET = 'icon-selector.css';
+
     /**
      * @param list<string> $iconSets Enabled icon set names from config (used when icon_sets option is null)
      * @param IconRendererInterface|null $iconRenderer Optional renderer to verify submitted icon IDs exist (e.g. via Iconify)
@@ -68,6 +73,9 @@ final class IconSelectorType extends AbstractType
      * @param EmojiCatalogInterface|null $emojiCatalog Emoji catalogue used when a field enables the emoji option
      * @param string $emojiDataUrl Default URL of the bundled emoji dataset (JSON) for the picker
      * @param TranslatorInterface|null $translator Translates the emoji picker labels passed to the frontend
+     * @param string $source Effective icon source (see {@see IconSource}); with ux_icons_local only listed icons are accepted
+     * @param bool $includeStylesheet When true, the theme links the bundle stylesheet next to the widget
+     * @param Packages|null $packages Asset packages (symfony/asset) used to build the stylesheet URL; null = fixed bundle path
      */
     public function __construct(
         private readonly IconCatalogInterface $iconListProvider,
@@ -79,6 +87,9 @@ final class IconSelectorType extends AbstractType
         private readonly ?EmojiCatalogInterface $emojiCatalog = null,
         private readonly string $emojiDataUrl = '/bundles/nowoiconselector/emoji-data.json',
         private readonly ?TranslatorInterface $translator = null,
+        private readonly string $source = 'bundle',
+        private readonly bool $includeStylesheet = true,
+        private readonly ?Packages $packages = null,
     ) {
     }
 
@@ -122,6 +133,7 @@ final class IconSelectorType extends AbstractType
         $view->vars['attr']['data-icon-selector-icons-url-value']  = $iconsApiPath;
         $view->vars['attr']['data-icon-selector-config-url-value'] = $view->vars['config_path'];
         $view->vars['attr']['data-icon-selector-debug-value']      = $this->debug ? '1' : '0';
+        $view->vars['stylesheet_url']                              = $this->includeStylesheet ? $this->stylesheetUrl() : null;
         if ($prefixes !== null) {
             // The browser widgets read the restriction from the attribute and from the config URL fragment (never sent).
             $view->vars['config_path'] .= '#prefixes=' . rawurlencode(implode(',', $prefixes));
@@ -147,6 +159,25 @@ final class IconSelectorType extends AbstractType
                 $view->vars['emoji_name']  = $this->emojiCatalog->getName($grapheme);
             }
         }
+    }
+
+    /**
+     * URL of the bundle stylesheet: through the nowo_icon_selector asset package when symfony/asset is available
+     * (keeps the host base path and versioning), else the public bundle path after assets:install.
+     *
+     * @return string Stylesheet URL
+     */
+    private function stylesheetUrl(): string
+    {
+        if ($this->packages instanceof Packages) {
+            try {
+                return $this->packages->getUrl(self::STYLESHEET, 'nowo_icon_selector');
+            } catch (Throwable) {
+                // Package not registered (framework assets disabled): fall back to the fixed bundle path.
+            }
+        }
+
+        return '/bundles/nowoiconselector/' . self::STYLESHEET;
     }
 
     /**
@@ -271,10 +302,8 @@ final class IconSelectorType extends AbstractType
             $label = $choices[$id];
             $svg   = '';
             try {
-                $raw = $this->iconRenderer->renderIcon($id, [
-                    'class' => 'icon-selector-svg',
-                    'style' => 'width:1.25rem;height:1.25rem;fill:currentColor;',
-                ]);
+                // No style attribute (strict CSP); the sanitizer always dropped it, so the rendered icon is unchanged.
+                $raw = $this->iconRenderer->renderIcon($id, ['class' => 'icon-selector-svg']);
                 $svg = $this->svgSanitizer?->sanitize($raw) ?? $raw;
             } catch (Throwable) {
                 $svg = '';
@@ -449,7 +478,14 @@ final class IconSelectorType extends AbstractType
 
         return ChoiceList::loader(
             $this,
-            new IconChoiceLoader($choices, $this->iconRenderer, $options['emoji'] ? $this->emojiCatalog : null, $options['icon_prefixes']),
+            new IconChoiceLoader(
+                $choices,
+                // ux_icons_local: only the listed (committed) icons are valid; never ask the renderer about other names.
+                IconSource::tryFrom($this->source) === IconSource::UxIconsLocal ? null : $this->iconRenderer,
+                $options['emoji'] ? $this->emojiCatalog : null,
+                $options['icon_prefixes'],
+                IconSource::tryFrom($this->source) === IconSource::UxIconsLocal,
+            ),
             [$options['icon_sets'] ?? $this->iconSets, hash('xxh128', serialize($choices)), (bool) $options['emoji'], $options['icon_prefixes']],
         );
     }

@@ -9,7 +9,14 @@ services:
       $iconSets: '%nowo_icon_selector.icon_sets%'
       $useIconifyCollection: '%nowo_icon_selector.use_iconify_collection%'
       $collectionLoader: '@?Nowo\IconSelectorBundle\Service\IconifyCollectionLoader'
+      $source: '%nowo_icon_selector.source%'
+      $localScanner: '@Nowo\IconSelectorBundle\Service\LocalUxIconsScanner'
     public: true
+
+  # Lists the SVG files under the UX Icons directory (source ux_icons_local). Stateless: reads the directory per call.
+  Nowo\IconSelectorBundle\Service\LocalUxIconsScanner:
+    arguments:
+      $iconDir: '%nowo_icon_selector.ux_icons_dir%'
 
   # Tagged twig.extension by autoconfigure (REQ-SF-003).
   Nowo\IconSelectorBundle\Twig\NowoIconSelectorTwigExtension: ~
@@ -18,6 +25,7 @@ services:
     arguments:
       $iconSets: '%nowo_icon_selector.icon_sets%'
       $debug: '%nowo_icon_selector.debug%'
+      $source: '%nowo_icon_selector.source%'
     public: true
 
   # Invokable API controllers: constructor arguments are autowired (REQ-SF-003); public for the route loader.
@@ -69,5 +77,8 @@ services:
       $emojiCatalog: '@Nowo\IconSelectorBundle\Emoji\EmojiCatalogInterface'
       $emojiDataUrl: '%nowo_icon_selector.emoji_data_url%'
       $translator: '@?translator'
+      $source: '%nowo_icon_selector.source%'
+      $includeStylesheet: '%nowo_icon_selector.include_stylesheet%'
+      $packages: '@?assets.packages'
     # Tagged form.type by autoconfigure (REQ-SF-003).
     public: false

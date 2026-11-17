@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>IconSelector strict CSP ({{ source }})</title>
+    {# No inline style anywhere on the page; the widget links its own stylesheet. #}
+    <script src="{{ asset('icon-selector.js', 'nowo_icon_selector') }}" nonce="{{ nonce }}" defer></script>
+</head>
+<body>
+    <h1>IconSelector strict CSP ({{ source }})</h1>
+    {% if saved is not null %}
+        <output id="saved">{{ saved|json_encode }}</output>
+    {% endif %}
+    {{ form_start(form) }}
+        {{ form_row(form.direct) }}
+        {{ form_row(form.search) }}
+        {{ form_row(form.tom) }}
+        <button type="submit">Save</button>
+    {{ form_end(form) }}
+</body>
+</html>

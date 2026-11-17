@@ -135,4 +135,15 @@ final class IconChoiceLoaderTest extends TestCase
 
         self::assertSame(['tabler:home'], array_values($loader->loadChoicesForValues(['tabler:home', 'bi:house'], static fn ($v) => $v)));
     }
+
+    /** Source ux_icons_local: only listed (committed) icons are accepted, even well-formed ids of the same prefix. */
+    public function testListedOnlyRefusesIdsOutsideTheList(): void
+    {
+        $loader = new IconChoiceLoader(['tabler:home' => 'home'], null, new EmojiCatalog(), ['tabler'], true);
+
+        self::assertSame(
+            ['tabler:home', 'emoji:🚀'],
+            array_values($loader->loadChoicesForValues(['tabler:home', 'tabler:star', 'emoji:🚀'], static fn ($v) => $v)),
+        );
+    }
 }

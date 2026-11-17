@@ -1,5 +1,5 @@
 # Icon Selector Bundle - Development
-.PHONY: help up down down-dev build shell install test test-coverage coverage-php-percent coverage-check cs-check cs-fix qa clean assets assets-build assets-watch assets-test test-ts ensure-up rector rector-dry phpstan igor release-check release-check-demos demo-smoke composer-sync update validate validate-translations check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history check-twig-extra
+.PHONY: help up down down-dev build shell install test test-coverage coverage-php-percent coverage-check cs-check cs-fix qa clean assets assets-build assets-watch assets-test test-ts test-e2e-csp ensure-up rector rector-dry phpstan igor release-check release-check-demos demo-smoke composer-sync update validate validate-translations check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history check-twig-extra
 
 COMPOSE_FILE ?= docker-compose.yml
 # Prefer Compose V2 plugin (GitHub Actions / modern Docker Desktop); fall back to docker-compose V1 (REQ-MAKE-010).
@@ -21,6 +21,7 @@ help:
 	@echo "  assets-watch    Watch and rebuild TS on change"
 	@echo "  test-ts         Run TypeScript (Vitest) unit tests"
 	@echo "  assets-test     Alias of test-ts"
+	@echo "  test-e2e-csp    Playwright under a nonce-only CSP (zero violations, zero third-party requests)"
 	@echo "  test            Run PHPUnit tests"
 	@echo "  test-coverage   Run tests with code coverage"
 	@echo "  coverage-check  Fail if PHP Lines coverage < 99%%"
@@ -85,6 +86,21 @@ test-ts: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) pnpm run test:coverage | tee coverage-ts.txt
 	sh .scripts/ts-coverage-percent.sh coverage-ts.txt
 assets-test: test-ts
+
+# Strict-CSP browser test (tests/E2eCsp): PHP built-in server in the php service + official Playwright image on the
+# compose network. Asserts zero CSP violations and zero third-party requests for sources bundle and ux_icons_local.
+PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v1.65.0-jammy
+E2E_CSP_PORT ?= 8765
+test-e2e-csp: ensure-up
+	$(COMPOSE) exec -d -T $(SERVICE_PHP) sh -c 'echo $$$$ > /tmp/e2e-csp-server.pid; exec php -S 0.0.0.0:$(E2E_CSP_PORT) tests/E2eCsp/public/index.php'
+	@sleep 1
+	@NET=$$(docker inspect -f '{{range $$k, $$v := .NetworkSettings.Networks}}{{$$k}}{{end}}' $$($(COMPOSE) ps -q $(SERVICE_PHP))); \
+	docker run --rm --network "$$NET" -u "$$(id -u):$$(id -g)" -e HOME=/tmp \
+		-v "$(CURDIR)/tests/E2eCsp/playwright:/e2e" -w /e2e -e CI=$${CI:-} \
+		-e E2E_BASE_URL=http://$(SERVICE_PHP):$(E2E_CSP_PORT) \
+		$(PLAYWRIGHT_IMAGE) \
+		bash -lc 'npm ci --no-fund --no-audit && npx playwright test'; status=$$?; \
+	$(COMPOSE) exec -T $(SERVICE_PHP) sh -c 'kill "$$(cat /tmp/e2e-csp-server.pid)" 2>/dev/null; true'; exit $$status
 
 test: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer install --no-interaction

@@ -47,6 +47,31 @@
 
 ## Unreleased
 
+Target **1.7.0**. Run `php bin/console assets:install` (new `icon-selector.css`, rebuilt `icon-selector.js`).
+
+1. **Browser Iconify is now opt-in.** With the default `use_iconify_collection: false`, the widget no longer calls
+   `api.iconify.design` from the browser: the list is the bundle list (static per set) and the SVGs come from
+   `/api/icon-selector/icons/svg` (rendered by UX Icons on the server). To keep the 1.6 behaviour (full collections,
+   Iconify search in the browser) add:
+
+   ```yaml
+   nowo_icon_selector:
+       source: iconify
+   ```
+
+   Hosts with `use_iconify_collection: true` keep the browser Iconify flow by default (`source` resolves to
+   `iconify`); set `source: bundle` to keep the full server-side lists without browser requests.
+2. **Committed icons only** (strict CSP / privacy): `source: ux_icons_local` offers just the SVG files under the UX
+   Icons directory whose prefix belongs to `icon_sets`. Stored values that are not committed are refused on submit.
+3. **Stylesheet.** The styles moved from injected `<style>` elements to `icon-selector.css`, linked by the form themes
+   by default. If your layout or asset pipeline loads it (`asset('icon-selector.css', 'nowo_icon_selector')`, or an
+   AssetMapper/Vite import of `Resources/public/icon-selector.css`), set `include_stylesheet: false`. Stimulus users
+   who bundle the lib must now load `icon-selector.css` (it contains the Tom Select styles the script used to inject).
+   If you override the form theme templates, add the `<link>` (see `icon_selector_theme.html.twig`) and drop your copy
+   of the old `<style>` block.
+4. **Custom config provider.** If you aliased `IconSelectorConfigProviderInterface`, return `source` too: without
+   `source: 'iconify'` the browser ignores `iconify_base` and stays on the bundle endpoints.
+
 ## To 1.6.0
 
 From **1.5.1**:

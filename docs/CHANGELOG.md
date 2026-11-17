@@ -46,6 +46,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`source` option** (`iconify` | `bundle` | `ux_icons_local`, enum, default `null`): where the picker reads its icon
+  list and SVG previews from. `bundle` and `ux_icons_local` are same-origin only: the browser fetches nothing but the
+  bundle endpoints (`/api/icon-selector/config`, `/icons`, `/icons/svg`). `null` resolves to `iconify` when
+  `use_iconify_collection` is `true`, else to `bundle`. The config endpoint now returns `source`, and `iconify_base`
+  is `null` unless the source is `iconify`.
+- **`ux_icons_local` source**: the picker offers only the SVG files committed under the Symfony UX Icons directory
+  (`assets/icons/<prefix>/<name>.svg` → `<prefix>:<name>`), limited to the prefixes of `icon_sets` (and of the field
+  option `icon_prefixes`). Submitted ids outside that list are refused without asking the icon renderer, so no
+  on-demand fetch is triggered. New option **`ux_icons_dir`** (default: `ux_icons.icon_dir`, else
+  `%kernel.project_dir%/assets/icons`). The directory is read per call (no state kept between requests in worker mode).
+- **`icon-selector.css`**: the widget styles (Tom Select styles, field skeleton, icon boxes) are now a stylesheet
+  asset next to `icon-selector.js`. New option **`include_stylesheet`** (default `true`): the form themes link it with
+  `<link rel="stylesheet">` (asset package `nowo_icon_selector`); set `false` when your layout loads it.
+- Strict-CSP browser test (`tests/E2eCsp`, `make test-e2e-csp`, CI job *E2E strict CSP*): Playwright under
+  `default-src 'self'; style-src 'self' 'nonce-…'; script-src 'self' 'nonce-…'; connect-src 'self'` asserts zero
+  CSP violations and zero third-party requests for the `bundle` and `ux_icons_local` sources in the three modes.
+
+### Changed
+
+- **Default: no third-party requests from the browser.** With `use_iconify_collection: false` (the default) the
+  browser no longer calls `api.iconify.design`; the icon list and the SVGs come from the bundle endpoints. To keep
+  the full Iconify collections and search in the browser, set `source: iconify` (or `use_iconify_collection: true`).
+- `IconSelectorConfigProviderInterface::getConfig()` shape gains `source` and `iconify_base` becomes `string|null`.
+  The browser only contacts Iconify when `source` is `iconify` and `iconify_base` is non-empty.
+
+### Fixed
+
+- **Strict CSP (nonce-only `style-src`)**: `icon-selector.js` no longer injects a `<style>` element (the Tom Select
+  CSS is extracted to `icon-selector.css`), the default form theme no longer emits an inline `<style>` block nor a
+  `<noscript><style>` (replaced by `@media (scripting: none)` in the stylesheet), and the Tom Select option/item
+  markup no longer carries `style=` attributes (classes instead). The server no longer passes a `style` attribute to
+  the icon renderer (the sanitizer always removed it, so rendered icons are unchanged). Remaining dynamic styles use
+  the CSSOM (`element.style`), which CSP allows.
+- **Third-party requests despite `use_iconify_collection: false`** (all releases 1.0.0–1.6.0): the config endpoint
+  always returned `iconify_base: https://api.iconify.design` and the browser widget used it for collections
+  (`/collection?prefix=…`), search and SVG bodies whatever the configuration said. Signed-in pages leaked the
+  visitor's IP, user agent and referrer to a third party and broke under `connect-src 'self'`.
+- Bundle SVG endpoint results rendered by the grid widget: icons rendered by UX Icons without `xmlns` were dropped by
+  the browser sanitizer (placeholder shown); the namespace is now added before sanitizing.
+- Shipped `icon-selector.js` rebuilt; new `icon-selector.css`.
+
 ## [1.6.0] - 2026-11-16
 
 ### Added

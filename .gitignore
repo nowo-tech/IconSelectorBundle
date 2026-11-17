@@ -32,3 +32,8 @@
 
 # Cursor local sandbox (machine-specific; REQ-IDE-005)
 .cursor/sandbox.json
+
+# Strict-CSP e2e (tests/E2eCsp/playwright)
+/tests/E2eCsp/playwright/node_modules
+/tests/E2eCsp/playwright/test-results
+/tests/E2eCsp/playwright/playwright-report

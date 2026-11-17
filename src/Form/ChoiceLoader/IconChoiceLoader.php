@@ -29,12 +29,15 @@ final class IconChoiceLoader extends AbstractChoiceLoader
      * @param EmojiCatalogInterface|null $emojiCatalog When set (field option emoji: true), "emoji:<grapheme>" values
      *                                                 are accepted only if the grapheme is one RGI emoji
      * @param list<string>|null $allowedPrefixes Field option icon_prefixes: icon ids with another prefix are refused
+     * @param bool $listedOnly When true (source ux_icons_local), only the listed choices are accepted: a submitted
+     *                         id outside the list is refused without asking the renderer
      */
     public function __construct(
         private readonly array $choices,
         private readonly ?IconRendererInterface $iconRenderer = null,
         private readonly ?EmojiCatalogInterface $emojiCatalog = null,
         private readonly ?array $allowedPrefixes = null,
+        private readonly bool $listedOnly = false,
     ) {
     }
 
@@ -83,6 +86,10 @@ final class IconChoiceLoader extends AbstractChoiceLoader
             $emoji = IconValue::emojiOf($id);
 
             return $emoji !== null && $this->emojiCatalog->isValid($emoji);
+        }
+
+        if ($this->listedOnly) {
+            return false;
         }
 
         $parts = explode(':', $id, 2);

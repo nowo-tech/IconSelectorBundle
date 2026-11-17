@@ -7,11 +7,15 @@ namespace Nowo\IconSelectorBundle\Tests\Unit\Form;
 use Nowo\IconSelectorBundle\Emoji\EmojiCatalog;
 use Nowo\IconSelectorBundle\Form\IconSelectorType;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
+use Nowo\IconSelectorBundle\Service\LocalUxIconsScanner;
 use Nowo\IconSelectorBundle\Service\SvgSanitizer;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use ReflectionProperty;
 use RuntimeException;
+use Symfony\Component\Asset\Packages;
+use Symfony\Component\Asset\PathPackage;
+use Symfony\Component\Asset\VersionStrategy\EmptyVersionStrategy;
 use Symfony\Component\Form\ChoiceList\ChoiceListInterface;
 use Symfony\Component\Form\ChoiceList\Factory\CachingFactoryDecorator;
 use Symfony\Component\Form\ChoiceList\Factory\DefaultChoiceListFactory;
@@ -28,6 +32,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Icons\IconRendererInterface;
 
 use function count;
+use function dirname;
 
 /**
  * Unit tests for IconSelectorType (options, buildView, choices from icons).
@@ -711,5 +716,45 @@ final class IconSelectorTypeTest extends TestCase
         self::assertIsArray($entries);
 
         return $entries;
+    }
+
+    /** Source ux_icons_local: the picker offers the committed icons only and refuses any other submitted id. */
+    public function testUxIconsLocalOffersAndAcceptsOnlyCommittedIcons(): void
+    {
+        $renderer = $this->createMock(IconRendererInterface::class);
+        $renderer->expects(self::never())->method('renderIcon');
+        $provider = new IconListProvider(['tabler'], false, null, 'ux_icons_local', new LocalUxIconsScanner(dirname(__DIR__, 2) . '/Fixtures/ux-icons'));
+        $factory  = (new FormFactoryBuilder())
+            ->addExtension(new CoreExtension())
+            ->addType(new IconSelectorType($provider, ['tabler'], '/api/icon-selector/icons', $renderer, new SvgSanitizer(), source: 'ux_icons_local'))
+            ->getFormFactory();
+
+        $view = $factory->create(IconSelectorType::class)->createView();
+        self::assertSame(['tabler:home', 'tabler:star', 'tabler:user-circle'], array_map(static fn (ChoiceView $c): string => $c->value, $view->vars['choices']));
+
+        $ok = $factory->create(IconSelectorType::class);
+        $ok->submit('tabler:star');
+        self::assertSame('tabler:star', $ok->getData());
+
+        $bad = $factory->create(IconSelectorType::class);
+        $bad->submit('tabler:settings');
+        self::assertFalse($bad->isSynchronized(), 'A well-formed id that is not committed must be refused without asking the renderer.');
+    }
+
+    public function testStylesheetUrlUsesTheAssetPackageAndCanBeDisabled(): void
+    {
+        $packages = new Packages(new PathPackage('/', new EmptyVersionStrategy()), ['nowo_icon_selector' => new PathPackage('/sub/bundles/nowoiconselector', new EmptyVersionStrategy())]);
+        $type     = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', packages: $packages);
+        $view     = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertSame('/sub/bundles/nowoiconselector/icon-selector.css', $view->vars['stylesheet_url']);
+
+        // Asset package not registered: the fixed bundle path is used.
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', packages: new Packages());
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertSame('/bundles/nowoiconselector/icon-selector.css', $view->vars['stylesheet_url']);
+
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', includeStylesheet: false);
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+        self::assertNull($view->vars['stylesheet_url']);
     }
 }
