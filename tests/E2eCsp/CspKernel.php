@@ -31,8 +31,9 @@ use function sys_get_temp_dir;
 /**
  * Minimal host app for the strict-CSP browser test (tests/E2eCsp/playwright).
  *
- * The kernel environment is the icon source under test: "bundle" (source: bundle) or "local" (source: ux_icons_local,
- * icons from tests/Fixtures/ux-icons through ux_icons.icon_dir). Every route lives under /<environment>/ so one
+ * The kernel environment is the scenario under test: "bundle" (source: bundle), "local" (source: ux_icons_local,
+ * icons from tests/Fixtures/ux-icons through ux_icons.icon_dir) or "bs5" (ux_icons_local with the Bootstrap 5 form
+ * theme, emoji: true and icon_prefixes). Every route lives under /<environment>/ so one
  * `php -S` process serves both. Each HTML response carries a nonce-only Content-Security-Policy; the nonce is a
  * request attribute (no state on the kernel or on services). UX Icons on-demand Iconify fetching is disabled, so
  * neither the browser nor the server talks to a third party.
@@ -41,7 +42,7 @@ final class CspKernel extends Kernel implements EventSubscriberInterface
 {
     use MicroKernelTrait;
 
-    public const ENVIRONMENTS = ['bundle', 'local'];
+    public const ENVIRONMENTS = ['bundle', 'local', 'bs5'];
 
     private const NONCE_ATTRIBUTE = '_e2e_csp_nonce';
 
@@ -104,11 +105,18 @@ final class CspKernel extends Kernel implements EventSubscriberInterface
         /** @var Environment $twig */
         $twig = $this->getContainer()->get('e2e.twig');
 
-        $form = $formFactory->createNamedBuilder('icons')
-            ->add('direct', IconSelectorType::class, ['mode' => IconSelectorType::MODE_DIRECT, 'required' => false])
-            ->add('search', IconSelectorType::class, ['mode' => IconSelectorType::MODE_SEARCH, 'required' => false])
-            ->add('tom', IconSelectorType::class, ['mode' => IconSelectorType::MODE_TOM_SELECT, 'required' => false, 'data' => 'tabler:home'])
-            ->getForm();
+        $builder = $formFactory->createNamedBuilder('icons');
+        if ($this->environment === 'bs5') {
+            $builder
+                ->add('direct', IconSelectorType::class, ['mode' => IconSelectorType::MODE_DIRECT, 'required' => false, 'emoji' => true, 'icon_prefixes' => ['tabler']])
+                ->add('search', IconSelectorType::class, ['mode' => IconSelectorType::MODE_SEARCH, 'required' => false, 'icon_prefixes' => ['bi']]);
+        } else {
+            $builder
+                ->add('direct', IconSelectorType::class, ['mode' => IconSelectorType::MODE_DIRECT, 'required' => false])
+                ->add('search', IconSelectorType::class, ['mode' => IconSelectorType::MODE_SEARCH, 'required' => false])
+                ->add('tom', IconSelectorType::class, ['mode' => IconSelectorType::MODE_TOM_SELECT, 'required' => false, 'data' => 'tabler:home']);
+        }
+        $form = $builder->getForm();
         $form->handleRequest($request);
 
         $saved = null;
@@ -137,15 +145,17 @@ final class CspKernel extends Kernel implements EventSubscriberInterface
             'form'                  => ['csrf_protection' => false],
             'assets'                => ['enabled' => true],
         ]);
-        $container->extension('twig', ['default_path' => __DIR__ . '/templates']);
+        $bootstrap = $this->environment === 'bs5';
+        $container->extension('twig', ['default_path' => __DIR__ . '/templates', 'form_themes' => [$bootstrap ? 'bootstrap_5_layout.html.twig' : 'form_div_layout.html.twig']]);
         $container->extension('ux_icons', [
             'icon_dir' => dirname(__DIR__) . '/Fixtures/ux-icons',
             'iconify'  => ['enabled' => false],
         ]);
         $container->extension('nowo_icon_selector', [
-            'icon_sets'      => ['tabler'],
-            'source'         => $this->environment === 'local' ? 'ux_icons_local' : 'bundle',
+            'icon_sets'      => $bootstrap ? ['tabler', 'bootstrap-icons'] : ['tabler'],
+            'source'         => $this->environment === 'bundle' ? 'bundle' : 'ux_icons_local',
             'icons_api_path' => '/' . $this->environment . '/api/icon-selector/icons',
+            'form_theme'     => $bootstrap ? 'bootstrap_5_layout.html.twig' : 'form_div_layout.html.twig',
         ]);
         $services = $container->services();
         $services->alias('e2e.form_factory', 'form.factory')->public();

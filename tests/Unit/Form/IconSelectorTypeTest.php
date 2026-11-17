@@ -13,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use ReflectionProperty;
 use RuntimeException;
+use stdClass;
 use Symfony\Component\Asset\Packages;
 use Symfony\Component\Asset\PathPackage;
 use Symfony\Component\Asset\VersionStrategy\EmptyVersionStrategy;
@@ -26,6 +27,8 @@ use Symfony\Component\Form\FormFactoryBuilder;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -756,5 +759,49 @@ final class IconSelectorTypeTest extends TestCase
         $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', includeStylesheet: false);
         $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
         self::assertNull($view->vars['stylesheet_url']);
+    }
+
+    public function testFallbackStylesheetUrlKeepsTheRequestBasePathAndAddsTheCspNonce(): void
+    {
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('http://localhost/sub/app/index.php/page', 'GET', [], [], [], ['SCRIPT_NAME' => '/sub/app/index.php', 'SCRIPT_FILENAME' => '/srv/sub/app/index.php']));
+        $nonceProvider = new class {
+            public function getNonce(string $usage): string
+            {
+                return $usage === 'style' ? 'abc123' : 'other';
+            }
+        };
+        $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', requestStack: $requestStack, cspNonceProvider: $nonceProvider);
+        $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+
+        self::assertSame('/sub/app/bundles/nowoiconselector/icon-selector.css', $view->vars['stylesheet_url']);
+        self::assertSame('abc123', $view->vars['stylesheet_nonce']);
+
+        $failing = new class {
+            public function getNonce(string $usage): string
+            {
+                throw new RuntimeException('no request');
+            }
+        };
+        foreach ([new stdClass(), $failing] as $provider) {
+            $type = new IconSelectorType(new IconListProvider(['heroicons']), ['heroicons'], '/api/icon-selector/icons', cspNonceProvider: $provider);
+            $view = (new FormFactoryBuilder())->addType($type)->getFormFactory()->create(IconSelectorType::class)->createView();
+            self::assertNull($view->vars['stylesheet_nonce']);
+        }
+    }
+
+    /** SA-L5: a stored id that is no longer a choice is exposed so tom_select keeps it selected. */
+    public function testStoredValueOutsideTheChoicesIsKeptForTheView(): void
+    {
+        $factory = (new FormFactoryBuilder())->addType(new IconSelectorType(new IconListProvider(['tabler']), ['tabler']))->getFormFactory();
+
+        $gone = $factory->create(IconSelectorType::class, 'tabler:gone-icon', ['mode' => 'tom_select'])->createView();
+        self::assertSame('tabler:gone-icon', $gone->vars['stored_value_option']);
+
+        $listed = $factory->create(IconSelectorType::class, 'tabler:home', ['mode' => 'tom_select'])->createView();
+        self::assertNull($listed->vars['stored_value_option']);
+
+        $emoji = $factory->create(IconSelectorType::class, 'emoji:🚀', ['mode' => 'tom_select'])->createView();
+        self::assertNull($emoji->vars['stored_value_option']);
     }
 }

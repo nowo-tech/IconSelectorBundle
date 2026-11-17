@@ -574,6 +574,16 @@ describe('Tom Select initial value (audit RO-2)', () => {
     expect(lib.shouldFetchIconSvg(null, undefined)).toBe(false);
   });
 
+  it('keeps a stored icon id that is no longer offered as a Tom Select option (audit SA-L5)', async () => {
+    const lib = await import('./icon-selector-lib');
+    const base = [{ value: 'tabler:home', text: 'home', svg: '' }];
+    expect(lib.withStoredValueOption(base, 'tabler:gone')).toEqual([...base, { value: 'tabler:gone', text: 'gone', svg: '' }]);
+    expect(lib.withStoredValueOption(base, 'tabler:home')).toBe(base);
+    expect(lib.withStoredValueOption(base, '')).toBe(base);
+    expect(lib.withStoredValueOption(base, 'plain')).toBe(base);
+    expect(lib.withStoredValueOption(base, 'emoji:🚀')).toEqual([...base, { value: 'emoji:🚀', text: '🚀', svg: '' }]);
+  });
+
   it('keeps a stored emoji as a Tom Select option (audit RO-1)', async () => {
     const lib = await import('./icon-selector-lib');
     const base = [{ value: 'tabler:home', text: 'home', svg: '' }];

@@ -26,7 +26,7 @@
 }) %}
 {# Styles live in icon-selector.css (no inline <style>/style= : strict CSP). Linked here unless include_stylesheet: false. #}
 {% if form.vars.stylesheet_url|default(null) %}
-<link rel="stylesheet" href="{{ form.vars.stylesheet_url }}" data-nowo-icon-selector-stylesheet>
+<link rel="stylesheet" href="{{ form.vars.stylesheet_url }}"{% if form.vars.stylesheet_nonce|default(null) %} nonce="{{ form.vars.stylesheet_nonce }}"{% endif %} data-nowo-icon-selector-stylesheet>
 {% endif %}
 {#
   The wrapper carries the form attr (controller, data-*, class) under a suffixed id; the field id belongs to the
@@ -48,6 +48,10 @@
                 {# Emoji mode: the stored emoji is no icon choice; keep it as the selected option so a re-save does not clear it. #}
                 {% if form.vars.emoji_value|default(null) %}
                     <option value="{{ value }}" selected="selected">{{ form.vars.emoji_value }}</option>
+                {% endif %}
+                {# A stored icon that is no longer a choice stays selected, so a re-save does not silently clear it. #}
+                {% if form.vars.stored_value_option|default(null) %}
+                    <option value="{{ form.vars.stored_value_option }}" selected="selected">{{ form.vars.stored_value_option }}</option>
                 {% endif %}
             </select>
             {% if form.vars.tom_select_preloaded_options is defined and form.vars.tom_select_preloaded_options is not empty %}

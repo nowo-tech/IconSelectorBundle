@@ -49,8 +49,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - **`source` option** (`iconify` | `bundle` | `ux_icons_local`, enum, default `null`): where the picker reads its icon
-  list and SVG previews from. `bundle` and `ux_icons_local` are same-origin only: the browser fetches nothing but the
-  bundle endpoints (`/api/icon-selector/config`, `/icons`, `/icons/svg`). `null` resolves to `iconify` when
+  list and SVG previews from. With `bundle` and `ux_icons_local` the **browser** fetches nothing but the bundle
+  endpoints (`/api/icon-selector/config`, `/icons`, `/icons/svg`). This is a browser guarantee: with `bundle` and
+  `ux_icons.iconify.on_demand: true`, the **server** still fetches icons that are not on disk from Iconify. `null` resolves to `iconify` when
   `use_iconify_collection` is `true`, else to `bundle`. The config endpoint now returns `source`, and `iconify_base`
   is `null` unless the source is `iconify`.
 - **`ux_icons_local` source**: the picker offers only the SVG files committed under the Symfony UX Icons directory
@@ -61,6 +62,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **`icon-selector.css`**: the widget styles (Tom Select styles, field skeleton, icon boxes) are now a stylesheet
   asset next to `icon-selector.js`. New option **`include_stylesheet`** (default `true`): the form themes link it with
   `<link rel="stylesheet">` (asset package `nowo_icon_selector`); set `false` when your layout loads it.
+- Warning for sets without a static list (only `heroicons`, `bootstrap-icons`, `lucide` and `tabler` have one)
+  while the source is `bundle`: container compiler log at build time, `logger` warning at runtime.
+- The stylesheet `<link>` carries the CSP style nonce when NelmioSecurityBundle's CSP listener is available
+  (`nelmio_security.csp_listener`, `getNonce('style')`), for pure-nonce `style-src-elem` policies.
 - Strict-CSP browser test (`tests/E2eCsp`, `make test-e2e-csp`, CI job *E2E strict CSP*): Playwright under
   `default-src 'self'; style-src 'self' 'nonce-…'; script-src 'self' 'nonce-…'; connect-src 'self'` asserts zero
   CSP violations and zero third-party requests for the `bundle` and `ux_icons_local` sources in the three modes.
@@ -87,6 +92,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   visitor's IP, user agent and referrer to a third party and broke under `connect-src 'self'`.
 - Bundle SVG endpoint results rendered by the grid widget: icons rendered by UX Icons without `xmlns` were dropped by
   the browser sanitizer (placeholder shown); the namespace is now added before sanitizing.
+- Server `SvgSanitizer` now matches the browser sanitizer for references: `fill`, `stroke`, `mask` and `clip-path`
+  keep a `url()` only when it is `url(#id)`, and `href`/`xlink:href` keep only a strict `#id` fragment (before, any
+  value starting with `#` was kept).
+- `ux_icons_local` directory scan: an unreadable subdirectory is skipped instead of failing every request; only
+  `<dir>/<prefix>/` is walked for the allowed prefixes (real directories, no symlinks), and the icons-by-set listing
+  uses one walk instead of one per set.
+- The `nowo_icon_selector` asset package is only prepended when `symfony/asset` is installed; without the package the
+  fallback stylesheet URL keeps the request base path.
+- `tom_select`: a stored icon id that is no longer a choice stays the selected option (server-rendered and in Tom
+  Select), so a re-save submits it (accepted, or refused with a form error) instead of silently clearing the field.
 - Shipped `icon-selector.js` rebuilt; new `icon-selector.css`.
 
 ## [1.6.0] - 2026-11-16

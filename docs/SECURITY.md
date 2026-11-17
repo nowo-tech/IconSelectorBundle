@@ -77,7 +77,7 @@ The following describes the security measures implemented in the bundle and rema
 - **Input:** Icon IDs come from the request (GET query `ids` or POST JSON `ids`). They are trimmed and filtered.
 - **Implemented:**
   - **Whitelist:** Only icon IDs that appear in the configured icon sets (`IconListProvider::getIcons()`) are passed to the renderer. Requests for unknown or disallowed IDs are ignored (omitted from the response).
-  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which parses the markup with a DOM allowlist (permitted SVG elements and attributes only), strips event handlers and unsafe references (e.g. `javascript:` URLs), removes disallowed tags such as `<foreignObject>`, removes every non-element node except text (processing instructions, comments, CDATA, doctype and entity references in text; kept attributes are written back from their expanded, validated value; `<title>`/`<desc>` keep text only), and **fails closed** (returns an empty string) when the markup cannot be parsed as an `<svg>` document. This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
+  - **SVG sanitization:** Before returning, every SVG string is passed through `SvgSanitizer`, which parses the markup with a DOM allowlist (permitted SVG elements and attributes only), strips event handlers and unsafe references (`href`/`xlink:href` only as a strict `#id` fragment; `fill`, `stroke`, `mask`, `clip-path` keep a `url()` only as `url(#id)`, like the browser sanitizer), removes disallowed tags such as `<foreignObject>`, removes every non-element node except text (processing instructions, comments, CDATA, doctype and entity references in text; kept attributes are written back from their expanded, validated value; `<title>`/`<desc>` keep text only), and **fails closed** (returns an empty string) when the markup cannot be parsed as an `<svg>` document. This reduces XSS risk when the frontend injects the SVG into the DOM via `innerHTML`.
   - **DoS mitigation:** Requests are limited to `MAX_IDS = 500` icon IDs per call.
 - **Output:** JSON mapping icon ID → sanitized SVG markup. Unknown or invalid IDs do not appear in the response.
 - **Recommendations for integrators:**
@@ -114,9 +114,10 @@ The following describes the security measures implemented in the bundle and rema
 
 ### 7. Content-Security-Policy and third-party requests
 
-- **Same-origin sources:** with `source: bundle` or `source: ux_icons_local` (the default `bundle` when
-  `use_iconify_collection` is `false`) the config endpoint returns `iconify_base: null` and the browser only requests
-  the bundle endpoints. Every Iconify request in the script is gated by `usesBrowserIconify(config)` (`source ===
+- **Same-origin sources (browser guarantee):** with `source: bundle` or `source: ux_icons_local` (the default `bundle`
+  when `use_iconify_collection` is `false`) the config endpoint returns `iconify_base: null` and the browser only
+  requests the bundle endpoints. This covers the browser only: with `bundle` and `ux_icons.iconify.on_demand: true`
+  the server still calls Iconify for icons that are not on disk. Every Iconify request in the script is gated by `usesBrowserIconify(config)` (`source ===
   'iconify'` and a non-empty base URL); a config without `source` never enables Iconify. The data attributes only
   carry same-origin URLs (icons, config, emoji dataset from `emoji_data_url`).
 - **Strict CSP:** no inline `<style>` element, no `style=` attribute and no inline script with code; styles come from

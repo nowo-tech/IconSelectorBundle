@@ -8,6 +8,7 @@ use Nowo\IconSelectorBundle\Emoji\EmojiCatalog;
 use Nowo\IconSelectorBundle\Emoji\EmojiCatalogInterface;
 use Nowo\IconSelectorBundle\Service\IconSource;
 use Nowo\IconSelectorBundle\Validator\Constraints\EmojiIconValidator;
+use Symfony\Component\Asset\Package;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -132,7 +133,8 @@ final class NowoIconSelectorExtension extends Extension implements PrependExtens
             ]);
         }
 
-        if ($container->hasExtension('framework')) {
+        // The asset package needs symfony/asset (optional): without it FrameworkBundle would reject assets config.
+        if ($container->hasExtension('framework') && class_exists(Package::class)) {
             $container->prependExtensionConfig('framework', [
                 'assets' => [
                     'packages' => [

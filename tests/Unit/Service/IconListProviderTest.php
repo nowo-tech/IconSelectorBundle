@@ -8,6 +8,7 @@ use Nowo\IconSelectorBundle\Service\IconifyCollectionLoader;
 use Nowo\IconSelectorBundle\Service\IconListProvider;
 use Nowo\IconSelectorBundle\Service\LocalUxIconsScanner;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -136,5 +137,32 @@ final class IconListProviderTest extends TestCase
         $provider = new IconListProvider(['tabler'], false, null, 'ux_icons_local');
 
         self::assertSame([], $provider->getIcons());
+    }
+
+    /** SA-M1: source bundle warns about a set without a static list (empty picker); other sets and sources do not. */
+    public function testWarnsAboutSetsWithoutStaticListWithSourceBundle(): void
+    {
+        self::assertSame(['heroicons', 'bootstrap-icons', 'lucide', 'tabler'], IconListProvider::staticListSets());
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('warning')->with(self::stringContains('no static list'), self::callback(static fn (array $c): bool => $c['set'] === 'mdi'));
+        $icons = (new IconListProvider(['tabler', 'mdi'], false, null, 'bundle', null, $logger))->getIconsForSets(['mdi', 'tabler']);
+        self::assertContains('tabler:home', $icons);
+
+        $silent = $this->createMock(LoggerInterface::class);
+        $silent->expects(self::never())->method('warning');
+        (new IconListProvider(['mdi'], false, null, 'iconify', null, $silent))->getIcons();
+    }
+
+    public function testUxIconsLocalGroupsBySetWithOneWalk(): void
+    {
+        $provider = new IconListProvider(['heroicons', 'tabler', 'mdi'], false, null, 'ux_icons_local', new LocalUxIconsScanner(dirname(__DIR__, 2) . '/Fixtures/ux-icons'));
+
+        self::assertSame([
+            'heroicons' => ['heroicons-outline:home'],
+            'tabler'    => ['tabler:home', 'tabler:star', 'tabler:user-circle'],
+            'mdi'       => [],
+        ], $provider->getIconsBySet());
+        self::assertSame(['heroicons' => [], 'tabler' => [], 'mdi' => []], (new IconListProvider(['heroicons', 'tabler', 'mdi'], false, null, 'ux_icons_local'))->getIconsBySet());
     }
 }

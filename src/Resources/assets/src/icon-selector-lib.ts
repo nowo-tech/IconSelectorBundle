@@ -231,6 +231,17 @@ export function withStoredEmojiOption(options: IconOption[], currentValue: strin
   return [...options, { value: currentValue, text: currentValue.slice(6), svg: '' }];
 }
 
+/**
+ * Keeps the stored value as a Tom Select option when it is not in the list: an emoji (see withStoredEmojiOption)
+ * or an icon id that is no longer offered (catalogue or source changed). Tom Select would otherwise drop the
+ * selection and a re-save would silently clear the field; the server then accepts or refuses it visibly.
+ */
+export function withStoredValueOption(options: IconOption[], currentValue: string): IconOption[] {
+  if (currentValue.startsWith('emoji:')) return withStoredEmojiOption(options, currentValue);
+  if (!currentValue.includes(':') || options.some((o) => o.value === currentValue)) return options;
+  return [...options, { value: currentValue, text: currentValue.split(/[:/]/).pop() || currentValue, svg: '' }];
+}
+
 /** Whether an icon id is allowed by an optional prefix list. */
 export function iconAllowedByPrefixes(id: string, prefixes: string[] | null): boolean {
   return !prefixes || prefixes.includes(id.split(':')[0]);
@@ -1706,7 +1717,7 @@ function initTomSelectOnDemand(
     valueField: 'value',
     labelField: 'text',
     searchField: ['text', 'value'],
-    options: withStoredEmojiOption(initialOptions, currentValue),
+    options: withStoredValueOption(initialOptions, currentValue),
     items: currentValue ? [currentValue] : [],
     maxOptions: null,
     /** Allow load() to be called with empty query so dropdown opens with first batch of "all" icons. */
@@ -1974,7 +1985,7 @@ function initTomSelectFullList(
         valueField: 'value',
         labelField: 'text',
         searchField: ['text', 'value'],
-        options: withStoredEmojiOption(apiOptions, currentValue),
+        options: withStoredValueOption(apiOptions, currentValue),
         items: currentValue ? [currentValue] : [],
         maxOptions: null,
         render: {

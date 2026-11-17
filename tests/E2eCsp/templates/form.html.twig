@@ -14,7 +14,7 @@
     {{ form_start(form) }}
         {{ form_row(form.direct) }}
         {{ form_row(form.search) }}
-        {{ form_row(form.tom) }}
+        {% if form.tom is defined %}{{ form_row(form.tom) }}{% endif %}
         <button type="submit">Save</button>
     {{ form_end(form) }}
 </body>

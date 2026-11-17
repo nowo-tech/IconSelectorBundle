@@ -49,10 +49,21 @@
 
 Target **1.7.0**. Run `php bin/console assets:install` (new `icon-selector.css`, rebuilt `icon-selector.js`).
 
-1. **Browser Iconify is now opt-in.** With the default `use_iconify_collection: false`, the widget no longer calls
-   `api.iconify.design` from the browser: the list is the bundle list (static per set) and the SVGs come from
-   `/api/icon-selector/icons/svg` (rendered by UX Icons on the server). To keep the 1.6 behaviour (full collections,
-   Iconify search in the browser) add:
+1. **Browser Iconify is now opt-in (private by default).** With the default `use_iconify_collection: false`, the
+   widget no longer calls `api.iconify.design` from the browser: the list is the bundle's static list and the SVGs
+   come from `/api/icon-selector/icons/svg` (rendered by UX Icons on the server).
+
+   **Only four sets ship a static list:** `heroicons`, `bootstrap-icons`, `lucide` and `tabler` (about 20 icons
+   each). **Any other set in `icon_sets` now gets an empty picker** unless you set `source: iconify` or
+   `use_iconify_collection: true`, or commit its icons and use `source: ux_icons_local`. The bundle logs a warning
+   (container compiler log at build time, and the `logger` at runtime) for every configured set without a static
+   list while the source is `bundle`.
+
+   **Recommended:** `source: ux_icons_local` when your icons are committed under `assets/icons/` or when
+   `ux_icons.iconify.on_demand` is `false` (with `bundle`, icons of the static list that are not on disk then render
+   empty previews).
+
+   To keep the 1.6 behaviour (full collections, Iconify search in the browser) add:
 
    ```yaml
    nowo_icon_selector:

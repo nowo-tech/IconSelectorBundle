@@ -18,6 +18,7 @@ use Symfony\Component\Form\ChoiceList\View\ChoiceView;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -32,6 +33,7 @@ use function in_array;
 use function is_array;
 use function is_string;
 use function json_encode;
+use function method_exists;
 use function rawurlencode;
 use function serialize;
 use function sprintf;
@@ -76,6 +78,9 @@ final class IconSelectorType extends AbstractType
      * @param string $source Effective icon source (see {@see IconSource}); with ux_icons_local only listed icons are accepted
      * @param bool $includeStylesheet When true, the theme links the bundle stylesheet next to the widget
      * @param Packages|null $packages Asset packages (symfony/asset) used to build the stylesheet URL; null = fixed bundle path
+     * @param RequestStack|null $requestStack Current request (base path of the fallback stylesheet URL); read per call, never stored
+     * @param object|null $cspNonceProvider Optional CSP listener exposing getNonce('style') (NelmioSecurityBundle
+     *                                      nelmio_security.csp_listener); its nonce is added to the stylesheet <link>
      */
     public function __construct(
         private readonly IconCatalogInterface $iconListProvider,
@@ -90,6 +95,8 @@ final class IconSelectorType extends AbstractType
         private readonly string $source = 'bundle',
         private readonly bool $includeStylesheet = true,
         private readonly ?Packages $packages = null,
+        private readonly ?RequestStack $requestStack = null,
+        private readonly ?object $cspNonceProvider = null,
     ) {
     }
 
@@ -134,6 +141,7 @@ final class IconSelectorType extends AbstractType
         $view->vars['attr']['data-icon-selector-config-url-value'] = $view->vars['config_path'];
         $view->vars['attr']['data-icon-selector-debug-value']      = $this->debug ? '1' : '0';
         $view->vars['stylesheet_url']                              = $this->includeStylesheet ? $this->stylesheetUrl() : null;
+        $view->vars['stylesheet_nonce']                            = $this->includeStylesheet ? $this->styleNonce() : null;
         if ($prefixes !== null) {
             // The browser widgets read the restriction from the attribute and from the config URL fragment (never sent).
             $view->vars['config_path'] .= '#prefixes=' . rawurlencode(implode(',', $prefixes));
@@ -144,6 +152,11 @@ final class IconSelectorType extends AbstractType
         $view->vars['tom_select_preloaded_options'] = $options['mode'] === self::MODE_TOM_SELECT
             ? $this->buildTomSelectPreloadedOptions($choices, $currentValue)
             : [];
+        // A stored icon id that is no longer a choice (catalogue or source changed) stays the selected <option> in
+        // tom_select, so a re-save submits it (accepted or refused with an error) instead of silently clearing it.
+        $view->vars['stored_value_option'] = $currentValue !== '' && !isset($choices[$currentValue]) && !IconValue::isEmoji($currentValue)
+            ? $currentValue
+            : null;
 
         $emoji                     = ($options['emoji'] ?? false) === true && $this->emojiCatalog instanceof EmojiCatalogInterface;
         $view->vars['emoji']       = $emoji;
@@ -177,7 +190,28 @@ final class IconSelectorType extends AbstractType
             }
         }
 
-        return '/bundles/nowoiconselector/' . self::STYLESHEET;
+        // Without the asset package: keep the host base path (app served from a subdirectory).
+        $basePath = $this->requestStack?->getCurrentRequest()?->getBasePath() ?? '';
+
+        return $basePath . '/bundles/nowoiconselector/' . self::STYLESHEET;
+    }
+
+    /**
+     * CSP nonce for the stylesheet <link>, when the host exposes one (NelmioSecurityBundle CSP listener). Needed
+     * only for a pure-nonce style-src-elem policy without 'self'.
+     */
+    private function styleNonce(): ?string
+    {
+        if ($this->cspNonceProvider === null || !method_exists($this->cspNonceProvider, 'getNonce')) {
+            return null;
+        }
+        try {
+            $nonce = $this->cspNonceProvider->getNonce('style');
+        } catch (Throwable) {
+            return null;
+        }
+
+        return is_string($nonce) && $nonce !== '' ? $nonce : null;
     }
 
     /**

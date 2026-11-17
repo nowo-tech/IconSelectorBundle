@@ -11,6 +11,7 @@ services:
       $collectionLoader: '@?Nowo\IconSelectorBundle\Service\IconifyCollectionLoader'
       $source: '%nowo_icon_selector.source%'
       $localScanner: '@Nowo\IconSelectorBundle\Service\LocalUxIconsScanner'
+      $logger: '@?logger'
     public: true
 
   # Lists the SVG files under the UX Icons directory (source ux_icons_local). Stateless: reads the directory per call.
@@ -80,5 +81,7 @@ services:
       $source: '%nowo_icon_selector.source%'
       $includeStylesheet: '%nowo_icon_selector.include_stylesheet%'
       $packages: '@?assets.packages'
+      $requestStack: '@?request_stack'
+      $cspNonceProvider: '@?nelmio_security.csp_listener'
     # Tagged form.type by autoconfigure (REQ-SF-003).
     public: false

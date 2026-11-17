@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\IconSelectorBundle\Service;
 
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 use function in_array;
@@ -126,6 +127,7 @@ readonly class IconListProvider implements IconCatalogInterface
      * @param IconifyCollectionLoader|null $collectionLoader Loader for Iconify API collections (injected when use_iconify_collection is true)
      * @param string $source Effective icon source (nowo_icon_selector.source, see {@see IconSource}); with ux_icons_local the list is read from $localScanner only
      * @param LocalUxIconsScanner|null $localScanner Lists the icons committed under the UX Icons directory (used with source ux_icons_local)
+     * @param LoggerInterface|null $logger Warns when a configured set has no static list (empty picker with source bundle)
      */
     public function __construct(
         private array $iconSets,
@@ -133,7 +135,18 @@ readonly class IconListProvider implements IconCatalogInterface
         private ?IconifyCollectionLoader $collectionLoader = null,
         private string $source = 'bundle',
         private ?LocalUxIconsScanner $localScanner = null,
+        private ?LoggerInterface $logger = null,
     ) {
+    }
+
+    /**
+     * Icon sets that ship a bundled static list (used by source bundle without use_iconify_collection).
+     *
+     * @return list<string>
+     */
+    public static function staticListSets(): array
+    {
+        return array_keys(self::DEFAULT_ICONS);
     }
 
     /**
@@ -182,6 +195,12 @@ readonly class IconListProvider implements IconCatalogInterface
                     $icons[] = $id;
                 }
             } else {
+                if (!isset(self::DEFAULT_ICONS[$set]) && IconSource::tryFrom($this->source) === IconSource::Bundle) {
+                    $this->logger?->warning('nowo_icon_selector: icon set "{set}" has no static list; the picker offers no icon for it. Use source ux_icons_local or iconify (or use_iconify_collection: true).', [
+                        'set'         => $set,
+                        'static_sets' => self::staticListSets(),
+                    ]);
+                }
                 $setIcons = self::DEFAULT_ICONS[$set] ?? [];
                 foreach ($setIcons as $id) {
                     $icons[] = $id;
@@ -199,6 +218,25 @@ readonly class IconListProvider implements IconCatalogInterface
      */
     public function getIconsBySet(): array
     {
+        if (IconSource::tryFrom($this->source) === IconSource::UxIconsLocal) {
+            // One directory walk for every set (not one per set).
+            $byPrefix = $this->localScanner instanceof LocalUxIconsScanner
+                ? $this->localScanner->listIconsByPrefix(IconSetPrefixes::forSets($this->iconSets))
+                : [];
+            $bySet = [];
+            foreach ($this->iconSets as $set) {
+                $icons = [];
+                foreach (IconSetPrefixes::forSet($set) as $prefix) {
+                    foreach ($byPrefix[$prefix] ?? [] as $id) {
+                        $icons[] = $id;
+                    }
+                }
+                $bySet[$set] = array_values(array_unique($icons));
+            }
+
+            return $bySet;
+        }
+
         $bySet = [];
         foreach ($this->iconSets as $set) {
             $bySet[$set] = $this->getIconsForSets([$set]);

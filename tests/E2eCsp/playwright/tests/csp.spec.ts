@@ -129,6 +129,46 @@ for (const { source, expectedIcons, searchPick } of scenarios) {
   });
 }
 
+test('bootstrap 5 theme, emoji: true and icon_prefixes: zero violations and zero third-party requests', async ({ page, baseURL }) => {
+  const w = await watch(page, baseURL!);
+  const response = await page.goto('/bs5/form');
+  expect(response?.status()).toBe(200);
+  const html = await response!.text();
+  expect(html).not.toMatch(/<style\b/i);
+  expect(html).not.toMatch(/\sstyle\s*=/i);
+
+  const direct = page.locator('#icons_direct_icon_selector');
+  const search = page.locator('#icons_search_icon_selector');
+  await expect(direct).toHaveAttribute('data-icon-selector-enhanced', '1');
+  await expect(search).toHaveAttribute('data-icon-selector-enhanced', '1');
+
+  // icon_prefixes ['tabler']: only the committed tabler icons.
+  await direct.locator('.icon-selector-trigger').click();
+  const items = direct.locator('.icon-selector-item');
+  await expect(items.first()).toBeVisible();
+  expect(await items.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.iconId))).toEqual(['tabler:home', 'tabler:star', 'tabler:user-circle']);
+
+  // Emoji tab (CSSOM styles only): pick an emoji.
+  await direct.getByRole('tab', { name: /emoji/i }).click();
+  const emoji = direct.locator('.icon-selector-emoji-item').first();
+  await expect(emoji).toBeVisible();
+  await emoji.click();
+  await expect(page.locator('input[name="icons[direct]"]')).toHaveValue(/^emoji:/);
+
+  // icon_prefixes ['bi'] on the search field: only bi:house.
+  await search.locator('.icon-selector-trigger').click();
+  const biItems = search.locator('.icon-selector-item');
+  await expect(biItems.first()).toBeVisible();
+  expect(await biItems.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.iconId))).toEqual(['bi:house']);
+  await biItems.first().click();
+
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.locator('#saved')).toContainText('"search":"bi:house"');
+  await expect(page.locator('#saved')).toContainText('"direct":"emoji:');
+
+  await expectClean(page, w);
+});
+
 test('the harness detects an injected <style> under the policy', async ({ page, baseURL }) => {
   const w = await watch(page, baseURL!);
   await page.goto('/local/form');

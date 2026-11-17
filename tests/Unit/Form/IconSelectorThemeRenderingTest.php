@@ -141,6 +141,14 @@ final class IconSelectorThemeRenderingTest extends TestCase
         self::assertStringNotContainsString('<link', $html);
     }
 
+    public function testTomSelectKeepsAStoredIconThatIsNoLongerAChoice(): void
+    {
+        $xpath  = $this->render('icon_selector_theme.html.twig', ['mode' => 'tom_select'], 'heroicons-outline:gone');
+        $option = $this->single($xpath, '//select[@name="form[icon_direct]"]/option[@selected]');
+
+        self::assertSame('heroicons-outline:gone', $option->getAttribute('value'));
+    }
+
     public function testEmojiSkeletonIsHiddenWithoutScripting(): void
     {
         $xpath = $this->render('icon_selector_theme.html.twig', ['mode' => 'direct', 'emoji' => true]);

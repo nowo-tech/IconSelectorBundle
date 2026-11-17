@@ -34,7 +34,7 @@ require $root . '/vendor/autoload.php';
 $environment = explode('/', trim($path, '/'))[0];
 if (!in_array($environment, CspKernel::ENVIRONMENTS, true)) {
     http_response_code(404);
-    echo 'Use /bundle/form or /local/form';
+    echo 'Use /bundle/form, /local/form or /bs5/form';
 
     return true;
 }

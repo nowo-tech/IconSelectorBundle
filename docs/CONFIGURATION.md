@@ -34,8 +34,16 @@ Where the picker reads its icon list and SVG previews from.
 | Value | Icon list | SVG previews | Browser requests |
 |-------|-----------|--------------|------------------|
 | `iconify` | Iconify collections / search, from the browser | `api.iconify.design` | **Third party** (`api.iconify.design`) |
-| `bundle` | `/api/icon-selector/icons` (static list, or the server-side Iconify list when `use_iconify_collection: true`) | `/api/icon-selector/icons/svg` | Same origin only |
-| `ux_icons_local` | SVG files committed under `ux_icons_dir` whose prefix belongs to `icon_sets` | `/api/icon-selector/icons/svg` | Same origin only |
+| `bundle` | `/api/icon-selector/icons` (static list, or the server-side Iconify list when `use_iconify_collection: true`) | `/api/icon-selector/icons/svg` | Same origin only (browser) |
+| `ux_icons_local` | SVG files committed under `ux_icons_dir` whose prefix belongs to `icon_sets` | `/api/icon-selector/icons/svg` | Same origin only (browser) |
+
+"Same origin only" is a **browser** guarantee. With `bundle` and `ux_icons.iconify.on_demand: true` (the UX Icons
+default when `symfony/http-client` is installed) the **server** still calls Iconify for icons that are not on disk.
+
+Static lists exist only for `heroicons`, `bootstrap-icons`, `lucide` and `tabler` (about 20 icons each): with
+`bundle` and `use_iconify_collection: false`, any other set has an empty picker and the bundle logs a warning (compiler
+log and runtime logger). Prefer `ux_icons_local` when your icons are committed or `ux_icons.iconify.on_demand` is
+`false`.
 
 `null` resolves to `iconify` when `use_iconify_collection` is `true`, else to `bundle`. The allowed prefixes
 (`icon_sets`, field option `icon_prefixes`) are applied with every source.
@@ -62,7 +70,10 @@ Symfony UX Icons on-demand fetching when an icon is not on disk (`bundle` with t
 **Type:** `string|null` · **Default:** `null`
 
 Directory scanned by `source: ux_icons_local`. `null` uses `ux_icons.icon_dir` when your app sets it, else
-`%kernel.project_dir%/assets/icons` (the UX Icons default).
+`%kernel.project_dir%/assets/icons` (the UX Icons default). The value must be an **absolute path** or start with
+`%kernel.project_dir%`: a relative path is resolved against the PHP working directory, which differs between the web
+server, the CLI and workers. Only `<ux_icons_dir>/<prefix>/` is read for the allowed prefixes; unreadable
+subdirectories are skipped.
 
 ### `include_stylesheet`
 
@@ -79,6 +90,14 @@ loads the file itself:
 
 The bundle emits no inline `<style>` element and no `style=` attribute, so it works under a nonce-only
 `style-src 'self' 'nonce-…'` policy without passing a nonce.
+
+**Pure-nonce `style-src-elem`** (no `'self'`): a `<link>` needs the nonce. When NelmioSecurityBundle is installed the
+themes add `nonce="…"` from `nelmio_security.csp_listener` (`getNonce('style')`) automatically. Otherwise set
+`include_stylesheet: false` and link the file from your layout with your nonce:
+
+```twig
+<link rel="stylesheet" href="{{ asset('icon-selector.css', 'nowo_icon_selector') }}" nonce="{{ csp_nonce('style') }}">
+```
 
 ### `iconify_http_timeout`
 
