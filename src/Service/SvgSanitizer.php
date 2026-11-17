@@ -15,6 +15,7 @@ use function in_array;
 use function is_string;
 use function libxml_clear_errors;
 use function libxml_use_internal_errors;
+use function preg_match;
 use function strtolower;
 use function trim;
 
@@ -62,6 +63,9 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
     private const TEXT_ONLY_TAGS = ['title', 'desc'];
 
     private const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
+    /** Attributes whose url() value may only reference a same-document fragment: url(#id). */
+    private const URL_REFERENCE_ATTRIBUTES = ['fill', 'stroke', 'clip-path', 'mask'];
 
     /** @var list<string> */
     private const ALLOWED_ATTRIBUTES = [
@@ -185,7 +189,9 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
                     continue;
                 }
 
-                if (str_starts_with($localName, 'on') || !in_array($localName, self::ALLOWED_ATTRIBUTES, true)) {
+                if (str_starts_with($localName, 'on')
+                    || !in_array($localName, self::ALLOWED_ATTRIBUTES, true)
+                    || !$this->isSafeAttributeValue($localName, $attribute->value)) {
                     $toRemove[] = $attribute;
                 } else {
                     $toKeep[] = [$attribute->namespaceURI, $attribute->nodeName, $attribute->value];
@@ -236,10 +242,24 @@ final readonly class SvgSanitizer implements SvgSanitizerInterface
         }
     }
 
+    /**
+     * href / xlink:href: only a strict same-document fragment (#id with id characters [A-Za-z0-9_.:-]).
+     */
     private function isSafeFragmentReference(string $value): bool
     {
-        $value = trim($value);
+        return preg_match('/^#[A-Za-z0-9_.:-]+$/D', trim($value)) === 1;
+    }
 
-        return $value !== '' && str_starts_with($value, '#');
+    /**
+     * Paint / reference attributes (fill, stroke, clip-path, mask) holding a url() may only point to a
+     * same-document fragment: url(#id). Mirrors isSafeAttributeValue() in the browser sanitizer.
+     */
+    private function isSafeAttributeValue(string $localName, string $value): bool
+    {
+        if (in_array($localName, self::URL_REFERENCE_ATTRIBUTES, true) && preg_match('/url\s*\(/i', $value) === 1) {
+            return preg_match('/^url\(\s*#[A-Za-z0-9_.:-]+\s*\)$/Di', trim($value)) === 1;
+        }
+
+        return true;
     }
 }
