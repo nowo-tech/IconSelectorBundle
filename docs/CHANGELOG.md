@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.8.0] - 2026-11-17](#180---2026-11-17)
 - [[1.7.0] - 2026-11-17](#170---2026-11-17)
 - [[1.6.0] - 2026-11-16](#160---2026-11-16)
 - [[1.5.1] - 2026-11-16](#151---2026-11-16)
@@ -46,6 +47,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[1.0.0] - 2026-03-11](#100---2026-03-11)
 
 ## [Unreleased]
+
+## [1.8.0] - 2026-11-17
 
 Target: 1.8.0 (Beacon / WikiBundle feedback on the page icon picker).
 
@@ -91,6 +94,8 @@ Target: 1.8.0 (Beacon / WikiBundle feedback on the page icon picker).
 - The trigger of the grid / search picker shows the `placeholder` text ("Choose icon...") instead of the search
   placeholder when nothing is selected.
 - The loading spinner uses `currentColor` instead of fixed grey borders.
+
+[1.8.0]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.8.0
 
 ## [1.7.0] - 2026-11-17
 
