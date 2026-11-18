@@ -89,7 +89,9 @@ assets-test: test-ts
 
 # Strict-CSP browser test (tests/E2eCsp): PHP built-in server in the php service + official Playwright image on the
 # compose network. Asserts zero CSP violations and zero third-party requests for sources bundle and ux_icons_local.
-PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v1.65.0-jammy
+# The image tag always follows the exact @playwright/test version pinned in tests/E2eCsp/playwright/package.json.
+PLAYWRIGHT_VERSION := $(shell sed -n 's/.*"@playwright\/test": "\([0-9.]*\)".*/\1/p' tests/E2eCsp/playwright/package.json)
+PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v$(PLAYWRIGHT_VERSION)-jammy
 E2E_CSP_PORT ?= 8765
 test-e2e-csp: ensure-up
 	$(COMPOSE) exec -d -T $(SERVICE_PHP) sh -c 'echo $$$$ > /tmp/e2e-csp-server.pid; exec php -S 0.0.0.0:$(E2E_CSP_PORT) tests/E2eCsp/public/index.php'
