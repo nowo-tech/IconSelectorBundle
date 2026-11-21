@@ -3,47 +3,35 @@
 {% block title %}{{ 'demo.page_background_title'|trans({}, 'messages') }} – {{ 'demo.title'|trans({}, 'messages') }}{% endblock %}
 
 {% block nowo_ui_page_header %}
+    {% set _toolbar %}<a class="nowo-ui-btn nowo-ui-btn--outline" href="{{ path('app_home', { _locale: app.request.locale }) }}">{{ 'demo.back_home'|trans({}, 'messages') }}</a>{% endset %}
     {{ include(nowo_ui_partial('page_header'), {
         title: 'demo.page_background_title'|trans({}, 'messages'),
+        intro: 'demo.page_background_lead'|trans({}, 'messages')|striptags,
+        toolbar: _toolbar|trim,
     }) }}
 {% endblock %}
 
 {% block body %}
-    <a class="nowo-ui-back-link" href="{{ path('app_home', { _locale: app.request.locale }) }}">← {{ 'demo.back_home'|trans({}, 'messages') }}</a>
-    <p class="nowo-ui-muted">{{ 'demo.page_background_lead'|trans({}, 'messages')|raw }}</p>
+    {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'demo.background_section'|trans({}, 'messages'), kind: 'content'} %}
+        {% block section_actions %}
+            <button type="button" class="nowo-ui-btn nowo-ui-btn--primary" id="demo-background-load-btn"
+                data-fragment-url="{{ path('app_demo_background_fragment', { _locale: app.request.locale }) }}"
+                data-label-loading="{{ 'demo.background_loading'|trans({}, 'messages') }}"
+                data-label-again="{{ 'demo.background_load_again'|trans({}, 'messages') }}"
+                data-label-error="{{ 'demo.background_error'|trans({}, 'messages') }}"
+                data-label-load="{{ 'demo.background_load_button'|trans({}, 'messages') }}">
+                {{ 'demo.background_load_button'|trans({}, 'messages') }}
+            </button>
+        {% endblock %}
+        {% block section_body %}
+            <div id="demo-background-container">
+                <p class="nowo-ui-muted">{{ 'demo.background_placeholder'|trans({}, 'messages') }}</p>
+            </div>
+        {% endblock %}
+    {% endembed %}
+{% endblock %}
 
-    <p>
-        <button type="button" class="nowo-ui-btn nowo-ui-btn--primary" id="demo-background-load-btn" data-fragment-url="{{ path('app_demo_background_fragment', { _locale: app.request.locale }) }}">
-            {{ 'demo.background_load_button'|trans({}, 'messages') }}
-        </button>
-    </p>
-
-    <div id="demo-background-container" class="demo-background-container">
-        <p class="nowo-ui-muted">{{ 'demo.background_placeholder'|trans({}, 'messages') }}</p>
-    </div>
-
-    <script src="{{ asset('icon-selector.js', 'nowo_icon_selector') }}"></script>
-<script>
-(function() {
-    var btn = document.getElementById('demo-background-load-btn');
-    var container = document.getElementById('demo-background-container');
-    if (!btn || !container) return;
-    btn.addEventListener('click', function() {
-        btn.disabled = true;
-        btn.textContent = '{{ 'demo.background_loading'|trans({}, 'messages') }}';
-        fetch(btn.getAttribute('data-fragment-url'))
-            .then(function(r) { return r.text(); })
-            .then(function(html) {
-                container.innerHTML = html;
-                btn.disabled = false;
-                btn.textContent = '{{ 'demo.background_load_again'|trans({}, 'messages') }}';
-            })
-            .catch(function() {
-                container.innerHTML = '<p class="nowo-ui-flash nowo-ui-flash--error">{{ 'demo.background_error'|trans({}, 'messages') }}</p>';
-                btn.disabled = false;
-                btn.textContent = '{{ 'demo.background_load_button'|trans({}, 'messages') }}';
-            });
-    });
-})();
-</script>
+{% block nowo_ui_scripts %}
+    {{ parent() }}
+    <script src="{{ asset('demo-background.js') }}"></script>
 {% endblock %}

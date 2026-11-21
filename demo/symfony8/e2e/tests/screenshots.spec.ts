@@ -43,7 +43,7 @@ test.describe('feature screenshots', () => {
     // Wait until the visible icons have their SVG bodies (lazy-loaded from Iconify).
     await expect(dropdown.locator('.icon-selector-item svg').nth(30)).toBeVisible({ timeout: 20_000 });
     await expect(dropdown.locator('.icon-selector-svg-placeholder')).toHaveCount(0, { timeout: 20_000 }).catch(() => undefined);
-    await shotUnion(page, page.locator('[data-screenshot-target]'), dropdown, 'demo-grid.png');
+    await shotUnion(page, page.locator('[data-testid="demo-case"]'), dropdown, 'demo-grid.png');
   });
 
   test('tom select mode', async ({ page }) => {
@@ -53,7 +53,7 @@ test.describe('feature screenshots', () => {
     const dropdown = page.locator('.ts-dropdown').first();
     // Opening with no value lists the first page of icons (each option = SVG + name).
     await expect(dropdown.locator('.option svg').nth(5)).toBeVisible({ timeout: 20_000 });
-    await shotUnion(page, page.locator('[data-screenshot-target]'), dropdown, 'demo-tom-select.png');
+    await shotUnion(page, page.locator('[data-testid="demo-case"]'), dropdown, 'demo-tom-select.png');
   });
 
   test('emoji tab', async ({ page }) => {
@@ -64,6 +64,6 @@ test.describe('feature screenshots', () => {
     await page.getByRole('combobox', { name: 'Category' }).selectOption({ label: 'Travel & Places' });
     await page.locator('.icon-selector-emoji-item[data-emoji="🚀"]').click();
     await page.getByRole('combobox', { name: 'Category' }).selectOption({ label: 'All categories' });
-    await page.locator('[data-screenshot-target]').screenshot({ path: resolve(outDir, 'demo-emoji.png') });
+    await page.locator('[data-testid="demo-case"]').screenshot({ path: resolve(outDir, 'demo-emoji.png') });
   });
 });

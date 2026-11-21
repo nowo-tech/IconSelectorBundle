@@ -48,6 +48,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Demo: runs in UiKit's demo platform shell (`nowo-tech/ui-kit-bundle` ^2.60); the demo's own header is gone and the pages use the shell page headers and section cards. The background-load page's inline script moved to `public/demo-background.js`. Demo only, no bundle change.
+
 ## [1.8.0] - 2026-11-17
 
 Target: 1.8.0 (Beacon / WikiBundle feedback on the page icon picker).

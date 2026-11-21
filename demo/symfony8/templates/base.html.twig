@@ -1,30 +1,27 @@
-{#- REQ-DEMO-014: the demo shell is UiKit's admin layout with UiKit's default theme (nowo-ui.css from the bundle's own
-    asset package, no CSS framework, no CDN). The icon widget's script is the IconSelectorBundle's own asset. -#}
-{% extends '@NowoUiKit/layout/admin.html.twig' %}
+{#- REQ-DEMO-014: the demo runs inside UiKit's shared demo platform shell. This file only declares the demo. The icon
+    widget's script is the IconSelectorBundle's own asset; its stylesheet is linked by the bundle's form theme. -#}
+{% extends '@NowoUiKit/demo_platform/layout.html.twig' %}
+{% set _loc = app.request.locale %}
+{% set nowo_ui_demo_platform = {
+    bundle: 'Icon Selector',
+    home_route: 'app_home',
+    home_params: {_locale: _loc},
+    repository: 'https://github.com/nowo-tech/IconSelectorBundle',
+    translation_domain: 'messages',
+    locales: ['en', 'es'],
+    nav: [
+        {label: 'demo.menu_home', route: 'app_home', params: {_locale: _loc}},
+        {label: 'demo.label_icon_grid', route: 'app_demo_grid', params: {_locale: _loc}, section: 'demo.nav_modes'},
+        {label: 'demo.label_icon_search', route: 'app_demo_search', params: {_locale: _loc}, section: 'demo.nav_modes'},
+        {label: 'demo.label_icon_tom_select', route: 'app_demo_tom_select', params: {_locale: _loc}, section: 'demo.nav_modes'},
+        {label: 'demo.label_icon_emoji', route: 'app_demo_emoji', params: {_locale: _loc}, section: 'demo.nav_modes'},
+        {label: 'demo.label_icon_heroicons', route: 'app_demo_heroicons', params: {_locale: _loc}, section: 'demo.nav_modes'},
+        {label: 'demo.page_background_title', route: 'app_demo_background', params: {_locale: _loc}, section: 'demo.nav_loading'},
+    ],
+} %}
+{% block nowo_ui_document_title %}{% block title %}{{ 'demo.title'|trans({}, 'messages') }}{% endblock %}{% endblock %}
 
-{% block nowo_ui_document_title %}{% block title %}Icon Selector Demo{% endblock %}{% endblock %}
-
-{% block nowo_ui_navigation %}
-    {% set _locale = app.request.locale %}
-    {% set _current_route = app.request.attributes.get('_route') ?? 'app_home' %}
-    <header class="nowo-ui-header" data-testid="demo-masthead">
-        <a class="nowo-ui-brand" href="{{ path('app_home', { _locale: _locale }) }}">{{ 'demo.title'|trans({}, 'messages') }}</a>
-        <nav class="nowo-ui-menu" aria-label="{{ 'demo.title'|trans({}, 'messages') }}">
-            {% for item in [
-                { route: 'app_home', label: 'demo.menu_home' },
-                { route: 'app_demo_grid', label: 'demo.label_icon_grid' },
-                { route: 'app_demo_search', label: 'demo.label_icon_search' },
-                { route: 'app_demo_tom_select', label: 'demo.label_icon_tom_select' },
-                { route: 'app_demo_heroicons', label: 'demo.label_icon_heroicons' },
-                { route: 'app_demo_background', label: 'demo.page_background_title' },
-            ] %}
-                <a class="nowo-ui-link" href="{{ path(item.route, { _locale: _locale }) }}"{% if _current_route == item.route %} aria-current="page"{% endif %}>{{ item.label|trans({}, 'messages') }}</a>
-            {% endfor %}
-            {% for loc in ['en', 'es'] %}
-                <a class="nowo-ui-link" href="{{ path(_current_route, { _locale: loc }) }}"{% if _locale == loc %} aria-current="true"{% endif %}>{{ loc|upper }}</a>
-            {% endfor %}
-        </nav>
-    </header>
+{% block nowo_ui_scripts %}
+    {{ parent() }}
+    <script src="{{ asset('icon-selector.js', 'nowo_icon_selector') }}"></script>
 {% endblock %}
-
-{% block nowo_ui_content %}{% block body %}{% endblock %}{% endblock %}

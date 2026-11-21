@@ -5,14 +5,13 @@
 {% block nowo_ui_page_header %}
     {{ include(nowo_ui_partial('page_header'), {
         title: 'demo.page_title'|trans({}, 'messages'),
+        intro: 'demo.lead'|trans({}, 'messages')|striptags,
     }) }}
 {% endblock %}
 
 {% block body %}
-    <p class="nowo-ui-muted">{{ 'demo.lead'|trans({}, 'messages')|raw }}</p>
-
-    <section class="nowo-ui-card">
-        <div class="nowo-ui-card__body">
+    {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'demo.nav_all'|trans({}, 'messages'), intro: 'demo.nav_all_intro'|trans({}, 'messages'), kind: 'table'} %}
+        {% block section_body %}
             <table class="nowo-ui-data-table">
                 <tbody>
                     {% for item in [
@@ -24,7 +23,7 @@
                         { route: 'app_demo_background', label: 'demo.page_background_title', lead: 'demo.page_background_lead'|trans({}, 'messages')|striptags|trim },
                     ] %}
                         <tr>
-                            <td>
+                            <td class="nowo-ui-cell--wrap">
                                 <a class="nowo-ui-link" href="{{ path(item.route, { _locale: app.request.locale }) }}">{{ item.label|trans({}, 'messages') }}</a>
                                 <div class="nowo-ui-muted">{{ item.lead }}</div>
                             </td>
@@ -32,6 +31,6 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
-    </section>
+        {% endblock %}
+    {% endembed %}
 {% endblock %}

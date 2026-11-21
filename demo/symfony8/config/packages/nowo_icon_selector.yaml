@@ -7,5 +7,7 @@ nowo_icon_selector:
         - tabler
     # Fetch full icon list from api.iconify.design for each library (requires symfony/http-client)
     use_iconify_collection: true
+    # REQ-DEMO-014: no third party in the browser: the icon lists and SVG previews come from the demo's own origin.
+    source: bundle
     icons_api_path: /api/icon-selector/icons
     form_theme: 'form_div_layout.html.twig'
