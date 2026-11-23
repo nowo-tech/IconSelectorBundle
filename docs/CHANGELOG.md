@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.9.0] - 2026-11-23](#190---2026-11-23)
 - [[1.8.0] - 2026-11-17](#180---2026-11-17)
 - [[1.7.0] - 2026-11-17](#170---2026-11-17)
 - [[1.6.0] - 2026-11-16](#160---2026-11-16)
@@ -48,6 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-23
+
 ### Changed
 
 - Demo: runs in UiKit's demo platform shell (`nowo-tech/ui-kit-bundle` ^2.60); the demo's own header is gone and the pages use the shell page headers and section cards. The background-load page's inline script moved to `public/demo-background.js`. Demo only, no bundle change.
@@ -56,6 +59,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - **Console**: quiet switch for the script-loaded line: `<html data-nowo-console="quiet">` or `globalThis.NOWO_CONSOLE = 'quiet'` prints nothing. The default is unchanged.
+
+[1.9.0]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.9.0
 
 ## [1.8.0] - 2026-11-17
 
