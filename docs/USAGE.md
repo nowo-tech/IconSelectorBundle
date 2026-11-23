@@ -12,6 +12,7 @@
 - [Overriding bundle templates](#overriding-bundle-templates)
   - [Bundle template paths (form themes)](#bundle-template-paths-form-themes)
 - [Overriding translations](#overriding-translations)
+- [Browser console](#browser-console)
 
 ## Form type
 
@@ -208,3 +209,7 @@ The form type uses the translation domain **`NowoIconSelectorBundle`** by defaul
 Define the same keys as in the bundle (e.g. `placeholder`, `search_placeholder`, `no_icons`, `filter.all`, and choice labels such as `home`, `user`). Your values replace the bundle’s for that locale.
 
 Since 1.8 the picker's own texts (trigger, search box, loading shell, empty list, filters, emoji tab) are always read from `NowoIconSelectorBundle`, whatever the field's `translation_domain` (a host form type such as WikiBundle's sets its own domain for the label and help). To use your own text, pass your key in `placeholder` / `search_placeholder`: a value other than the bundle key is translated in the field's `translation_domain` (or printed as is with `translation_domain: false`).
+
+## Browser console
+
+The bundle's script logs one line when it loads (`📦 [icon-selector] script loaded, build: 2026-11-23 14:05 UTC`) so a developer can tell which build a page runs. To silence it, set `<html data-nowo-console="quiet">` or `globalThis.NOWO_CONSOLE = 'quiet'` before the script loads; nothing is printed then. The default is unchanged.
