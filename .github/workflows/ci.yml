@@ -340,6 +340,42 @@ jobs:
       - name: Igor worker-state audit (REQ-CS-008)
         run: composer igor
 
+  vitest:
+    name: TypeScript (Vitest + asset build)
+    needs: changes
+    # Light mode: skipped (a skipped non-matrix job reports its own name as success).
+    if: ${{ !cancelled() && needs.changes.outputs.mode != 'light' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Vitest with coverage thresholds (audit ZBC-I4)
+        run: pnpm run test:coverage
+
+      - name: Built assets match the sources (build-info.json keeps builtAt for unchanged sources)
+        run: |
+          pnpm run build
+          git diff --exit-code -- src/Resources/public build-info.json
+
   e2e-csp:
     name: E2E strict CSP (Playwright)
     needs: changes

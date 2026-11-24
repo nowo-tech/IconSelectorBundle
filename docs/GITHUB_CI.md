@@ -253,7 +253,7 @@ with a repository variable of the same name (`gh variable set NOWO_CI_PR_MODE -R
   audit`, the whole PHPUnit suite.
 - PHPStan, Code Style Check, Dependency floor (where the repo has it), Git history and the semantic PR title.
 
-Skipped or reduced in light mode in this repo: Code Coverage, Igor, the strict-CSP Playwright e2e and the other PHP x Symfony cells (echo step only).
+Skipped or reduced in light mode in this repo: Code Coverage, Igor, the TypeScript job (Vitest with its coverage thresholds, then `pnpm run build` must reproduce the committed `src/Resources/public` and `build-info.json`), the strict-CSP Playwright e2e and the other PHP x Symfony cells (echo step only).
 
 The other matrix cells still start and report success after one echo step: a matrix job skipped with a job-level
 `if:` reports its un-expanded name (`PHP ${{ matrix.php }} - …`), so the required contexts `PHP x - Symfony y` would
