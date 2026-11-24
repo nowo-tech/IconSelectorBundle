@@ -20,7 +20,7 @@
 | `DependencyInjection/Configuration.php` | Config tree | FR-CFG-001 |
 | `DependencyInjection/NowoIconSelectorExtension.php` | DI extension | FR-CFG-002 |
 | `DependencyInjection/Compiler/TwigPathsPass.php` | Twig namespace | FR-TWIG-001 |
-| `DependencyInjection/Compiler/StaticIconListCheckPass.php` | Build-time warning: icon set without a static list | FR-SRC-001 |
+| `DependencyInjection/Compiler/StaticIconListCheckPass.php` | Build-time warning: icon set without a static list | FR-ICONSRC-001 |
 
 ## HTTP — API
 
@@ -48,9 +48,9 @@
 | `Service/IconifyCollectionLoader.php` | Iconify API loader | FR-SVC-002, FR-WORKER-002 |
 | `Service/SvgSanitizer.php` | SVG sanitization | FR-SVC-003 |
 | `Service/SvgSanitizerInterface.php` | SVG sanitization — port (REQ-ARCH-001) | FR-SVC-003 |
-| `Service/IconSource.php` | Icon source enum (iconify / bundle / ux_icons_local) | FR-SRC-001 |
-| `Service/IconSetPrefixes.php` | Icon set key → prefixes | FR-SRC-001 |
-| `Service/LocalUxIconsScanner.php` | Committed UX Icons listing | FR-SRC-001 |
+| `Service/IconSource.php` | Icon source enum (iconify / bundle / ux_icons_local) | FR-ICONSRC-001 |
+| `Service/IconSetPrefixes.php` | Icon set key → prefixes | FR-ICONSRC-001 |
+| `Service/LocalUxIconsScanner.php` | Committed UX Icons listing | FR-ICONSRC-001 |
 | `Service/WidgetTheme.php` | Widget look (uikit / bootstrap) | FR-THEME-001 |
 
 ## Emoji

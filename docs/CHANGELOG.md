@@ -57,7 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Code style: `@PER-CS` + `@PER-CS:risky` replace `@PSR12` (REQ-CS-009); the Flex-managed demo `config/bundles.php` and `config/reference.php` are excluded from the fixer. No file changed.
 - Dependencies (dev / demo locks only, REQ-SEC-004): root lock `symfony/ux-icons` 2.36.3, `twig/twig` 3.31.1, `twig/extra-bundle` 3.31.0; demo lock also `symfony/http-client` 8.1.11, `symfony/mime` 8.1.10, `twig/html-extra` 3.31.1, `symfony/ux-icons` 3.8.1 (`composer audit --locked` clean). No constraint change.
-- `specs/001-baseline`: the code inventory maps every tracked `src/` file (72/72) and the spec gains FR-SRC-001, FR-THEME-001, FR-EMOJI-001..003 and FR-TWIG-003 (REQ-SPECKIT-001, REQ-SPECKIT-003). README coverage figures updated.
+- `specs/001-baseline`: the code inventory maps every tracked `src/` file (72/72) and the spec gains FR-ICONSRC-001, FR-THEME-001, FR-EMOJI-001..003 and FR-TWIG-003 (REQ-SPECKIT-001, REQ-SPECKIT-003). README coverage figures updated.
 
 ## [1.9.0] - 2026-11-23
 
