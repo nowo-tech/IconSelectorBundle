@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/icon-selector-bundle`  
-**Last audited**: 2026-11-16 (1.5.0 service interfaces mapped; previous: 2026-10-20 wave-1 SVG sanitizer)
+**Last audited**: 2026-11-24 (100%: every tracked `src/` file mapped, emoji / source / theme / render files of 1.6–1.9 added, 1.9.1 once-guard boot; previous: 2026-11-16 1.5.0 service interfaces)
 
 ## Symfony config
 
@@ -20,6 +20,7 @@
 | `DependencyInjection/Configuration.php` | Config tree | FR-CFG-001 |
 | `DependencyInjection/NowoIconSelectorExtension.php` | DI extension | FR-CFG-002 |
 | `DependencyInjection/Compiler/TwigPathsPass.php` | Twig namespace | FR-TWIG-001 |
+| `DependencyInjection/Compiler/StaticIconListCheckPass.php` | Build-time warning: icon set without a static list | FR-SRC-001 |
 
 ## HTTP — API
 
@@ -47,12 +48,39 @@
 | `Service/IconifyCollectionLoader.php` | Iconify API loader | FR-SVC-002, FR-WORKER-002 |
 | `Service/SvgSanitizer.php` | SVG sanitization | FR-SVC-003 |
 | `Service/SvgSanitizerInterface.php` | SVG sanitization — port (REQ-ARCH-001) | FR-SVC-003 |
+| `Service/IconSource.php` | Icon source enum (iconify / bundle / ux_icons_local) | FR-SRC-001 |
+| `Service/IconSetPrefixes.php` | Icon set key → prefixes | FR-SRC-001 |
+| `Service/LocalUxIconsScanner.php` | Committed UX Icons listing | FR-SRC-001 |
+| `Service/WidgetTheme.php` | Widget look (uikit / bootstrap) | FR-THEME-001 |
+
+## Emoji
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Emoji/EmojiCatalogInterface.php` | Emoji catalogue — port (REQ-ARCH-001) | FR-EMOJI-001 |
+| `Emoji/EmojiCatalog.php` | Bundled RGI emoji catalogue | FR-EMOJI-001 |
+| `Emoji/IconValue.php` | Stored value helpers (`prefix:name` / `emoji:<grapheme>`) | FR-EMOJI-001 |
+
+## Validator
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Validator/Constraints/EmojiIcon.php` | Emoji value constraint | FR-EMOJI-002 |
+| `Validator/Constraints/EmojiIconValidator.php` | Emoji value validator | FR-EMOJI-002 |
+
+## Emoji data
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Resources/emoji/emoji-data.php` | Generated emoji dataset (server) | FR-EMOJI-001 |
+| `Resources/emoji/LICENSE-UNICODE.txt` | Unicode data licence | FR-EMOJI-001 |
 
 ## Twig PHP
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
 | `Twig/NowoIconSelectorTwigExtension.php` | Asset path helper | FR-TWIG-001 |
+| `Twig/IconRenderTwigExtension.php` | `nowo_icon_selector_render()` for icon and emoji values | FR-TWIG-003 |
 
 ## Frontend assets
 
@@ -67,9 +95,18 @@
 | `Resources/assets/src/logger.ts` | Frontend logger | FR-ASSET-001 |
 | `Resources/assets/src/logger.test.ts` | Logger tests | FR-ASSET-001 |
 | `Resources/assets/src/logger-once.test.ts` | Logger once-guard tests | FR-ASSET-001 |
+| `Resources/assets/src/logger-quiet.test.ts` | Logger quiet-switch tests | FR-ASSET-001 |
 | `Resources/public/icon-selector.js` | Built bundle script | FR-ASSET-001 |
 | `Resources/assets/src/svg-sanitizer.ts` | Client SVG sanitizer | FR-ASSET-002, FR-SVC-003 |
 | `Resources/assets/src/svg-sanitizer.test.ts` | Sanitizer tests | FR-ASSET-002 |
+| `Resources/assets/src/svg-sanitizer.dom.test.ts` | Sanitizer DOM tests | FR-ASSET-002 |
+| `Resources/assets/src/emoji-picker.ts` | Emoji tab and grid | FR-EMOJI-003 |
+| `Resources/assets/src/emoji-picker.test.ts` | Emoji picker tests | FR-EMOJI-003 |
+| `Resources/assets/src/widget-theme.ts` | Widget classes per theme + translated texts | FR-THEME-001 |
+| `Resources/assets/src/widget-theme.test.ts` | Widget theme tests | FR-THEME-001 |
+| `Resources/assets/src/icon-selector.css` | Widget stylesheet source (theme tokens) | FR-THEME-001 |
+| `Resources/public/icon-selector.css` | Built widget stylesheet | FR-THEME-001 |
+| `Resources/public/emoji-data.json` | Generated emoji dataset (browser) | FR-EMOJI-003 |
 
 ## Translations
 
@@ -104,12 +141,15 @@
 | Category | Files | Mapped |
 | --- | ---: | ---: |
 | Symfony config | 3 | 3 |
-| Bundle & DI | 4 | 4 |
+| Bundle & DI | 5 | 5 |
 | HTTP — API | 3 | 3 |
 | Form | 2 | 2 |
-| Services | 7 | 7 |
-| Twig PHP | 1 | 1 |
-| Frontend assets | 9 | 9 |
+| Services | 11 | 11 |
+| Emoji | 3 | 3 |
+| Validator | 2 | 2 |
+| Emoji data | 2 | 2 |
+| Twig PHP | 2 | 2 |
+| Frontend assets | 21 | 21 |
 | Translations | 7 | 7 |
 | Twig views — form themes | 11 | 11 |
-| **Total production sources** | **47** | **47** |
+| **Total production sources** | **72** | **72** |

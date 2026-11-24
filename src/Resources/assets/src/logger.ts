@@ -29,10 +29,12 @@
  *    log.warn('unexpected but handled', error);
  *    log.error('failure', error);
  *
- * 5. To inject build id with Vite, add to vite.config.ts:
+ * 5. To inject the build id with Vite, add to vite.config.ts a readable, reproducible value (REQ-ASSETS-005: the
+ *    committed build-info.json keeps `builtAt` while the source hash is unchanged; see buildTimeLabel() in this
+ *    bundle's vite.config.ts):
  *
  *    define: {
- *      __MY_BUNDLE_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+ *      __MY_BUNDLE_BUILD_TIME__: JSON.stringify(buildTimeLabel('src/Resources/assets/src')),
  *    },
  *
  * All methods support multiple arguments (like console.log). Objects are stringified
