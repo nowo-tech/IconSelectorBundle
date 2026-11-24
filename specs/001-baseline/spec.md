@@ -67,12 +67,21 @@ Symfony **form type** for icon selection with **direct grid**, **search**, and *
 - **FR-SVC-002**: `IconifyCollectionLoader` — remote Iconify catalog when enabled.
 - **FR-SVC-003**: `SvgSanitizer` — safe SVG output.
 - **FR-WORKER-002**: Iconify fetches use real cache TTLs (24 h success, short failure TTL) and `IconListProvider` falls back to the static list on empty/failed collections so a worker outage does not pin empty results indefinitely.
+- **FR-SRC-001**: Icon source (`source`: `iconify` / `bundle` / `ux_icons_local`, `IconSource`). `bundle` serves the bundled static lists through the bundle endpoints (no browser request to a third party); `ux_icons_local` lists only the icons committed under the UX Icons directory (`LocalUxIconsScanner`, nested folders become extra name segments). `IconSetPrefixes` maps a set key to its prefixes. `StaticIconListCheckPass` warns at container build time when a set has no bundled static list under `bundle` without the Iconify collection.
+- **FR-THEME-001**: Widget look (`theme`: `auto` / `uikit` / `bootstrap`, config and field option; `WidgetTheme`, `widget-theme.ts`, `icon-selector.css`): every widget element gets a semantic `icon-selector-*` class; `bootstrap` adds the 1.7 Bootstrap utility classes, `uikit` styles it from the UiKit design tokens with system-colour fallbacks (light / dark). No inline styles (strict CSP).
+
+### Emoji
+
+- **FR-EMOJI-001**: Bundled emoji catalogue (`EmojiCatalogInterface` port, `EmojiCatalog` reading the generated `Resources/emoji/emoji-data.php` once, immutable, worker safe; Unicode licence shipped). `IconValue` handles stored values `prefix:name` (icons) and `emoji:<grapheme>` (emoji).
+- **FR-EMOJI-002**: `EmojiIcon` constraint + `EmojiIconValidator`: an `emoji:` value must be exactly one RGI emoji of the catalogue; other values are left to other constraints unless `emojiOnly`; null and `''` are valid.
+- **FR-EMOJI-003**: Emoji mode (`emoji: true`): an "Icons | Emoji" tab pair and a searchable, keyboard-accessible emoji grid (`emoji-picker.ts`) fed by the static `emoji-data.json` (`emoji_data_url`); it stores `emoji:<grapheme>` in the same field; labels via `textContent` / attributes only.
 
 ### Twig & assets
 
 - **FR-TWIG-001**: `NowoIconSelectorTwigExtension`, `TwigPathsPass`.
 - **FR-TWIG-002**: Form themes for Bootstrap 3–5, Foundation 5/6, Tailwind 2, table layout.
-- **FR-ASSET-001**: TypeScript lib, Stimulus controller, built `icon-selector.js`.
+- **FR-TWIG-003**: `IconRenderTwigExtension` — `nowo_icon_selector_render(value, attrs)`: `prefix:name` through UX Icons + the SVG sanitizer, `emoji:<grapheme>` as escaped text in `<span role="img" aria-label="…">`.
+- **FR-ASSET-001**: TypeScript lib, Stimulus controller, built `icon-selector.js`. The entry boots once per page (`icon-selector-boot.ts`) and logs one `📦 [icon-selector] script loaded, build: …` line (REQ-ASSETS-005 once-guard, quiet switch).
 - **FR-ASSET-002**: Client-side SVG sanitizer (`svg-sanitizer.ts`) for markup that does not come from the bundle endpoints (e.g. the public Iconify API): parses as XML, keeps only the allowlist mirrored from `SvgSanitizer` (FR-SVC-003), and drops anything that is not a well-formed `<svg>` (fail closed).
 
 ### i18n
@@ -83,7 +92,7 @@ Symfony **form type** for icon selection with **direct grid**, **search**, and *
 
 ## Success Criteria
 
-- **SC-001**: **47/47** files mapped in inventory.
+- **SC-001**: **72/72** files mapped in inventory.
 - **SC-002**: Config keys match [`docs/CONFIGURATION.md`](../../docs/CONFIGURATION.md).
 - **SC-003**: `composer qa` / CI green.
 

@@ -2,7 +2,7 @@
 
 ## Table of contents
 
-- [Unreleased](#unreleased)
+- [To 1.9.1](#to-191)
 - [To 1.9.0](#to-190)
 - [To 1.8.0](#to-180)
 - [To 1.7.0](#to-170)
@@ -48,7 +48,11 @@
   - [Twig Extra Bundle (REQ-TWIG-004)](#twig-extra-bundle-req-twig-004)
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
 
-## Unreleased
+## To 1.9.1
+
+No configuration change. Run `assets:install` (or your asset pipeline) to get the rebuilt `icon-selector.js`. A page
+that loads the script more than once now initialises once: if you relied on a second copy re-running the discovery,
+call `window.NowoIconSelector.runInit()` (or `initIconSelectorContainer(element)`) instead.
 
 ## To 1.9.0
 

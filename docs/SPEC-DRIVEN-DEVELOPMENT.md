@@ -39,7 +39,7 @@ The sections below state **behavior**; this subsection states **intent** in back
 
 ## Bundle functional scope
 
-**Goal:** Symfony form type for icon selection: direct selector and search. Integrates with Symfony UX Icons (Heroicons, Bootstrap Icons, etc.). Stores icon identifier as string.
+**Goal:** Symfony form type for icon selection: direct selector, search and Tom Select modes, plus an optional emoji tab. Integrates with Symfony UX Icons (Heroicons, Bootstrap Icons, etc.). Stores the value as a string: `prefix:name` for icons, `emoji:<grapheme>` for emoji (validated by the `EmojiIcon` constraint, rendered by `nowo_icon_selector_render()`). Icon lists come from Iconify, the bundled static lists or the icons committed under UX Icons (`source`); the widget follows the UiKit or Bootstrap look (`theme`). The normative baseline is [`specs/001-baseline/spec.md`](../specs/001-baseline/spec.md).
 
 **In scope**
 
