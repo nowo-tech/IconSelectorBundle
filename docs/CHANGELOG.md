@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.9.1] - 2026-11-24](#191---2026-11-24)
 - [[1.9.0] - 2026-11-23](#190---2026-11-23)
 - [[1.8.0] - 2026-11-17](#180---2026-11-17)
 - [[1.7.0] - 2026-11-17](#170---2026-11-17)
@@ -49,6 +50,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-11-24
+
 ### Fixed
 
 - **Script loaded twice initialises once** (REQ-ASSETS-005 once-guard). When `icon-selector.js` runs more than once on a page (two `<script>` tags, Turbo, a fragment that re-adds the tag), only the first copy boots: one `📦 [icon-selector] script loaded` console line, one `window.NowoIconSelector` object, one discovery pass and one MutationObserver. Before, every copy logged its own line, replaced `window.NowoIconSelector` and started another observer. The logger remembers announced names per page in `globalThis.__nowoScriptBanners` (the registry UiKit uses too; a clobbered global falls back to a module-scope set and never throws), and the entry claims the page through `globalThis.__nowoIconSelectorBooted`. Covered by Vitest (`logger-once.test.ts`, `icon-selector-boot.test.ts`) and a browser test that adds the script twice more under the strict CSP (`tests/E2eCsp/playwright/tests/once-guard.spec.ts`).
@@ -60,6 +63,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Code style: `@PER-CS` + `@PER-CS:risky` replace `@PSR12` (REQ-CS-009); the Flex-managed demo `config/bundles.php` and `config/reference.php` are excluded from the fixer. No file changed.
 - Dependencies (dev / demo locks only, REQ-SEC-004): root lock `symfony/ux-icons` 2.36.3, `twig/twig` 3.31.1, `twig/extra-bundle` 3.31.0; demo lock also `symfony/http-client` 8.1.11, `symfony/mime` 8.1.10, `twig/html-extra` 3.31.1, `symfony/ux-icons` 3.8.1 (`composer audit --locked` clean). No constraint change.
 - `specs/001-baseline`: the code inventory maps every tracked `src/` file (72/72) and the spec gains FR-ICONSRC-001, FR-THEME-001, FR-EMOJI-001..003 and FR-TWIG-003 (REQ-SPECKIT-001, REQ-SPECKIT-003). README coverage figures updated.
+
+[1.9.1]: https://github.com/nowo-tech/IconSelectorBundle/releases/tag/v1.9.1
 
 ## [1.9.0] - 2026-11-23
 

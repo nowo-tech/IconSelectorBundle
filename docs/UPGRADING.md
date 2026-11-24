@@ -50,6 +50,12 @@
 
 ## To 1.9.1
 
+From **1.9.0**:
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
+
 No configuration change. Run `assets:install` (or your asset pipeline) to get the rebuilt `icon-selector.js`. A page
 that loads the script more than once now initialises once: if you relied on a second copy re-running the discovery,
 call `window.NowoIconSelector.runInit()` (or `initIconSelectorContainer(element)`) instead.
