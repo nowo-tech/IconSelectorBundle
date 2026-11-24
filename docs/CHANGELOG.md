@@ -49,6 +49,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Script loaded twice initialises once** (REQ-ASSETS-005 once-guard). When `icon-selector.js` runs more than once on a page (two `<script>` tags, Turbo, a fragment that re-adds the tag), only the first copy boots: one `📦 [icon-selector] script loaded` console line, one `window.NowoIconSelector` object, one discovery pass and one MutationObserver. Before, every copy logged its own line, replaced `window.NowoIconSelector` and started another observer. The logger remembers announced names per page in `globalThis.__nowoScriptBanners` (the registry UiKit uses too; a clobbered global falls back to a module-scope set and never throws), and the entry claims the page through `globalThis.__nowoIconSelectorBooted`. Covered by Vitest (`logger-once.test.ts`, `icon-selector-boot.test.ts`) and a browser test that adds the script twice more under the strict CSP (`tests/E2eCsp/playwright/tests/once-guard.spec.ts`).
+
 ## [1.9.0] - 2026-11-23
 
 ### Changed

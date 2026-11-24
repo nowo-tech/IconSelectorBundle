@@ -13,6 +13,8 @@ describe('createBundleLogger', () => {
   let consoleError: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    // Fresh page: the once-guard registry would otherwise silence every test after the first.
+    delete (globalThis as { __nowoScriptBanners?: unknown }).__nowoScriptBanners;
     consoleLog = vi.fn();
     consoleDebug = vi.fn();
     consoleInfo = vi.fn();

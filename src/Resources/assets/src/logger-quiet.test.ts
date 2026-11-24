@@ -9,6 +9,8 @@ describe('scriptLoaded() quiet switch', () => {
   let consoleLog: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    // Fresh page: the once-guard registry would otherwise silence every test after the first.
+    delete (globalThis as { __nowoScriptBanners?: unknown }).__nowoScriptBanners;
     consoleLog = vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
 

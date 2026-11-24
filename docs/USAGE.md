@@ -213,3 +213,5 @@ Since 1.8 the picker's own texts (trigger, search box, loading shell, empty list
 ## Browser console
 
 The bundle's script logs one line when it loads (`📦 [icon-selector] script loaded, build: 2026-11-23 14:05 UTC`) so a developer can tell which build a page runs. To silence it, set `<html data-nowo-console="quiet">` or `globalThis.NOWO_CONSOLE = 'quiet'` before the script loads; nothing is printed then. The default is unchanged.
+
+The line is printed once per page: if the script is loaded more than once (two `<script>` tags, Turbo, a fragment that re-adds it), the later copies print nothing and do not initialise the page again (the first copy's `window.NowoIconSelector` and MutationObserver stay in place).

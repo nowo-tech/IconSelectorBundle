@@ -59,11 +59,14 @@
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
 | `Resources/assets/src/icon-selector.ts` | Widget entry | FR-ASSET-001 |
+| `Resources/assets/src/icon-selector-boot.ts` | Page boot with once-guard (REQ-ASSETS-005) | FR-ASSET-001 |
+| `Resources/assets/src/icon-selector-boot.test.ts` | Boot once-guard tests | FR-ASSET-001 |
 | `Resources/assets/src/icon-selector-lib.ts` | Core library | FR-ASSET-001 |
 | `Resources/assets/src/icon-selector-lib.test.ts` | Library tests | FR-ASSET-001 |
 | `Resources/assets/controllers/icon_selector_controller.ts` | Stimulus controller | FR-ASSET-001 |
 | `Resources/assets/src/logger.ts` | Frontend logger | FR-ASSET-001 |
 | `Resources/assets/src/logger.test.ts` | Logger tests | FR-ASSET-001 |
+| `Resources/assets/src/logger-once.test.ts` | Logger once-guard tests | FR-ASSET-001 |
 | `Resources/public/icon-selector.js` | Built bundle script | FR-ASSET-001 |
 | `Resources/assets/src/svg-sanitizer.ts` | Client SVG sanitizer | FR-ASSET-002, FR-SVC-003 |
 | `Resources/assets/src/svg-sanitizer.test.ts` | Sanitizer tests | FR-ASSET-002 |

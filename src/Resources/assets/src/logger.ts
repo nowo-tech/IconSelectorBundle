@@ -14,7 +14,8 @@
  *      buildTime: typeof __MY_BUNDLE_BUILD_TIME__ !== 'undefined' ? __MY_BUNDLE_BUILD_TIME__ : undefined,
  *    });
  *
- * 2. Log that the script loaded (call once at startup; includes build id if provided):
+ * 2. Log that the script loaded (call once at startup; includes build id if provided). The line is printed at most
+ *    once per logger name and page, even when the script is evaluated twice (REQ-ASSETS-005 once-guard):
  *
  *    log.scriptLoaded();
  *
@@ -46,7 +47,7 @@ export type BundleLoggerOptions = {
 };
 
 export type BundleLogger = {
-  /** Call once at startup. Logs "script loaded" and optional build id. Always shown. */
+  /** Call once at startup. Logs "script loaded" and optional build id, at most once per name and page (unless quiet). */
   scriptLoaded: () => void;
   /** When false, debug/info/warn/error are no-ops (only scriptLoaded is shown). */
   setDebug: (enabled: boolean) => void;
@@ -64,6 +65,47 @@ function isQuiet(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Names announced on this page when the page-wide registry is unusable (clobbered or read-only global). */
+const announcedHere = new Set<string>();
+
+function isPlainObject(value: unknown): value is Record<string, true> {
+  return Object.prototype.toString.call(value) === '[object Object]';
+}
+
+/**
+ * Records `name` and tells whether it was announced before on this page (REQ-ASSETS-005 once-guard).
+ * The page-wide registry `globalThis.__nowoScriptBanners` (shared with the other nowo-tech bundles, which use their own
+ * names) lets a script evaluated twice (two copies, Turbo, a fragment) announce once. Page HTML can clobber that global
+ * (DOM named access, e.g. `id="__nowoScriptBanners"`), so it is only used when it is a plain object, every access is
+ * wrapped in `try/catch`, and a module-scope set is the fallback.
+ *
+ * @param name - Logger name (e.g. 'icon-selector').
+ * @returns True when `name` was already announced.
+ */
+export function alreadyAnnounced(name: string): boolean {
+  try {
+    const host = globalThis as { __nowoScriptBanners?: unknown };
+    if (!isPlainObject(host.__nowoScriptBanners)) {
+      host.__nowoScriptBanners = {};
+    }
+    const seen = host.__nowoScriptBanners;
+    if (isPlainObject(seen)) {
+      if (seen[name] === true) {
+        return true;
+      }
+      seen[name] = true;
+
+      return false;
+    }
+  } catch {
+    // Clobbered or read-only global: fall back to the module-scope set.
+  }
+  const known = announcedHere.has(name);
+  announcedHere.add(name);
+
+  return known;
 }
 
 const STYLES = {
@@ -102,6 +144,7 @@ export function createBundleLogger(name: string, options: BundleLoggerOptions = 
   return {
     scriptLoaded(): void {
       if (isQuiet()) return;
+      if (alreadyAnnounced(name)) return;
       if (buildTime !== undefined && buildTime !== '') {
         console.log(
           `%c${EMOJI.script} ${prefix} script loaded, build: %c${buildTime}`,

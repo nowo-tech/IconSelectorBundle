@@ -1,38 +1,24 @@
 /**
  * Icon selector bundle entry point.
- * Imports the styles (extracted to icon-selector.css by the build) and runs runInitAndObserve when the DOM is ready (or immediately if already loaded).
- * runInitAndObserve discovers all [data-controller*="icon-selector"] elements, initializes them, and starts a
- * MutationObserver so that icon selectors injected later (e.g. from an API response) are initialized automatically.
- *
- * Exposes NowoIconSelector on window so a Stimulus controller can call initIconSelectorContainer(element)
- * when the component is connected (UX component / controller pattern).
+ * Imports the styles (extracted to icon-selector.css by the build) and boots the page through bootIconSelector():
+ * it logs the "script loaded" line, exposes NowoIconSelector on window (so a Stimulus controller can call
+ * initIconSelectorContainer(element) when the component is connected) and runs runInitAndObserve when the DOM is ready
+ * (or immediately if already loaded). runInitAndObserve discovers all [data-controller*="icon-selector"] elements,
+ * initializes them, and starts a MutationObserver so that icon selectors injected later are initialized automatically.
+ * A second copy of this script on the same page does nothing (once-guard, REQ-ASSETS-005).
  */
 
 import { createBundleLogger } from './logger';
-import { setBundleLogger, runInitAndObserve, runInit, initIconSelectorContainer } from './icon-selector-lib';
+import { bootIconSelector } from './icon-selector-boot';
 
 declare const __ICON_SELECTOR_BUILD_TIME__: string;
-
-const log = createBundleLogger('icon-selector', {
-  buildTime: typeof __ICON_SELECTOR_BUILD_TIME__ !== 'undefined' ? __ICON_SELECTOR_BUILD_TIME__ : undefined,
-});
-log.scriptLoaded();
-setBundleLogger(log);
 
 // Styles are extracted to icon-selector.css at build time (no inline <style> injection: strict CSP).
 import 'tom-select/dist/css/tom-select.css';
 import './icon-selector.css';
 
-if (typeof window !== 'undefined') {
-  (window as unknown as { NowoIconSelector?: { initIconSelectorContainer: typeof initIconSelectorContainer; runInit: typeof runInit; runInitAndObserve: typeof runInitAndObserve } }).NowoIconSelector = {
-    initIconSelectorContainer,
-    runInit,
-    runInitAndObserve,
-  };
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', runInitAndObserve);
-} else {
-  runInitAndObserve();
-}
+bootIconSelector(
+  createBundleLogger('icon-selector', {
+    buildTime: typeof __ICON_SELECTOR_BUILD_TIME__ !== 'undefined' ? __ICON_SELECTOR_BUILD_TIME__ : undefined,
+  }),
+);
