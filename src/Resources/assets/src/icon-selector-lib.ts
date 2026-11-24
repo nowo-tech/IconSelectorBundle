@@ -2367,27 +2367,42 @@ function createFormReadyGuard(container: HTMLElement): { markReady: () => void; 
  * Starts a MutationObserver on document.body so that when new HTML is injected (e.g. from an API response),
  * any new icon-selector containers are initialized automatically. Safe to call multiple times; observer
  * is only started once.
+ *
+ * A second, shallow observer watches the children of <html> for a new <body>: Turbo Drive (and similar) replace the
+ * whole <body> on each visit, and the script they re-execute in the new body is a no-op since the 1.9.1 once-guard, so
+ * the body observer moves to the new <body> and its widgets are initialized (audit ZBC-L2). Only the direct children of
+ * <html> are watched there, so head changes and the rest of the page cost nothing extra.
  */
 function startObserving(): void {
   if (observerStarted || typeof document === 'undefined' || !document.body) return;
   if (typeof MutationObserver === 'undefined') return;
   observerStarted = true;
-  const observer = new MutationObserver((mutations) => {
-    let hasNew = false;
-    for (const m of mutations) {
-      if (m.addedNodes.length && hasUninitializedIconSelectorInNodes(m.addedNodes)) {
-        hasNew = true;
-        break;
-      }
-    }
-    if (!hasNew) return;
+  const scheduleInit = (): void => {
     if (observeDebounceTimer) clearTimeout(observeDebounceTimer);
     observeDebounceTimer = setTimeout(() => {
       observeDebounceTimer = null;
       runInit();
     }, OBSERVE_DEBOUNCE_MS);
+  };
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.addedNodes.length && hasUninitializedIconSelectorInNodes(m.addedNodes)) {
+        scheduleInit();
+        return;
+      }
+    }
   });
-  observer.observe(document.body, { childList: true, subtree: true });
+  let observedBody: HTMLElement = document.body;
+  observer.observe(observedBody, { childList: true, subtree: true });
+  new MutationObserver(() => {
+    const body = document.body;
+    if (!body || body === observedBody) return;
+    observer.disconnect();
+    observedBody = body;
+    observer.observe(body, { childList: true, subtree: true });
+    getLogger().debug('icon-selector: <body> replaced, observing the new one');
+    if (hasUninitializedIconSelectorInNodes([body])) scheduleInit();
+  }).observe(document.documentElement, { childList: true });
   getLogger().debug('icon-selector: MutationObserver started for dynamic content');
 }
 

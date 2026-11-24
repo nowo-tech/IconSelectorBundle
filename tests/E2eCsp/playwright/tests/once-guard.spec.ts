@@ -37,3 +37,37 @@ test('a script loaded three times logs once and initialises once', async ({ page
   expect(after.elements).toBe(before);
   await expect(page.locator('div.icon-selector-widget[data-icon-selector-enhanced="1"]')).toHaveCount(3);
 });
+
+/**
+ * Audit ZBC-L2: Turbo Drive replaces the whole <body> on each visit and re-executes the scripts of the new body. With
+ * the once-guard the re-executed copy does nothing, so the first copy's observers must still see the new body's widgets
+ * (a shallow observer on <html> moves the body observer to the new <body>). Simulated without Turbo: fetch the page, swap in its <body>, add the
+ * script again, twice (two visits).
+ */
+test('a body replacement (Turbo Drive visit) initialises the new widgets, on every visit', async ({ page }) => {
+  const lines: string[] = [];
+  page.on('console', (msg) => {
+    if (msg.text().includes('script loaded')) lines.push(msg.text());
+  });
+
+  await page.goto('/bundle/form');
+  await expect(page.locator('div.icon-selector-widget[data-icon-selector-enhanced="1"]')).toHaveCount(3);
+
+  for (let visit = 1; visit <= 2; visit++) {
+    await page.evaluate(async (n) => {
+      const html = await (await fetch('/bundle/form')).text();
+      const next = new DOMParser().parseFromString(html, 'text/html').body;
+      next.dataset.visit = String(n);
+      document.body.replaceWith(document.adoptNode(next));
+    }, visit);
+    await page.addScriptTag({ url: '/bundles/nowoiconselector/icon-selector.js' });
+
+    await expect(page.locator(`body[data-visit="${visit}"]`)).toHaveCount(1);
+    await expect(page.locator('div.icon-selector-widget[data-icon-selector-enhanced="1"]')).toHaveCount(3);
+    const direct = page.locator('#icons_direct_icon_selector');
+    await direct.locator('.icon-selector-trigger').click();
+    await expect(direct.locator('.icon-selector-item').first()).toBeVisible();
+  }
+
+  expect(lines, 'script loaded lines').toHaveLength(1);
+});
