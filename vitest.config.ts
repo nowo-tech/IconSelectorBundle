@@ -13,11 +13,12 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html'],
       reportsDirectory: './coverage-ts',
-      // logger.ts + svg-sanitizer.ts + icon-selector-boot.ts at 100%; icon-selector-lib (~2,000 lines) has its own tests in icon-selector-lib.test.ts, which do not count towards this threshold.
+      // logger.ts + svg-sanitizer.ts + icon-selector-boot.ts + floating-panel.ts at 100%; icon-selector-lib (~2,000 lines) has its own tests in icon-selector-lib.test.ts, which do not count towards this threshold.
       include: [
         'src/Resources/assets/src/logger.ts',
         'src/Resources/assets/src/svg-sanitizer.ts',
         'src/Resources/assets/src/icon-selector-boot.ts',
+        'src/Resources/assets/src/floating-panel.ts',
       ],
       exclude: ['**/*.test.ts', '**/node_modules/**'],
       thresholds: {

@@ -150,6 +150,8 @@ test('bootstrap 5 theme, emoji: true and icon_prefixes: zero violations and zero
 
   // Emoji tab (CSSOM styles only): pick an emoji.
   await direct.getByRole('tab', { name: /emoji/i }).click();
+  // 1.9.2: the Emoji tab opens its floating panel from a trigger, like the Icons tab.
+  await direct.locator('.icon-selector-emoji-trigger').click();
   const emoji = direct.locator('.icon-selector-emoji-item').first();
   await expect(emoji).toBeVisible();
   await emoji.click();

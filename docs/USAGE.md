@@ -68,6 +68,9 @@ $builder->add('icon', IconSelectorType::class, [
   search box (CLDR English name and keywords, or paste the emoji), a category filter, a skin-tone selector and a grid of
   buttons with roving focus (arrows, Home/End, PageUp/PageDown; Enter/Space selects). The field opens on the Emoji tab
   when its value is an emoji.
+- Since 1.9.2 both tabs show a trigger button that opens the same kind of floating panel (it overlays the page, never
+  pushes it down, and opens upwards when there is no room below). Escape or a click outside closes it; picking an emoji
+  closes it and returns focus to the trigger.
 - The stored value is `emoji:<grapheme>`, e.g. `emoji:🚀`, `emoji:👋🏽`, `emoji:🇪🇸`. Icons keep their `prefix:name` ids.
 - Server side, an `emoji:` value is accepted only if it is exactly one RGI emoji from the bundled catalogue (≤ 64 bytes).
   Anything else fails the field with the usual "invalid choice" error. To validate stored values elsewhere use the
@@ -144,7 +147,7 @@ The form themes link the stylesheet `icon-selector.css` (Tom Select styles inclu
 `include_stylesheet: false`; in that case add `<link rel="stylesheet" href="{{ asset('icon-selector.css', 'nowo_icon_selector') }}">`
 to your layout. The script injects no inline styles, so a nonce-only CSP needs no extra configuration.
 
-The script runs on load, finds all `data-controller*="icon-selector"` elements and initializes them. It also starts a **MutationObserver**, so icon selectors injected later (e.g. from an API or Turbo frame) are initialized automatically.
+The script runs on load, finds all `data-controller*="icon-selector"` elements and initializes them. It also starts a **MutationObserver**, so icon selectors injected later (e.g. from an API or Turbo frame) are initialized automatically. With Turbo Drive (since 1.9.2) the widgets are disposed on `turbo:before-cache`, so a page restored from Turbo's cache (back/forward) is initialized again instead of showing inert widgets.
 
 ### Option B: Use as Stimulus controller
 

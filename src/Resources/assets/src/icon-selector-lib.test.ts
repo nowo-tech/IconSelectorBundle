@@ -278,6 +278,43 @@ describe('runInit', () => {
     expect(container.getAttribute('data-icon-selector-init')).toBe('1');
   });
 
+  it('1.9.2 (ZBC-D-I3): disposes the widgets on turbo:before-cache and skips a Turbo preview', () => {
+    runInitAndObserve();
+    const make = (): HTMLElement => {
+      const container = document.createElement('div');
+      container.setAttribute('data-controller', 'icon-selector');
+      container.setAttribute(ATTR_URL, '/api/icons');
+      container.setAttribute(ATTR_MODE, 'direct');
+      const input = document.createElement('input');
+      input.setAttribute('data-icon-selector-target', 'input');
+      input.className = 'icon-selector-input';
+      const picker = document.createElement('div');
+      picker.setAttribute('data-icon-selector-target', 'picker');
+      picker.className = 'icon-selector-picker';
+      container.append(input, picker);
+      document.body.appendChild(container);
+      return container;
+    };
+    const container = make();
+    runInit();
+    expect(container.getAttribute('data-icon-selector-init')).toBe('1');
+
+    document.dispatchEvent(new Event('turbo:before-cache'));
+    expect(container.hasAttribute('data-icon-selector-init')).toBe(false);
+    expect(container.hasAttribute('data-icon-selector-enhanced')).toBe(false);
+
+    document.documentElement.setAttribute('data-turbo-preview', '');
+    try {
+      runInit();
+      expect(container.hasAttribute('data-icon-selector-init')).toBe(false);
+    } finally {
+      document.documentElement.removeAttribute('data-turbo-preview');
+    }
+    runInit();
+    expect(container.getAttribute('data-icon-selector-init')).toBe('1');
+    disposeIconSelectorContainer(container);
+  });
+
   it('disposeIconSelectorContainer removes init markers for reconnect', () => {
     const container = document.createElement('div');
     container.setAttribute('data-controller', 'icon-selector');
@@ -481,6 +518,40 @@ describe('IconSelectorIconifyWidget fallback', () => {
     const empty = panel.querySelector('[role="status"]');
     expect(empty?.textContent).toBe('Sin iconos');
     expect(panel.querySelectorAll('.icon-selector-item')).toHaveLength(0);
+  });
+
+  it('1.9.2: the icon panel floats, opens upwards near the viewport bottom and closes on Escape / outside click', async () => {
+    routeFetch({
+      '/api/icon-selector/config': () => json(config),
+      '/api/icon-selector/icons': () => json({}, 500),
+    });
+    const { input, picker } = setup();
+    const onReady = vi.fn();
+    new IconSelectorIconifyWidget(picker.parentElement as HTMLElement, input, picker, '/api/icon-selector/config', undefined, onReady);
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledTimes(1));
+
+    vi.stubGlobal('innerHeight', 600);
+    picker.getBoundingClientRect = () => ({ top: 540, bottom: 578, left: 0, right: 300, width: 300, height: 38, x: 0, y: 540, toJSON: () => ({}) });
+    const panel = picker.querySelector<HTMLElement>('.icon-selector-panel')!;
+    panel.getBoundingClientRect = () => ({ top: 0, bottom: 300, left: 0, right: 300, width: 300, height: 300, x: 0, y: 0, toJSON: () => ({}) });
+    const trigger = picker.querySelector<HTMLElement>('.icon-selector-trigger')!;
+
+    trigger.click();
+    expect(panel.hidden).toBe(false);
+    expect(panel.getAttribute('data-icon-selector-placement')).toBe('above');
+
+    panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(panel.hidden).toBe(true);
+    expect(panel.hasAttribute('data-icon-selector-placement')).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+
+    picker.getBoundingClientRect = () => ({ top: 20, bottom: 58, left: 0, right: 300, width: 300, height: 38, x: 0, y: 20, toJSON: () => ({}) });
+    trigger.click();
+    expect(panel.hidden).toBe(false);
+    expect(panel.hasAttribute('data-icon-selector-placement')).toBe(false);
+    document.body.click();
+    expect(panel.hidden).toBe(true);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('renders the empty state when the config endpoint itself fails', async () => {

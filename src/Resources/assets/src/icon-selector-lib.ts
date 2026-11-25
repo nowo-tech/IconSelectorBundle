@@ -7,6 +7,7 @@ import TomSelect from 'tom-select';
 import { createBundleLogger, type BundleLogger } from './logger';
 import { sanitizeSvg, toSvgNumber } from './svg-sanitizer';
 import { attachEmojiPicker } from './emoji-picker';
+import { trackFloatingPanel } from './floating-panel';
 import { labelsOf, partClass, themeOf, type WidgetLabels, type WidgetThemeName } from './widget-theme';
 
 let bundleLogger: BundleLogger | null = null;
@@ -516,6 +517,8 @@ export class IconSelectorIconifyWidget {
   private svgCache: Record<string, string> = {};
   private triggerEl: HTMLElement | null = null;
   private panelEl: HTMLElement | null = null;
+  /** Stops the placement tracking of the open panel (see floating-panel.ts). */
+  private stopPlacement: (() => void) | null = null;
   private searchInput: HTMLInputElement | null = null;
   private setFilter: string = '';
   private searchQuery: string = '';
@@ -578,6 +581,8 @@ export class IconSelectorIconifyWidget {
   /** Removes global listeners and generated DOM so the container can be initialized again later. */
   destroy(): void {
     this.destroyed = true;
+    this.stopPlacement?.();
+    this.stopPlacement = null;
     if (this.documentClickHandler) {
       document.removeEventListener('click', this.documentClickHandler);
       this.documentClickHandler = null;
@@ -763,6 +768,9 @@ export class IconSelectorIconifyWidget {
     if (!this.panelEl) return;
     this.panelEl.hidden = !open;
     this.triggerEl?.setAttribute('aria-expanded', String(open));
+    // 1.9.2: the panel floats under the picker and opens upwards when there is no room below.
+    this.stopPlacement?.();
+    this.stopPlacement = open ? trackFloatingPanel(this.panelEl, this.picker) : null;
   }
 
   /**
@@ -1089,6 +1097,8 @@ export class IconSelectorWidget {
   private grid: HTMLDivElement | null = null;
   private triggerEl: HTMLButtonElement | null = null;
   private panelEl: HTMLElement | null = null;
+  /** Stops the placement tracking of the open panel (see floating-panel.ts). */
+  private stopPlacement: (() => void) | null = null;
   private gridContainer: HTMLElement | null = null;
   private searchInputEl: HTMLInputElement | null = null;
   /** Number of icons to show in grid; increases on scroll (lazy load). */
@@ -1152,6 +1162,8 @@ export class IconSelectorWidget {
   /** Removes listeners and generated DOM so the container can be initialized again later. */
   destroy(): void {
     this.destroyed = true;
+    this.stopPlacement?.();
+    this.stopPlacement = null;
     if (this.documentClickHandler) {
       document.removeEventListener('click', this.documentClickHandler);
       this.documentClickHandler = null;
@@ -1211,6 +1223,9 @@ export class IconSelectorWidget {
     if (!this.panelEl) return;
     this.panelEl.hidden = !open;
     this.triggerEl?.setAttribute('aria-expanded', String(open));
+    // 1.9.2: the panel floats under the picker and opens upwards when there is no room below.
+    this.stopPlacement?.();
+    this.stopPlacement = open ? trackFloatingPanel(this.panelEl, this.picker) : null;
   }
 
   /** Loads first batch of SVGs for current filter and renders grid; attaches scroll listener. Returns a promise. */
@@ -2403,7 +2418,26 @@ function startObserving(): void {
     getLogger().debug('icon-selector: <body> replaced, observing the new one');
     if (hasUninitializedIconSelectorInNodes([body])) scheduleInit();
   }).observe(document.documentElement, { childList: true });
+  document.addEventListener('turbo:before-cache', disposeAllForCache);
   getLogger().debug('icon-selector: MutationObserver started for dynamic content');
+}
+
+/**
+ * Turbo Drive snapshot (1.9.2, audit ZBC-D-I3): Turbo caches a clone of the page before it leaves it and shows that
+ * clone again as a preview or on back/forward. A clone keeps the "initialized" attributes but loses the listeners and
+ * Tom Select instances, so its widgets would stay inert. Disposing them on `turbo:before-cache` puts the cached markup
+ * back to its server-rendered state; a restored page is then initialized like a fresh one (body observer above).
+ */
+function disposeAllForCache(): void {
+  document.querySelectorAll<HTMLElement>(ICON_SELECTOR_CONTAINER_SELECTOR).forEach((container) => {
+    disposeIconSelectorContainer(container);
+  });
+  getLogger().debug('icon-selector: widgets disposed before the Turbo cache snapshot');
+}
+
+/** Whether the page shown is a Turbo preview (a cached snapshot replaced as soon as the fresh page arrives). */
+function isTurboPreview(): boolean {
+  return document.documentElement?.hasAttribute('data-turbo-preview') === true;
 }
 
 /**
@@ -2512,6 +2546,8 @@ export function disposeIconSelectorContainer(container: HTMLElement): void {
  * Skips containers already marked with data-icon-selector-init="1".
  */
 export function runInit(): void {
+  // A Turbo preview is replaced by the fresh page right away: its widgets are initialized there, not twice.
+  if (isTurboPreview()) return;
   const containers = document.querySelectorAll<HTMLElement>(ICON_SELECTOR_CONTAINER_SELECTOR);
   const first = containers[0];
   if (first) {

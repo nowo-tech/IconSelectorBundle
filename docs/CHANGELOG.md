@@ -50,6 +50,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The Emoji tab no longer pushes the page content down** (Beacon report 2026-11-25, WikiBundle page edit). The Icons tab opens a floating panel, but the Emoji tab drew its search, filters and grid in the normal flow, so every field and button below the picker moved down while it was open (and on page load when the value was an emoji). The Emoji tab now works like the Icons tab: a trigger button (the selected emoji and its name, or "No emoji selected") opens a floating panel (`.icon-selector-emoji-panel`, laid out like `.icon-selector-panel`: same anchor, width, `--icon-selector-panel-z` and maximum height with internal scroll). It closes on Escape (focus back to the trigger), on an outside click, on a pick (focus back to the trigger) and when the tab changes. No host CSS is needed. The emoji trigger and panel have their own classes, so host selectors for `.icon-selector-trigger` / `.icon-selector-panel` still match the icon part only.
+- **Panels open upwards when there is no room below.** Both the icon panel and the emoji panel are measured when they open (and when their content or the window resizes while open). When the panel does not fit below the field and there is more room above, it gets `data-icon-selector-placement="above"` and `icon-selector.css` draws it above the trigger (no inline style, strict CSP unchanged). The panels are capped at `--icon-selector-panel-max-height` (new token, default `min(32rem, 85vh)`) and scroll inside beyond it.
+- **Turbo Drive cache snapshots** (audit ZBC-D-I3). Turbo caches a clone of the page before leaving it; the clone kept the "initialised" markers but not the listeners or Tom Select instances, so its widgets stayed inert on a back/forward restore. The script now disposes the widgets on `turbo:before-cache` (the cached markup goes back to its server-rendered state and is initialised again when restored) and does not initialise a Turbo preview (`html[data-turbo-preview]`), which the fresh page replaces right away.
+
 ## [1.9.1] - 2026-11-24
 
 ### Fixed

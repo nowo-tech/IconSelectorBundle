@@ -38,7 +38,9 @@ export type WidgetPart =
   | 'svgWrap'
   | 'empty'
   | 'emojiSearch'
-  | 'emojiSelect';
+  | 'emojiSelect'
+  | 'emojiTrigger'
+  | 'emojiPanel';
 
 /** Semantic classes, present with every theme (icon-selector.css styles them; hosts may target them). */
 const SEMANTIC: Record<WidgetPart, string> = {
@@ -64,6 +66,10 @@ const SEMANTIC: Record<WidgetPart, string> = {
   empty: 'icon-selector-empty',
   emojiSearch: 'icon-selector-emoji-control icon-selector-emoji-search',
   emojiSelect: 'icon-selector-emoji-control',
+  // 1.9.2: own semantic classes (host selectors for .icon-selector-trigger / -panel keep matching the icon part only);
+  // icon-selector.css lays them out exactly like the icon trigger and panel.
+  emojiTrigger: 'icon-selector-emoji-trigger',
+  emojiPanel: 'icon-selector-emoji-panel',
 };
 
 /** Bootstrap utility classes of 1.7 per part ("bootstrap" theme only). */
@@ -87,6 +93,8 @@ const BOOTSTRAP: Partial<Record<WidgetPart, string>> = {
   empty: 'text-muted small p-2',
   emojiSearch: 'form-control form-control-sm',
   emojiSelect: 'form-select form-select-sm',
+  emojiTrigger: 'form-control form-control-sm d-flex align-items-center gap-2 text-start',
+  emojiPanel: 'border rounded shadow-sm p-2 bg-white',
 };
 
 /** Theme of a widget container ("bootstrap" unless the server says "uikit"). */

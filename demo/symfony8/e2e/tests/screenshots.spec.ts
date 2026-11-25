@@ -16,6 +16,9 @@ test.beforeAll(() => {
 
 async function hideProfiler(page: Page): Promise<void> {
   await page.addStyleTag({ content: '.sf-toolbar, [id^="sfwdt"], .sf-minitoolbar { display: none !important; }' });
+  // The demo card (UiKit .nowo-ui-card) clips its overflow, which cuts the open floating panel at the card's bottom
+  // edge; the screenshots show the whole panel the way it looks on a page whose container does not clip.
+  await page.addStyleTag({ content: '[data-testid="demo-case"] { overflow: visible !important; }' });
 }
 
 /** Screenshot the panel plus any floating element (e.g. an open dropdown) that overflows it. */
@@ -60,10 +63,16 @@ test.describe('feature screenshots', () => {
     await page.goto('/en/demo/emoji');
     await hideProfiler(page);
     await page.getByRole('tab', { name: 'Emoji' }).click();
+    const trigger = page.locator('.icon-selector-emoji-trigger');
+    await trigger.click();
     await expect(page.locator('.icon-selector-emoji-item').nth(40)).toBeVisible();
     await page.getByRole('combobox', { name: 'Category' }).selectOption({ label: 'Travel & Places' });
     await page.locator('.icon-selector-emoji-item[data-emoji="🚀"]').click();
+    // 1.9.2: the emoji panel floats over the page like the icon panel (reopened after the pick, which closes it).
+    await trigger.click();
+    const panel = page.locator('.icon-selector-emoji-panel');
     await page.getByRole('combobox', { name: 'Category' }).selectOption({ label: 'All categories' });
-    await page.locator('[data-testid="demo-case"]').screenshot({ path: resolve(outDir, 'demo-emoji.png') });
+    await expect(panel.locator('.icon-selector-emoji-item').nth(40)).toBeVisible();
+    await shotUnion(page, page.locator('[data-testid="demo-case"]'), panel, 'demo-emoji.png');
   });
 });

@@ -74,14 +74,15 @@ Symfony **form type** for icon selection with **direct grid**, **search**, and *
 
 - **FR-EMOJI-001**: Bundled emoji catalogue (`EmojiCatalogInterface` port, `EmojiCatalog` reading the generated `Resources/emoji/emoji-data.php` once, immutable, worker safe; Unicode licence shipped). `IconValue` handles stored values `prefix:name` (icons) and `emoji:<grapheme>` (emoji).
 - **FR-EMOJI-002**: `EmojiIcon` constraint + `EmojiIconValidator`: an `emoji:` value must be exactly one RGI emoji of the catalogue; other values are left to other constraints unless `emojiOnly`; null and `''` are valid.
-- **FR-EMOJI-003**: Emoji mode (`emoji: true`): an "Icons | Emoji" tab pair and a searchable, keyboard-accessible emoji grid (`emoji-picker.ts`) fed by the static `emoji-data.json` (`emoji_data_url`); it stores `emoji:<grapheme>` in the same field; labels via `textContent` / attributes only.
+- **FR-EMOJI-003**: Emoji mode (`emoji: true`): an "Icons | Emoji" tab pair and a searchable, keyboard-accessible emoji grid (`emoji-picker.ts`) fed by the static `emoji-data.json` (`emoji_data_url`); it stores `emoji:<grapheme>` in the same field; labels via `textContent` / attributes only. Since 1.9.2 the Emoji tab is a trigger plus a floating panel laid out like the icon panel (never in the page flow), closed by Escape / outside click / a pick with focus back to the trigger.
 
 ### Twig & assets
 
 - **FR-TWIG-001**: `NowoIconSelectorTwigExtension`, `TwigPathsPass`.
 - **FR-TWIG-002**: Form themes for Bootstrap 3–5, Foundation 5/6, Tailwind 2, table layout.
 - **FR-TWIG-003**: `IconRenderTwigExtension` — `nowo_icon_selector_render(value, attrs)`: `prefix:name` through UX Icons + the SVG sanitizer, `emoji:<grapheme>` as escaped text in `<span role="img" aria-label="…">`.
-- **FR-ASSET-001**: TypeScript lib, Stimulus controller, built `icon-selector.js`. The entry boots once per page (`icon-selector-boot.ts`) and logs one `📦 [icon-selector] script loaded, build: …` line (REQ-ASSETS-005 once-guard, quiet switch).
+- **FR-ASSET-001**: TypeScript lib, Stimulus controller, built `icon-selector.js`. The entry boots once per page (`icon-selector-boot.ts`) and logs one `📦 [icon-selector] script loaded, build: …` line (REQ-ASSETS-005 once-guard, quiet switch). Widgets are disposed on `turbo:before-cache` and a Turbo preview is not initialised (1.9.2).
+- **FR-ASSET-003**: Floating panels (`floating-panel.ts`, 1.9.2): the icon and emoji panels are absolute under their picker holder, opened below or, when there is no room below and more above, above (`data-icon-selector-placement="above"`, drawn by `icon-selector.css`), re-placed while open when the panel or the window resizes; capped by `--icon-selector-panel-max-height`.
 - **FR-ASSET-002**: Client-side SVG sanitizer (`svg-sanitizer.ts`) for markup that does not come from the bundle endpoints (e.g. the public Iconify API): parses as XML, keeps only the allowlist mirrored from `SvgSanitizer` (FR-SVC-003), and drops anything that is not a well-formed `<svg>` (fail closed).
 
 ### i18n

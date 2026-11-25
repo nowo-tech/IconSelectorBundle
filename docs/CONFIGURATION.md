@@ -196,7 +196,8 @@ The `theme` is independent of `form_theme` (the Symfony form layout of the row).
 `theme` option (`null` = this setting). The widget never sets inline styles with either theme (strict CSP); hosts can
 restyle it through the semantic `icon-selector-*` classes and the `--icon-selector-*` custom properties on
 `.icon-selector-widget` (`--icon-selector-surface`, `--icon-selector-text`, `--icon-selector-muted`,
-`--icon-selector-border`, `--icon-selector-primary`, `--icon-selector-radius`, `--icon-selector-panel-z` ...).
+`--icon-selector-border`, `--icon-selector-primary`, `--icon-selector-radius`, `--icon-selector-panel-z`,
+`--icon-selector-panel-max-height` ...).
 
 ```yaml
 # config/packages/nowo_icon_selector.yaml — Symfony Beacon (UiKit host, strict CSP, committed icons only)

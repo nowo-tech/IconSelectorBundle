@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   attachEmojiPicker,
   detectSupportedVersion,
@@ -175,7 +177,13 @@ describe('EmojiPicker', () => {
     expect(c.getAttribute('data-icon-selector-tab')).toBe('emoji');
     await flush();
     await flush();
-    expect(c.querySelector('.icon-selector-emoji-current')!.textContent).toBe('Selected: 🚀 rocket');
+    const trigger = c.querySelector('.icon-selector-emoji-trigger') as HTMLButtonElement;
+    expect(c.querySelector('.icon-selector-emoji-current')!.textContent).toBe('rocket');
+    expect(c.querySelector('.icon-selector-emoji-trigger-glyph')!.textContent).toBe('🚀');
+    expect(trigger.getAttribute('aria-label')).toBe('Selected: 🚀 rocket');
+    // Starting on the Emoji tab does not open the floating panel (nothing pushed down on page load).
+    expect((c.querySelector('.icon-selector-emoji-panel') as HTMLElement).hidden).toBe(true);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
     const pressed = c.querySelector('[aria-pressed="true"]') as HTMLButtonElement;
     expect(pressed.dataset.emoji).toBe('🚀');
     expect(pressed.tabIndex).toBe(0);
@@ -220,7 +228,8 @@ describe('EmojiPicker', () => {
     item.click();
     expect(input.value).toBe('emoji:👋🏽');
     expect(changed).toHaveBeenCalled();
-    expect(c.querySelector('.icon-selector-emoji-current')!.textContent).toBe('Selected: 👋🏽 waving hand');
+    expect(c.querySelector('.icon-selector-emoji-trigger')!.getAttribute('aria-label')).toBe('Selected: 👋🏽 waving hand');
+    expect(c.querySelector('.icon-selector-emoji-current')!.textContent).toBe('waving hand');
 
     search.value = '';
     search.dispatchEvent(new Event('input'));
@@ -299,5 +308,161 @@ describe('EmojiPicker', () => {
     emojiTab.click();
     await flush();
     expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * 1.9.2 (Beacon report 2026-11-25): the Emoji tab opened its UI in the normal flow and pushed the page down. It now
+ * uses the same floating panel as the Icons tab: a trigger, then an absolute `.icon-selector-panel` that flips up near
+ * the viewport bottom and closes on Escape / outside click / selection, giving focus back to the trigger.
+ */
+describe('EmojiPicker floating panel (1.9.2)', () => {
+  const rect = (top: number, height: number): DOMRect =>
+    ({ top, bottom: top + height, left: 0, right: 300, width: 300, height, x: 0, y: top, toJSON: () => ({}) }) as DOMRect;
+
+  beforeEach(() => {
+    clearEmojiDatasetCache();
+    document.head.innerHTML = '';
+    document.body.innerHTML = '';
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  function open(c: HTMLElement): { trigger: HTMLButtonElement; panel: HTMLElement; holder: HTMLElement } {
+    (c.querySelector('.icon-selector-emoji-tab-emoji') as HTMLButtonElement).click();
+    const trigger = c.querySelector('.icon-selector-emoji-trigger') as HTMLButtonElement;
+    const panel = c.querySelector('.icon-selector-emoji-panel') as HTMLElement;
+    const holder = c.querySelector('.icon-selector-emoji-picker') as HTMLElement;
+    return { trigger, panel, holder };
+  }
+
+  it('uses the shared floating panel classes and keeps the panel out of the flow (stylesheet)', async () => {
+    mockFetch();
+    const css = readFileSync(resolve(__dirname, 'icon-selector.css'), 'utf8');
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+    const c = buildContainer();
+    c.classList.add('icon-selector-widget');
+    attachEmojiPicker(c);
+    const { trigger, panel, holder } = open(c);
+
+    // Same structure as the icon picker: holder (picker widget) > trigger + panel.
+    expect(holder.classList.contains('icon-selector-picker-widget')).toBe(true);
+    expect(holder.getAttribute('role')).toBe('tabpanel');
+    expect(holder.hidden).toBe(false);
+    // Own classes, so host selectors for the icon trigger / panel still match one element per widget.
+    expect(trigger.classList.contains('icon-selector-trigger')).toBe(false);
+    expect(panel.classList.contains('icon-selector-panel')).toBe(false);
+    expect(panel.parentElement).toBe(holder);
+    // The holder sits right after the (hidden) icon picker: both tabs show their trigger at the same place.
+    expect(c.querySelector('.icon-selector-picker')!.nextElementSibling).toBe(holder);
+    expect(panel.hidden).toBe(true);
+    expect(trigger.getAttribute('aria-controls')).toBe(panel.id);
+
+    trigger.click();
+    expect(panel.hidden).toBe(false);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(getComputedStyle(holder).position).toBe('relative');
+    expect(getComputedStyle(panel).position).toBe('absolute');
+    expect(getComputedStyle(panel).overflowY).toBe('auto');
+    await flush();
+    await flush();
+    expect(c.querySelectorAll('.icon-selector-emoji-item')).toHaveLength(4);
+  });
+
+  it('opens upwards near the bottom of the viewport and below otherwise', () => {
+    mockFetch();
+    vi.stubGlobal('innerHeight', 600);
+    const c = buildContainer();
+    attachEmojiPicker(c);
+    const { trigger, panel, holder } = open(c);
+    panel.getBoundingClientRect = () => rect(0, 320);
+
+    holder.getBoundingClientRect = () => rect(540, 38);
+    trigger.click();
+    expect(panel.getAttribute('data-icon-selector-placement')).toBe('above');
+    trigger.click();
+    expect(panel.hidden).toBe(true);
+    expect(panel.hasAttribute('data-icon-selector-placement')).toBe(false);
+
+    holder.getBoundingClientRect = () => rect(40, 38);
+    trigger.click();
+    expect(panel.hasAttribute('data-icon-selector-placement')).toBe(false);
+  });
+
+  it('closes on Escape (panel or trigger) and on an outside click, focus back to the trigger', () => {
+    mockFetch();
+    const c = buildContainer();
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    attachEmojiPicker(c);
+    const { trigger, panel } = open(c);
+
+    trigger.click();
+    const search = c.querySelector('.icon-selector-emoji-search') as HTMLInputElement;
+    search.focus();
+    search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(panel.hidden).toBe(true);
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(trigger);
+
+    trigger.click();
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(panel.hidden).toBe(true);
+    // Escape on a closed trigger is left to the page.
+    const esc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    trigger.dispatchEvent(esc);
+    expect(esc.defaultPrevented).toBe(false);
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(panel.hidden).toBe(true);
+
+    trigger.click();
+    search.click();
+    expect(panel.hidden).toBe(false);
+    panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+    expect(panel.hidden).toBe(false);
+    outside.click();
+    expect(panel.hidden).toBe(true);
+  });
+
+  it('closes after a pick and returns focus to the trigger, which then shows the emoji', async () => {
+    mockFetch();
+    const c = buildContainer();
+    attachEmojiPicker(c);
+    const { trigger, panel } = open(c);
+    expect(c.querySelector('.icon-selector-emoji-current')!.textContent).toBe(DEFAULT_EMOJI_LABELS.none_selected);
+    expect(trigger.hasAttribute('aria-label')).toBe(false);
+    trigger.click();
+    await flush();
+    await flush();
+    (c.querySelector('[data-emoji="🚀"]') as HTMLButtonElement).click();
+    expect(panel.hidden).toBe(true);
+    expect(document.activeElement).toBe(trigger);
+    expect(c.querySelector('.icon-selector-emoji-trigger-glyph')!.textContent).toBe('🚀');
+    expect(trigger.getAttribute('aria-label')).toBe('Selected: 🚀 rocket');
+  });
+
+  it('switching tabs closes the open panels and destroy removes the floating panel', () => {
+    mockFetch();
+    const c = buildContainer();
+    const picker = c.querySelector('.icon-selector-picker') as HTMLElement;
+    picker.innerHTML = '<button type="button" data-icon-selector-target="trigger" aria-expanded="true"></button><div data-icon-selector-target="panel"></div>';
+    const dispose = attachEmojiPicker(c)!;
+    const [iconsTab, emojiTab] = Array.from(c.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    iconsTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    expect((picker.querySelector('[data-icon-selector-target="panel"]') as HTMLElement).hidden).toBe(true);
+    expect(picker.querySelector('[data-icon-selector-target="trigger"]')!.getAttribute('aria-expanded')).toBe('false');
+
+    const trigger = c.querySelector('.icon-selector-emoji-trigger') as HTMLButtonElement;
+    const panel = c.querySelector('.icon-selector-emoji-panel') as HTMLElement;
+    trigger.click();
+    expect(panel.hidden).toBe(false);
+    emojiTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    expect(panel.hidden).toBe(true);
+    expect((c.querySelector('.icon-selector-emoji-picker') as HTMLElement).hidden).toBe(true);
+
+    dispose();
+    expect(c.querySelector('.icon-selector-emoji-picker')).toBeNull();
+    expect(c.querySelector('.icon-selector-emoji-trigger')).toBeNull();
   });
 });
