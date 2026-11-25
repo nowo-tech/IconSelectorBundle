@@ -51,6 +51,12 @@
 
 ## To 1.9.2
 
+From **1.9.1**:
+
+```bash
+composer update nowo-tech/icon-selector-bundle
+```
+
 No configuration change. Run `assets:install` (or your asset pipeline) to get the rebuilt `icon-selector.js` and
 `icon-selector.css` (both are needed: the emoji panel is now laid out by the stylesheet).
 
