@@ -193,10 +193,12 @@ If you use a custom or third-party form theme not listed, set `form_theme` to th
 | `bootstrap` | The Bootstrap utility classes of 1.7 (`form-control`, `border rounded shadow-sm p-2 bg-white`, `btn btn-sm btn-outline-secondary` ...), unchanged |
 
 The `theme` is independent of `form_theme` (the Symfony form layout of the row). A field can override it with its
-`theme` option (`null` = this setting). The widget never sets inline styles with either theme (strict CSP); hosts can
+`theme` option (`null` = this setting). The widget never sets inline styles with either theme (strict CSP; the only exception, since 1.9.2, is the open
+panel's `top` / `left` / `width`, written through the CSSOM, which a strict `style-src` allows, and removed on close); hosts can
 restyle it through the semantic `icon-selector-*` classes and the `--icon-selector-*` custom properties on
 `.icon-selector-widget` (`--icon-selector-surface`, `--icon-selector-text`, `--icon-selector-muted`,
-`--icon-selector-border`, `--icon-selector-primary`, `--icon-selector-radius`, `--icon-selector-panel-z` ...).
+`--icon-selector-border`, `--icon-selector-primary`, `--icon-selector-radius`, `--icon-selector-panel-z`,
+`--icon-selector-panel-max-height` ...).
 
 ```yaml
 # config/packages/nowo_icon_selector.yaml — Symfony Beacon (UiKit host, strict CSP, committed icons only)

@@ -140,7 +140,7 @@ The following describes the security measures implemented in the bundle and rema
 | assetPath         | Implemented | Path traversal and invalid chars rejected; safe default used. |
 | Iconify API       | No SSRF | Keep config (e.g. icon_sets) non-user-controlled. |
 | Iconify SVG → DOM | Implemented | Client-side DOM allowlist sanitizer (fail closed) before innerHTML. |
-| Third-party / CSP | Implemented | Browser Iconify only with `source: iconify`; no inline styles; e2e under a nonce-only CSP. |
+| Third-party / CSP | Implemented | Browser Iconify only with `source: iconify`; no inline styles (open panel coordinates via CSSOM only); e2e under a nonce-only CSP. |
 | DoS               | MAX_IDS=500 | Consider rate limiting on public endpoints. |
 
 ## Preferred Languages

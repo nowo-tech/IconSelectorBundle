@@ -30,12 +30,10 @@ export default class IconSelectorController extends Controller {
   disconnect(): void {
     if (!(this.element instanceof HTMLElement)) return;
 
-    if (this.cleanup) {
-      this.cleanup();
-      this.cleanup = null;
-      return;
-    }
-
+    this.cleanup?.();
+    this.cleanup = null;
+    // The widget may have been disposed and set up again since connect() (Turbo hooks, 1.9.2): dispose whatever is
+    // registered on the element now (a no-op when nothing is).
     disposeIconSelectorContainer(this.element);
   }
 }

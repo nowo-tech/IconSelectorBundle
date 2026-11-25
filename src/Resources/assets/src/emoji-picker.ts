@@ -6,8 +6,13 @@
  * No inline scripts, no innerHTML with data: every label is set through textContent / attributes (CSP-safe).
  * 1.8: no inline styles either — the look comes from classes styled by icon-selector.css (theme tokens), the state
  * from attributes (aria-selected, aria-pressed, hidden).
+ * 1.9.2: the Emoji tab works like the Icons tab: a trigger button and the same floating panel (`.icon-selector-emoji-panel`
+ * is laid out like `.icon-selector-panel`: absolute
+ * under the trigger, opens upwards when there is no room below, closes on Escape / outside click / selection), so
+ * opening it never pushes the page content down.
  */
 
+import { trackFloatingPanel } from './floating-panel';
 import { partClass, themeOf, type WidgetThemeName } from './widget-theme';
 
 /** Container attribute: "1" when the field enables emoji mode. */
@@ -261,8 +266,14 @@ export class EmojiPicker {
   private tablist: HTMLElement | null = null;
   private tabIcons: HTMLButtonElement | null = null;
   private tabEmoji: HTMLButtonElement | null = null;
+  /** Emoji tab panel: the picker holder (trigger + floating panel), shown while the Emoji tab is selected. */
+  private holder: HTMLElement | null = null;
+  private trigger: HTMLButtonElement | null = null;
+  private glyph: HTMLElement | null = null;
+  /** Floating panel with the search, filters and grid. */
   private panel: HTMLElement | null = null;
   private current: HTMLElement | null = null;
+  private stopPlacement: (() => void) | null = null;
   private search: HTMLInputElement | null = null;
   private groupSelect: HTMLSelectElement | null = null;
   private toneSelect: HTMLSelectElement | null = null;
@@ -289,11 +300,13 @@ export class EmojiPicker {
   /** Removes the generated DOM and listeners, restores the fallback input type. */
   destroy(): void {
     this.destroyed = true;
+    this.stopPlacement?.();
+    this.stopPlacement = null;
     this.cleanups.forEach((c) => c());
     this.cleanups.length = 0;
     this.showIcons();
     this.tablist?.remove();
-    this.panel?.remove();
+    this.holder?.remove();
     if (this.restoreInputType !== null && this.valueEl instanceof HTMLInputElement) {
       const value = this.valueEl.value;
       this.valueEl.type = this.restoreInputType;
@@ -329,17 +342,37 @@ export class EmojiPicker {
     tablist.append(this.tabIcons, this.tabEmoji);
     this.tablist = tablist;
 
-    const panel = document.createElement('div');
-    panel.className = 'icon-selector-emoji-panel';
-    panel.id = `${this.id}-panel`;
-    panel.setAttribute('role', 'tabpanel');
-    panel.setAttribute('aria-labelledby', this.tabEmoji.id);
-    panel.hidden = true;
-    this.tabEmoji.setAttribute('aria-controls', panel.id);
+    // Same structure as the icon picker: a holder (position:relative) with the trigger and the floating panel.
+    const holder = document.createElement('div');
+    holder.className = partClass(this.theme, 'pickerWidget', 'icon-selector-emoji-picker');
+    holder.id = `${this.id}-picker`;
+    holder.setAttribute('role', 'tabpanel');
+    holder.setAttribute('aria-labelledby', this.tabEmoji.id);
+    holder.hidden = true;
+    this.tabEmoji.setAttribute('aria-controls', holder.id);
+    this.holder = holder;
 
-    const current = document.createElement('div');
-    current.className = 'icon-selector-emoji-current';
-    current.setAttribute('aria-live', 'polite');
+    const panel = document.createElement('div');
+    panel.className = partClass(this.theme, 'emojiPanel');
+    panel.id = `${this.id}-panel`;
+    panel.setAttribute('data-icon-selector-target', 'emoji-panel');
+    panel.hidden = true;
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = partClass(this.theme, 'emojiTrigger');
+    trigger.setAttribute('data-icon-selector-target', 'emoji-trigger');
+    // Same as the icon trigger (audit ZBM-I2).
+    trigger.setAttribute('aria-haspopup', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', panel.id);
+    const glyph = document.createElement('span');
+    glyph.className = 'icon-selector-emoji-trigger-glyph';
+    glyph.setAttribute('aria-hidden', 'true');
+    const current = document.createElement('span');
+    trigger.append(glyph, current);
+    this.trigger = trigger;
+    this.glyph = glyph;
     this.current = current;
 
     const controls = document.createElement('div');
@@ -379,11 +412,35 @@ export class EmojiPicker {
     grid.setAttribute('aria-label', this.labels.grid);
     this.grid = grid;
 
-    panel.append(current, controls, status, grid);
+    panel.append(controls, status, grid);
     this.panel = panel;
+    holder.append(trigger, panel);
 
     this.container.insertBefore(tablist, this.container.firstChild);
-    this.container.appendChild(panel);
+    // Right after the icon picker, so both tabs show their trigger at the same place.
+    const iconPicker = this.iconElements()[0];
+    if (iconPicker?.parentNode) iconPicker.after(holder);
+    else this.container.appendChild(holder);
+
+    this.on(trigger, 'click', () => this.setOpen(this.panel?.hidden === true));
+    this.on(trigger, 'keydown', (ev) => {
+      if (ev.key !== 'Escape' || this.panel?.hidden !== false) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.setOpen(false);
+    });
+    this.on(panel, 'keydown', (ev) => {
+      if (ev.key !== 'Escape') return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.setOpen(false);
+      this.trigger?.focus();
+    });
+    const onDocumentClick = (ev: Event): void => {
+      if (this.panel && !this.panel.hidden && !holder.contains(ev.target as Node)) this.setOpen(false);
+    };
+    document.addEventListener('click', onDocumentClick);
+    this.cleanups.push(() => document.removeEventListener('click', onDocumentClick));
 
     this.on(search, 'input', () => this.renderGrid());
     this.on(groupSelect, 'change', () => this.renderGrid());
@@ -430,12 +487,42 @@ export class EmojiPicker {
   /** Elements of the icon widget that make up the "Icons" tab panel (picker or Tom Select wrapper). */
   private iconElements(): HTMLElement[] {
     return Array.from(this.container.querySelectorAll<HTMLElement>('[data-icon-selector-target="picker"], .icon-selector-picker, .ts-wrapper'))
-      .filter((el) => !this.panel?.contains(el));
+      .filter((el) => !this.holder?.contains(el));
+  }
+
+  /** Whether the floating emoji panel is open. */
+  isOpen(): boolean {
+    return this.panel?.hidden === false;
+  }
+
+  /** Opens or closes the floating emoji panel (hidden attribute + aria-expanded, placement tracked while open). */
+  setOpen(open: boolean): void {
+    if (!this.panel || !this.holder) return;
+    this.panel.hidden = !open;
+    this.trigger?.setAttribute('aria-expanded', String(open));
+    this.stopPlacement?.();
+    this.stopPlacement = open ? trackFloatingPanel(this.panel, this.holder) : null;
+    if (open) void this.ensureLoaded();
+  }
+
+  /** Closes an open icon panel of the icon widget (the Icons tab is being hidden). */
+  private closeIconPanel(): void {
+    for (const el of this.iconElements()) {
+      // Through the icon widget (its trigger toggles the panel): it also stops the panel's placement tracking and
+      // leaves the top layer (audit ZBM-I1). Markup without a widget behind it is closed directly.
+      el.querySelectorAll<HTMLElement>('[data-icon-selector-target="trigger"][aria-expanded="true"]').forEach((t) => {
+        t.click();
+        if (t.getAttribute('aria-expanded') === 'true') t.setAttribute('aria-expanded', 'false');
+      });
+      el.querySelectorAll<HTMLElement>('[data-icon-selector-target="panel"]').forEach((p) => {
+        p.hidden = true;
+      });
+    }
   }
 
   /** Switches tabs; focusTab moves focus to the newly selected tab (keyboard / click). */
   activate(kind: 'icons' | 'emoji', focusTab: boolean): void {
-    if (!this.tabIcons || !this.tabEmoji || !this.panel) return;
+    if (!this.tabIcons || !this.tabEmoji || !this.holder) return;
     const emoji = kind === 'emoji';
     this.tabIcons.setAttribute('aria-selected', String(!emoji));
     this.tabEmoji.setAttribute('aria-selected', String(emoji));
@@ -444,10 +531,12 @@ export class EmojiPicker {
     this.tabIcons.classList.toggle('active', !emoji);
     this.tabEmoji.classList.toggle('active', emoji);
     this.container.setAttribute('data-icon-selector-tab', kind);
-    this.panel.hidden = !emoji;
+    if (!emoji) this.setOpen(false);
+    this.holder.hidden = !emoji;
 
     this.showIcons();
     if (emoji) {
+      this.closeIconPanel();
       // The hidden attribute alone: icon-selector.css gives [hidden] display:none !important inside the widget, so a
       // display class of the icon widget (Bootstrap d-flex, Tom Select) cannot show it again.
       this.iconsHidden = this.iconElements().filter((el) => !el.hasAttribute('hidden'));
@@ -582,18 +671,32 @@ export class EmojiPicker {
       const on = btn.dataset.emoji === emoji;
       btn.setAttribute('aria-pressed', String(on));
     });
+    // Like the icon panel: a pick closes the panel and gives focus back to the trigger.
+    if (this.isOpen()) {
+      this.setOpen(false);
+      this.trigger?.focus();
+    }
   }
 
-  /** Updates the "Selected: 🚀 rocket" line (text only). */
+  /** Updates the trigger: the emoji and its name, or the "No emoji selected" placeholder (text only). */
   private updateCurrent(): void {
-    if (!this.current) return;
+    if (!this.current || !this.glyph || !this.trigger) return;
     const emoji = emojiFromValue(this.value);
     if (emoji === null) {
+      this.glyph.textContent = '';
+      this.glyph.hidden = true;
+      this.current.className = partClass(this.theme, 'triggerPlaceholder', 'icon-selector-emoji-current');
       this.current.textContent = this.labels.none_selected;
+      this.trigger.removeAttribute('aria-label');
       return;
     }
     const name = this.dataset?.names.get(emoji);
-    this.current.textContent = `${this.labels.selected} ${emoji}${name ? ` ${name}` : ''}`;
+    this.glyph.textContent = emoji;
+    this.glyph.hidden = false;
+    this.current.className = partClass(this.theme, 'triggerLabel', 'icon-selector-emoji-current');
+    this.current.textContent = name ?? emoji;
+    // The visible text (the name) stays at the end of the accessible name (label in name).
+    this.trigger.setAttribute('aria-label', `${this.labels.selected} ${emoji}${name ? ` ${name}` : ''}`);
   }
 }
 

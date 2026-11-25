@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [To 1.9.2](#to-192)
 - [To 1.9.1](#to-191)
 - [To 1.9.0](#to-190)
 - [To 1.8.0](#to-180)
@@ -47,6 +48,28 @@
 - [Unreleased / 1.x](#unreleased--1x)
   - [Twig Extra Bundle (REQ-TWIG-004)](#twig-extra-bundle-req-twig-004)
   - [Twig-CS-Fixer (maintainers)](#twig-cs-fixer-maintainers)
+
+## To 1.9.2
+
+No configuration change. Run `assets:install` (or your asset pipeline) to get the rebuilt `icon-selector.js` and
+`icon-selector.css` (both are needed: the emoji panel is now laid out by the stylesheet).
+
+- **Emoji tab**: it now shows a trigger button (`.icon-selector-emoji-trigger`: the selected emoji and its name, or
+  "No emoji selected") and opens its search, filters and grid in a floating panel (`.icon-selector-emoji-panel`) like
+  the Icons tab, instead of drawing them in the page flow. Browser tests that clicked the Emoji tab and then an emoji
+  must click the trigger in between. The "Selected: …" text is now the trigger's accessible name (`aria-label`); the
+  visible `.icon-selector-emoji-current` text is the emoji's name. Host CSS for `.icon-selector-trigger` and
+  `.icon-selector-panel` keeps matching the icon part only.
+- **Open panels live in the top layer** (Popover API: `popover="manual"`, `data-icon-selector-layer="top"`), so a
+  container with `overflow: hidden` (for example a UiKit card) no longer clips them, for icons and emoji alike. While
+  open, the panel carries `top` / `left` / `width` set through the CSSOM (allowed by a strict CSP); they are removed on
+  close. Host CSS that positioned `.icon-selector-panel` relative to the picker (for example `top` / `left` overrides)
+  applies only in browsers without the Popover API. Panels open upwards near the bottom of the viewport
+  (`data-icon-selector-placement="above"`) and are capped by the new `--icon-selector-panel-max-height` token (default
+  `min(32rem, 85vh)`); override it on `.icon-selector-widget` if needed.
+- **Turbo Drive**: widgets are disposed on `turbo:before-cache` and set up again on `turbo:load` / `turbo:frame-load`,
+  with both the script and the Stimulus controller; a Turbo preview is not initialised. Pages restored from Turbo's
+  cache and pages that stay on screen after a frame navigation promoted to a visit keep working widgets.
 
 ## To 1.9.1
 

@@ -1,7 +1,8 @@
 /*
  * Icon Selector Bundle styles. Built into src/Resources/public/icon-selector.css together with the Tom Select
  * styles and linked by the form themes (include_stylesheet: true) or by the host layout. The widget never injects
- * inline <style> elements or style attributes (not even through element.style since 1.8), so it works under a
+ * inline <style> elements or style attributes (not even through element.style since 1.8, except the open panel's
+ * top / left / width written through the CSSOM since 1.9.2, see floating-panel.ts), so it works under a
  * nonce-only Content-Security-Policy and hosts can restyle every part with CSS.
  *
  * Themes (configuration / field option `theme`, attribute data-icon-selector-theme-value on the widget):
@@ -29,6 +30,8 @@
   --icon-selector-radius: var(--nowo-ui-radius, var(--bs-border-radius, .375rem));
   --icon-selector-shadow: 0 .5rem 1rem rgb(0 0 0 / .15);
   --icon-selector-panel-z: 1050;
+  /* Tallest the floating panel gets before it scrolls inside (icons and emoji alike). */
+  --icon-selector-panel-max-height: min(32rem, 85vh);
   /* Text drawn straight on the host page (emoji tabs), not on the widget surface. */
   --icon-selector-page-text: var(--icon-selector-text);
   --icon-selector-page-muted: var(--icon-selector-muted);
@@ -152,14 +155,38 @@
   position: relative;
 }
 
-.icon-selector-panel {
+.icon-selector-panel,
+.icon-selector-emoji-panel {
   position: absolute;
   top: 100%;
   left: 0;
   z-index: var(--icon-selector-panel-z, 1050);
   box-sizing: border-box;
   min-width: 100%;
+  max-height: var(--icon-selector-panel-max-height, min(32rem, 85vh));
   margin-top: .25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* 1.9.2: not enough room below the field and more above (set by the script on open, see floating-panel.ts). */
+:is(.icon-selector-panel, .icon-selector-emoji-panel)[data-icon-selector-placement="above"] {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: .25rem;
+}
+
+/* 1.9.2: while open, the panel is a manual popover in the top layer (Popover API, see floating-panel.ts), so an
+ * ancestor with overflow: hidden (a card, a scroll box) cannot clip it. The script writes top / left / width through
+ * the CSSOM; these rules undo the user-agent popover box (centred, inset: 0, margin: auto). */
+:is(.icon-selector-panel, .icon-selector-emoji-panel)[data-icon-selector-layer="top"] {
+  position: fixed;
+  inset: auto;
+  /* min-width: 100% of the fallback layout would now mean the viewport: the script sets the trigger's width. */
+  min-width: 0;
+  margin: 0;
+  color: inherit;
 }
 
 .icon-selector-grid-container,
@@ -229,7 +256,7 @@
  * UiKit theme: the parts without Bootstrap classes.
  * ---------------------------------------------------------------------------------------------------------------- */
 
-.icon-selector-widget[data-icon-selector-theme-value="uikit"] :is(.icon-selector-trigger, .icon-selector-control, .icon-selector-panel-search) {
+.icon-selector-widget[data-icon-selector-theme-value="uikit"] :is(.icon-selector-trigger, .icon-selector-emoji-trigger, .icon-selector-control, .icon-selector-panel-search) {
   box-sizing: border-box;
   width: 100%;
   min-height: 2.375rem;
@@ -242,7 +269,7 @@
   line-height: 1.5;
 }
 
-.icon-selector-widget[data-icon-selector-theme-value="uikit"] .icon-selector-trigger {
+.icon-selector-widget[data-icon-selector-theme-value="uikit"] :is(.icon-selector-trigger, .icon-selector-emoji-trigger) {
   display: flex;
   align-items: center;
   gap: .5rem;
@@ -261,7 +288,7 @@
   color: var(--icon-selector-muted);
 }
 
-.icon-selector-widget[data-icon-selector-theme-value="uikit"] .icon-selector-panel {
+.icon-selector-widget[data-icon-selector-theme-value="uikit"] :is(.icon-selector-panel, .icon-selector-emoji-panel) {
   padding: .5rem;
   border: 1px solid var(--icon-selector-border);
   border-radius: var(--icon-selector-radius);
@@ -327,7 +354,7 @@
   color: var(--icon-selector-primary-contrast);
 }
 
-.icon-selector-widget[data-icon-selector-theme-value="uikit"] :is(.icon-selector-trigger, .icon-selector-control, .icon-selector-panel-search, .icon-selector-filter, .icon-selector-item, .icon-selector-emoji-tab, .icon-selector-emoji-item, .icon-selector-emoji-control):focus-visible {
+.icon-selector-widget[data-icon-selector-theme-value="uikit"] :is(.icon-selector-trigger, .icon-selector-emoji-trigger, .icon-selector-control, .icon-selector-panel-search, .icon-selector-filter, .icon-selector-item, .icon-selector-emoji-tab, .icon-selector-emoji-item, .icon-selector-emoji-control):focus-visible {
   outline: 2px solid var(--icon-selector-primary);
   outline-offset: 1px;
 }
@@ -382,9 +409,12 @@
   font-weight: 600;
 }
 
-.icon-selector-emoji-current {
-  margin-bottom: .5rem;
-  color: var(--icon-selector-page-muted);
+/* 1.9.2: the Emoji tab shows a trigger like the Icons tab; its panel floats like .icon-selector-panel (rules above). */
+.icon-selector-emoji-trigger-glyph {
+  flex-shrink: 0;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .icon-selector-emoji-controls {
@@ -412,7 +442,7 @@
 }
 
 .icon-selector-emoji-status {
-  color: var(--icon-selector-page-muted);
+  color: var(--icon-selector-muted);
   font-size: .875em;
 }
 

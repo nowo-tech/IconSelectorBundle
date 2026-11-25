@@ -68,6 +68,10 @@ $builder->add('icon', IconSelectorType::class, [
   search box (CLDR English name and keywords, or paste the emoji), a category filter, a skin-tone selector and a grid of
   buttons with roving focus (arrows, Home/End, PageUp/PageDown; Enter/Space selects). The field opens on the Emoji tab
   when its value is an emoji.
+- Since 1.9.2 both tabs show a trigger button that opens the same kind of floating panel: it overlays the page (top
+  layer, so a card or scroll box with `overflow: hidden` does not clip it), never pushes it down, and opens upwards
+  when there is no room below. Escape or a click outside closes it; picking an emoji closes it and returns focus to the
+  trigger.
 - The stored value is `emoji:<grapheme>`, e.g. `emoji:🚀`, `emoji:👋🏽`, `emoji:🇪🇸`. Icons keep their `prefix:name` ids.
 - Server side, an `emoji:` value is accepted only if it is exactly one RGI emoji from the bundled catalogue (≤ 64 bytes).
   Anything else fails the field with the usual "invalid choice" error. To validate stored values elsewhere use the
@@ -142,9 +146,9 @@ Or with the helper: `{{ asset(nowo_icon_selector_asset_path('icon-selector.js'),
 
 The form themes link the stylesheet `icon-selector.css` (Tom Select styles included) next to each widget unless
 `include_stylesheet: false`; in that case add `<link rel="stylesheet" href="{{ asset('icon-selector.css', 'nowo_icon_selector') }}">`
-to your layout. The script injects no inline styles, so a nonce-only CSP needs no extra configuration.
+to your layout. The script injects no inline styles (only the open panel's position, through the CSSOM, which CSP allows), so a nonce-only CSP needs no extra configuration.
 
-The script runs on load, finds all `data-controller*="icon-selector"` elements and initializes them. It also starts a **MutationObserver**, so icon selectors injected later (e.g. from an API or Turbo frame) are initialized automatically.
+The script runs on load, finds all `data-controller*="icon-selector"` elements and initializes them. It also starts a **MutationObserver**, so icon selectors injected later (e.g. from an API or Turbo frame) are initialized automatically. With Turbo Drive (since 1.9.2, both Option A and Option B) the widgets are disposed on `turbo:before-cache` and set up again on `turbo:load` / `turbo:frame-load`, so a page restored from Turbo's cache (back/forward) gets working widgets instead of inert ones.
 
 ### Option B: Use as Stimulus controller
 
