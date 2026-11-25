@@ -16,9 +16,6 @@ test.beforeAll(() => {
 
 async function hideProfiler(page: Page): Promise<void> {
   await page.addStyleTag({ content: '.sf-toolbar, [id^="sfwdt"], .sf-minitoolbar { display: none !important; }' });
-  // The demo card (UiKit .nowo-ui-card) clips its overflow, which cuts the open floating panel at the card's bottom
-  // edge; the screenshots show the whole panel the way it looks on a page whose container does not clip.
-  await page.addStyleTag({ content: '[data-testid="demo-case"] { overflow: visible !important; }' });
 }
 
 /** Screenshot the panel plus any floating element (e.g. an open dropdown) that overflows it. */

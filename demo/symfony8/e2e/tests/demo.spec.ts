@@ -136,7 +136,17 @@ test.describe('icon selector demo', () => {
     expect(p.y).toBeGreaterThanOrEqual(t.y + t.height);
     expect(Math.round(p.x)).toBe(Math.round(t.x));
     expect(Math.round(p.width)).toBe(Math.round(t.width));
-    expect(await panel.evaluate((el) => getComputedStyle(el).position)).toBe('absolute');
+    // Top layer (popover): the demo card (UiKit .nowo-ui-card, overflow: hidden) does not clip it (audit ZBM-L3).
+    await expect(panel).toHaveAttribute('data-icon-selector-layer', 'top');
+    expect(await panel.evaluate((el) => el.matches(':popover-open'))).toBe(true);
+    const card = (await page.locator('[data-testid="demo-case"]').boundingBox())!;
+    expect(p.y + p.height).toBeGreaterThan(card.y + card.height);
+    const hit = await panel.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const at = document.elementFromPoint(r.left + r.width / 2, r.bottom - 6);
+      return at !== null && el.contains(at);
+    });
+    expect(hit).toBe(true);
 
     // Escape inside the panel closes it and gives focus back to the trigger.
     await page.getByRole('searchbox', { name: 'Search emoji...' }).focus();
@@ -165,6 +175,25 @@ test.describe('icon selector demo', () => {
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();
     await expect(panel).not.toHaveAttribute('data-icon-selector-placement', 'above');
+    // Closed: no popover, no coordinates left behind.
+    await expect(panel).not.toHaveAttribute('popover', /.*/);
+    await expect(panel).not.toHaveAttribute('style', /.*/);
+  });
+
+  test('the icon panel is not clipped by the demo card either (top layer)', async ({ page }) => {
+    await page.goto('/en/demo/grid');
+    await expect(page.locator('div.icon-selector-widget[data-icon-selector-enhanced="1"]')).toBeAttached();
+    await page.locator('.icon-selector-trigger').click();
+    const panel = page.locator('.icon-selector-panel');
+    await expect(panel.locator('.icon-selector-item').first()).toBeVisible();
+    await expect(panel).toHaveAttribute('data-icon-selector-layer', 'top');
+    const item = panel.locator('.icon-selector-item').nth(20);
+    await item.scrollIntoViewIfNeeded();
+    await expect(item).toBeVisible();
+    // Clickable where the card would have clipped it.
+    await item.click();
+    await expect(panel).toBeHidden();
+    expect(await page.locator('input[name$="[icon_direct]"]').inputValue()).not.toBe('');
   });
 
   test('emoji: the server rejects anything but one RGI emoji', async ({ page }) => {

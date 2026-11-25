@@ -344,5 +344,12 @@ test('theme bootstrap (default without UiKit) keeps the 1.7 classes and sets no 
   await expect(search.locator('.icon-selector-panel')).toHaveClass(/\bborder rounded shadow-sm p-2 bg-white\b/);
   await expect(search.locator('.icon-selector-trigger')).toHaveClass(/\bform-control form-control-sm\b/);
   await expect(search.locator('.icon-selector-item').first()).toBeVisible();
-  expect(await page.evaluate(() => Array.from(document.querySelectorAll('#icons_search_icon_selector [style], #icons_direct_icon_selector [style]')).length)).toBe(0);
+  // 1.9.2: the open panel is in the top layer with its position written through the CSSOM (allowed by the policy,
+  // no violation): top / left / width on the panel and nothing else.
+  const styled = (): Promise<string[]> => page.evaluate(() => Array.from(document.querySelectorAll('#icons_search_icon_selector [style], #icons_direct_icon_selector [style]'))
+    .map((el) => `${el.classList.contains('icon-selector-panel') ? 'panel' : el.tagName}:${Array.from((el as HTMLElement).style).sort().join(',')}`));
+  expect(await styled()).toEqual(['panel:left,top,width']);
+  await search.locator('.icon-selector-panel input').first().press('Escape');
+  await expect(search.locator('.icon-selector-panel')).toBeHidden();
+  expect(await styled()).toEqual([]);
 });

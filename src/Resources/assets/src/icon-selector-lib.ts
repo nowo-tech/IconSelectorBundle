@@ -2418,7 +2418,7 @@ function startObserving(): void {
     getLogger().debug('icon-selector: <body> replaced, observing the new one');
     if (hasUninitializedIconSelectorInNodes([body])) scheduleInit();
   }).observe(document.documentElement, { childList: true });
-  document.addEventListener('turbo:before-cache', disposeAllForCache);
+  registerTurboHooks();
   getLogger().debug('icon-selector: MutationObserver started for dynamic content');
 }
 
@@ -2428,6 +2428,24 @@ function startObserving(): void {
  * Tom Select instances, so its widgets would stay inert. Disposing them on `turbo:before-cache` puts the cached markup
  * back to its server-rendered state; a restored page is then initialized like a fresh one (body observer above).
  */
+let turboHooksRegistered = false;
+
+/**
+ * Registers the Turbo Drive hooks once per page, from the script path (startObserving) and from the Stimulus path
+ * (initIconSelectorContainer), so both ways of loading the widget get them (audit ZBM-L2):
+ * - `turbo:before-cache`: dispose the widgets so the cached snapshot holds server-rendered markup (ZBC-D-I3);
+ * - `turbo:load` / `turbo:frame-load`: initialise again whatever is not initialised. Turbo also fires
+ *   `turbo:before-cache` for a frame navigation promoted to a visit (`data-turbo-action="advance"`), where the page stays
+ *   on screen: the widgets disposed there are set up again here (audit ZBM-L1). runInit() skips initialised widgets.
+ */
+function registerTurboHooks(): void {
+  if (turboHooksRegistered) return;
+  turboHooksRegistered = true;
+  document.addEventListener('turbo:before-cache', disposeAllForCache);
+  document.addEventListener('turbo:load', runInit);
+  document.addEventListener('turbo:frame-load', runInit);
+}
+
 function disposeAllForCache(): void {
   document.querySelectorAll<HTMLElement>(ICON_SELECTOR_CONTAINER_SELECTOR).forEach((container) => {
     disposeIconSelectorContainer(container);
@@ -2451,6 +2469,10 @@ function isTurboPreview(): boolean {
 export function initIconSelectorContainer(container: HTMLElement): IconSelectorDisposer | false {
   if (!container.matches?.(ICON_SELECTOR_CONTAINER_SELECTOR)) return false;
   if (container.getAttribute(ATTR_INIT) === '1') return false;
+  // A Turbo preview is replaced by the fresh page right away: its widgets are initialized there, not twice (ZBM-I3:
+  // this also covers a Stimulus connect() inside the preview).
+  if (isTurboPreview()) return false;
+  registerTurboHooks();
 
   const readyGuard = createFormReadyGuard(container);
   let disposed = false;

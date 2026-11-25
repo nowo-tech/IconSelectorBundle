@@ -465,4 +465,26 @@ describe('EmojiPicker floating panel (1.9.2)', () => {
     expect(c.querySelector('.icon-selector-emoji-picker')).toBeNull();
     expect(c.querySelector('.icon-selector-emoji-trigger')).toBeNull();
   });
+
+  it('closes an open icon panel through its widget on a keyboard tab switch (ZBM-I1), trigger has aria-haspopup (ZBM-I2)', () => {
+    mockFetch();
+    const c = buildContainer();
+    const picker = c.querySelector('.icon-selector-picker') as HTMLElement;
+    picker.innerHTML = '<button type="button" data-icon-selector-target="trigger" aria-expanded="true"></button><div data-icon-selector-target="panel"></div>';
+    const iconTrigger = picker.querySelector('button') as HTMLButtonElement;
+    const iconPanel = picker.querySelector('[data-icon-selector-target="panel"]') as HTMLElement;
+    // Stands in for the icon widget's togglePanel(): it closes the panel (and would stop its tracking).
+    const toggle = vi.fn(() => {
+      iconPanel.hidden = true;
+      iconTrigger.setAttribute('aria-expanded', 'false');
+    });
+    iconTrigger.addEventListener('click', toggle);
+    attachEmojiPicker(c);
+    expect(c.querySelector('.icon-selector-emoji-trigger')!.getAttribute('aria-haspopup')).toBe('true');
+    const [iconsTab] = Array.from(c.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    iconsTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(iconPanel.hidden).toBe(true);
+    expect(iconTrigger.getAttribute('aria-expanded')).toBe('false');
+  });
 });

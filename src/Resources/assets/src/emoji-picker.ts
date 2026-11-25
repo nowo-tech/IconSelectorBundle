@@ -362,6 +362,8 @@ export class EmojiPicker {
     trigger.type = 'button';
     trigger.className = partClass(this.theme, 'emojiTrigger');
     trigger.setAttribute('data-icon-selector-target', 'emoji-trigger');
+    // Same as the icon trigger (audit ZBM-I2).
+    trigger.setAttribute('aria-haspopup', 'true');
     trigger.setAttribute('aria-expanded', 'false');
     trigger.setAttribute('aria-controls', panel.id);
     const glyph = document.createElement('span');
@@ -506,11 +508,14 @@ export class EmojiPicker {
   /** Closes an open icon panel of the icon widget (the Icons tab is being hidden). */
   private closeIconPanel(): void {
     for (const el of this.iconElements()) {
+      // Through the icon widget (its trigger toggles the panel): it also stops the panel's placement tracking and
+      // leaves the top layer (audit ZBM-I1). Markup without a widget behind it is closed directly.
+      el.querySelectorAll<HTMLElement>('[data-icon-selector-target="trigger"][aria-expanded="true"]').forEach((t) => {
+        t.click();
+        if (t.getAttribute('aria-expanded') === 'true') t.setAttribute('aria-expanded', 'false');
+      });
       el.querySelectorAll<HTMLElement>('[data-icon-selector-target="panel"]').forEach((p) => {
         p.hidden = true;
-      });
-      el.querySelectorAll<HTMLElement>('[data-icon-selector-target="trigger"][aria-expanded="true"]').forEach((t) => {
-        t.setAttribute('aria-expanded', 'false');
       });
     }
   }

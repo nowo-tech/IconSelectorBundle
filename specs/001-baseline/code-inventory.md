@@ -93,6 +93,7 @@
 | `Resources/assets/src/icon-selector-lib.test.ts` | Library tests | FR-ASSET-001 |
 | `Resources/assets/src/floating-panel.ts` | Floating panel placement (flip up) | FR-ASSET-003 |
 | `Resources/assets/src/floating-panel.test.ts` | Floating panel placement tests | FR-ASSET-003 |
+| `Resources/assets/src/icon-selector-turbo.test.ts` | Turbo hooks tests (Stimulus path) | FR-ASSET-001 |
 | `Resources/assets/controllers/icon_selector_controller.ts` | Stimulus controller | FR-ASSET-001 |
 | `Resources/assets/src/logger.ts` | Frontend logger | FR-ASSET-001 |
 | `Resources/assets/src/logger.test.ts` | Logger tests | FR-ASSET-001 |

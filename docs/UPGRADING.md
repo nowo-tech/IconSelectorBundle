@@ -60,12 +60,16 @@ No configuration change. Run `assets:install` (or your asset pipeline) to get th
   must click the trigger in between. The "Selected: …" text is now the trigger's accessible name (`aria-label`); the
   visible `.icon-selector-emoji-current` text is the emoji's name. Host CSS for `.icon-selector-trigger` and
   `.icon-selector-panel` keeps matching the icon part only.
-- **Panels open upwards** near the bottom of the viewport (`data-icon-selector-placement="above"`), and are capped by the
-  new `--icon-selector-panel-max-height` token (default `min(32rem, 85vh)`). Override it on `.icon-selector-widget` if
-  needed. A container with `overflow: hidden` (for example a card) still clips the open panel, as before for the icon
-  panel.
-- **Turbo Drive**: widgets are disposed on `turbo:before-cache` and a Turbo preview is not initialised, so pages
-  restored from Turbo's cache get working widgets.
+- **Open panels live in the top layer** (Popover API: `popover="manual"`, `data-icon-selector-layer="top"`), so a
+  container with `overflow: hidden` (for example a UiKit card) no longer clips them, for icons and emoji alike. While
+  open, the panel carries `top` / `left` / `width` set through the CSSOM (allowed by a strict CSP); they are removed on
+  close. Host CSS that positioned `.icon-selector-panel` relative to the picker (for example `top` / `left` overrides)
+  applies only in browsers without the Popover API. Panels open upwards near the bottom of the viewport
+  (`data-icon-selector-placement="above"`) and are capped by the new `--icon-selector-panel-max-height` token (default
+  `min(32rem, 85vh)`); override it on `.icon-selector-widget` if needed.
+- **Turbo Drive**: widgets are disposed on `turbo:before-cache` and set up again on `turbo:load` / `turbo:frame-load`,
+  with both the script and the Stimulus controller; a Turbo preview is not initialised. Pages restored from Turbo's
+  cache and pages that stay on screen after a frame navigation promoted to a visit keep working widgets.
 
 ## To 1.9.1
 

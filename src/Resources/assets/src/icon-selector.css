@@ -1,7 +1,8 @@
 /*
  * Icon Selector Bundle styles. Built into src/Resources/public/icon-selector.css together with the Tom Select
  * styles and linked by the form themes (include_stylesheet: true) or by the host layout. The widget never injects
- * inline <style> elements or style attributes (not even through element.style since 1.8), so it works under a
+ * inline <style> elements or style attributes (not even through element.style since 1.8, except the open panel's
+ * top / left / width written through the CSSOM since 1.9.2, see floating-panel.ts), so it works under a
  * nonce-only Content-Security-Policy and hosts can restyle every part with CSS.
  *
  * Themes (configuration / field option `theme`, attribute data-icon-selector-theme-value on the widget):
@@ -174,6 +175,18 @@
   bottom: 100%;
   margin-top: 0;
   margin-bottom: .25rem;
+}
+
+/* 1.9.2: while open, the panel is a manual popover in the top layer (Popover API, see floating-panel.ts), so an
+ * ancestor with overflow: hidden (a card, a scroll box) cannot clip it. The script writes top / left / width through
+ * the CSSOM; these rules undo the user-agent popover box (centred, inset: 0, margin: auto). */
+:is(.icon-selector-panel, .icon-selector-emoji-panel)[data-icon-selector-layer="top"] {
+  position: fixed;
+  inset: auto;
+  /* min-width: 100% of the fallback layout would now mean the viewport: the script sets the trigger's width. */
+  min-width: 0;
+  margin: 0;
+  color: inherit;
 }
 
 .icon-selector-grid-container,
