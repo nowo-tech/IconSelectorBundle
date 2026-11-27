@@ -12,7 +12,7 @@
 
 ## Requirements
 
-- PHP >= 8.2, < 8.6
+- PHP >= 8.2, < 8.7
 - Symfony ^7.0 || ^8.0
 - **symfony/ux-icons** ^1.0 || ^2.0 || ^3.0 (required; installed automatically with the bundle; used to render icons via `ux_icon()` in Twig)
 

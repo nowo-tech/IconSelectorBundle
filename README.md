@@ -66,7 +66,7 @@ return [
 
 ## Requirements
 
-- PHP >= 8.2, < 8.6
+- PHP >= 8.2, < 8.7
 - Symfony ^6.4 || ^7.0 || ^8.0
 - **symfony/ux-icons** ^2.17 || ^3.0 (required; 3.x needs PHP 8.4+ and Symfony 7.4+; used to render icons via `ux_icon()` in Twig)
 - For building assets (developers): Node.js, pnpm, Vite — see [Development](#development)
